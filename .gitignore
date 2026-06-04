@@ -1,0 +1,93 @@
+# ── Rhino working files ──────────────────────────────────────────
+# Only base_model.3dm is tracked. All iteration files excluded.
+aa_demo_versions/cliff_house_02/rhino_assets/*.3dmbak
+aa_demo_versions/cliff_house_02/rhino_assets/*.rhl
+aa_demo_versions/cliff_house_02/rhino_assets/aec_demo_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/aec_deno_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/Massing_model_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/floor_plans_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/recovery_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/export_blender_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/site_analysis_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/terrain.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/turbo_mansion_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/aa_last_minute_*.3dm
+aa_demo_versions/cliff_house_02/rhino_assets/cliff_house_01_assets/
+!aa_demo_versions/cliff_house_02/rhino_assets/base_model.3dm
+
+# ── Blender files ────────────────────────────────────────────────
+aa_demo_versions/cliff_house_02/blender_assets/
+
+# ── Cabin / stock assets (third-party, large) ────────────────────
+aa_demo_versions/cliff_house_02/cabin/
+aa_demo_versions/cliff_house_02/stock_assets/
+
+# ── Bug screenshots ──────────────────────────────────────────────
+aa_demo_versions/cliff_house_02/bugs/
+
+# ── Scene working files ──────────────────────────────────────────
+aa_demo_versions/cliff_house_02/scene_info/
+
+# ── Hermes working files (runtime output, not source) ────────────
+hermes/*.txt
+hermes/*.py
+hermes/*.cs
+hermes/*.json
+hermes/scripts/
+hermes/skills/
+hermes/vis_test*/
+hermes/vis_verify/
+hermes/win_setup/
+!hermes/DEMO_RULES.md
+
+# ── Transcripts ──────────────────────────────────────────────────
+transcripts/
+
+# ── Logs ─────────────────────────────────────────────────────────
+aa_demo_versions/cliff_house_01/
+aa_demo_versions/cliff_house_02/logs/
+
+# ── Reference technical images ───────────────────────────────────
+reference_technical/
+
+# ── Unrelated projects ───────────────────────────────────────────
+MotoMaps/
+
+# ── hermes_config (internal config, not for public) ──────────────
+hermes_config/
+
+# ── Blender templates (large binary) ─────────────────────────────
+_scene_templates/*.blend
+
+# ── Python cache ─────────────────────────────────────────────────
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# ── OS files ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Secrets ──────────────────────────────────────────────────────
+.env
+*.env
+secrets.json
+
+# ── Tools working files ──────────────────────────────────────────
+tools/*.zip
+tools/__pycache__/
+tools/_err.txt
+tools/*.png
+
+# ── Demo assets (large zip bundle) ──────────────────────────────
+aa_demo_versions/cliff_house_02/demo_assets/
+aa_demo_versions/cliff_house_02/work_to_do/
+aa_demo_versions/cliff_house_02/scripts/
+aa_demo_versions/cliff_house_02/screenshots/

@@ -1,0 +1,10 @@
+# Normalize line endings
+* text=auto
+
+# Binary files — no line ending conversion
+*.3dm binary
+*.blend binary
+*.png binary
+*.jpg binary
+*.hdr binary
+*.exr binary

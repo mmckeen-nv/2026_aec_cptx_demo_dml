@@ -1,0 +1,37 @@
+{
+  "connections": {
+    "4455": {
+      "host": "localhost",
+      "password": "bigfish",
+      "scene": "Claude-rhino_capture"
+    },
+    "4456": {
+      "host": "localhost",
+      "password": "bigfish",
+      "scene": "Claude-rhino_capture"
+    }
+  },
+  "items": {
+    "claude": {
+      "source": "claude_window",
+      "port": 4455,
+      "label": "Record Claude"
+    },
+    "rhino": {
+      "source": "Rhino_window",
+      "port": 4455,
+      "label": "Record Rhino"
+    },
+    "blender": {
+      "source": "blender_window",
+      "port": 4456,
+      "label": "Record Blender"
+    },
+    "display": {
+      "source": "Display Capture",
+      "port": 4456,
+      "label": "Record Display"
+    }
+  },
+  "capture_root": ""
+}
