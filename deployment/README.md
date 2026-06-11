@@ -87,11 +87,23 @@ memory:
   daystrom_dml:
     retrieval_policy: always
     timeout_seconds: 8
+    dcn:
+      mode: active_read
 sessions:
   write_json_snapshots: true
 ```
 
 `AGENTS.md` reinforces that DML should be treated as the continuity spine and that degraded DML/Ollama should be reported explicitly rather than silently behaving stateless.
+
+Runtime fix verified on `2026-06-11`/`2026-06-12`: the active `daystrom_dml` plugin now treats Windows `.cmd` launchers as available even when POSIX `os.access(..., X_OK)` returns false, and the profile uses valid DCN mode `active_read` instead of invalid `active_write`. Fresh smoke session `20260611_235216_a1dc22` logged:
+
+```text
+Memory provider 'daystrom_dml' registered
+Memory provider 'daystrom_dml' activated
+Daystrom DCN active-read ... "decision": "retrieve" ... "retrieve_dml": true ... "reason_codes": ["configured_always", "retrieve_dml"]
+```
+
+No fresh `Memory provider 'daystrom_dml' loaded but no provider instance found`, health-timeout, auxiliary-provider, or compression/memory-flush warnings were present after that smoke.
 
 ## Auxiliary summarization/compression posture
 

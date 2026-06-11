@@ -653,7 +653,16 @@ class DaystromDMLProvider(MemoryProvider):
         return self.dcn_requested_mode
 
     def is_available(self) -> bool:
-        return self.launcher.exists() and os.access(self.launcher, os.X_OK) and self.store_dir.exists()
+        # Windows .cmd/.bat launchers are executable through the shell even
+        # when POSIX-style os.access(..., X_OK) reports false. Hermes memory
+        # provider discovery calls is_available() before activation, so a
+        # strict execute-bit check incorrectly disables the DML provider on
+        # the AEC Windows demo profile.
+        if not self.launcher.exists() or not self.store_dir.exists():
+            return False
+        if os.name == "nt" and self.launcher.suffix.lower() in {".cmd", ".bat", ".exe"}:
+            return True
+        return os.access(self.launcher, os.X_OK)
 
     def initialize(self, session_id: str, **kwargs) -> None:
         self._session_id = self._shape_session_id(session_id, kwargs)

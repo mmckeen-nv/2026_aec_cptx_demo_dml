@@ -79,6 +79,10 @@ memory:
   daystrom_dml:
     retrieval_policy: always
     timeout_seconds: 8
+    # Valid DCN modes: active_read, active_learn, observe_only, disabled.
+    # The Windows AEC demo uses active_read plus sync_turns for stable retrieval/writeback.
+    dcn:
+      mode: active_read
 
 sessions:
   write_json_snapshots: true
