@@ -1,0 +1,38 @@
+# Sanitized Hermes profile config excerpt for the remote AEC CPTX demo deployment.
+# Source: DESKTOP-14FNBB2 / C:\Users\test\AppData\Local\hermes\profiles\aec-cptx\config.yaml
+# Do not commit live config.yaml, .env, auth files, state.db, sessions, logs, caches, or DML runtime stores.
+
+model:
+  # Remote deployment used a provider/model configured in the live profile.
+  # Set these locally with `hermes -p aec-cptx model` or `hermes -p aec-cptx config set ...`.
+  provider: custom
+  default: azure/anthropic/claude-opus-4-6
+  base_url: https://inference-api.nvidia.com/v1
+  api_key: ${AEC_DEMO_MODEL_API_KEY}
+  api_mode: codex_responses
+  context_length: 200000
+  ollama_num_ctx: 65536
+
+agent:
+  gateway_auto_continue_freshness: 3600
+
+compression:
+  enabled: true
+  threshold: 0.95
+  target_ratio: 0.85
+  protect_last_n: 10
+  hygiene_hard_message_limit: 400
+  protect_first_n: 3
+  abort_on_summary_failure: false
+  codex_gpt55_autoraise: true
+  preserve_first_n_turns: 0
+
+memory:
+  memory_enabled: true
+  provider: daystrom_dml
+  daystrom_dml:
+    retrieval_policy: always
+    timeout_seconds: 8
+
+sessions:
+  write_json_snapshots: true

@@ -1,0 +1,4 @@
+description: AEC CPTX demo agent profile for the 2026 architectural visualization
+  pipeline. Works in the WSL-hosted project root and controls Blender/OBS MCPs, with
+  Rhino MCP enabled after Rhino is installed.
+description_auto: false

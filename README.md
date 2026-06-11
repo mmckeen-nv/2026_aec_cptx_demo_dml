@@ -35,6 +35,8 @@ The agent does the work. The human watches, approves, and steers.
 
 ## Quick start
 
+### Local/rebuild path
+
 1. Clone this repo
 2. Open Hermes and set `ROOT` to the cloned directory in `README.md`
 3. Open Rhino and start the MCP server
@@ -42,6 +44,32 @@ The agent does the work. The human watches, approves, and steers.
 5. Hermes reads the session startup sequence and asks what to build next
 
 See [SETUP.md](SETUP.md) for full configuration instructions.
+
+### Current remote demo deployment
+
+The working AEC demo server deployment is captured under [`deployment/`](deployment/):
+
+- `deployment/aec-cptx-profile/` — sanitized Hermes `aec-cptx` profile artifacts copied from the remote server.
+- `deployment/windows-launchers/` — Windows desktop launcher scripts verified to start the interactive `aec-cptx` Hermes shell.
+
+Verified remote target:
+
+| Item | Value |
+|------|-------|
+| Windows host | `DESKTOP-14FNBB2` |
+| Windows user | `test` |
+| Hermes profile | `aec-cptx` |
+| Profile path | `C:\Users\test\AppData\Local\hermes\profiles\aec-cptx` |
+| Desktop launcher path | `C:\Users\test\Desktop` |
+| Best manual launcher | `START_HERMES_AEC_CPTX.cmd` |
+
+The launcher path was tested through an interactive TTY and reached the live Hermes prompt:
+
+```text
+aec-cptx ❯
+```
+
+Use `deployment/aec-cptx-profile/config.example.yaml` as a redacted reference for the live profile posture. Do **not** commit live `.env`, auth files, `state.db`, session logs, caches, or DML runtime stores.
 
 ---
 
@@ -55,6 +83,7 @@ aec_cptx_demo/
 ├── tools/              OBS controller, MCP wrappers, layer reveal scripts
 ├── scripts/            Blender Python: depth extraction, ComfyUI, render
 ├── docs/               Pipeline diagram and documentation
+├── deployment/         Sanitized remote `aec-cptx` profile + Windows launchers
 ├── aa_demo_versions/   Project files
 │   └── cliff_house_02/
 │       ├── user_prompts/project_prompt.md   ← fill this in for your project
