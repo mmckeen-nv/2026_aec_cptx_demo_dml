@@ -20,10 +20,18 @@ deployment/
 │   ├── profile.yaml
 │   ├── config.example.yaml      # sanitized excerpt, not live config
 │   └── Start-Hermes-AEC-Rhino-DML.ps1
+├── source/
+│   ├── hermes-agent/            # captured Hermes source, no venv/node_modules/.git
+│   ├── integrations/daystrom-dml/
+│   └── profiles/aec-cptx/plugins/daystrom_dml/
 └── windows-launchers/
     ├── Hermes-AEC-CPTX.bat
     └── START_HERMES_AEC_CPTX.cmd
 ```
+
+## Repository privacy
+
+This repository was changed to private before adding the captured Hermes/DML source snapshot.
 
 ## What is intentionally excluded
 

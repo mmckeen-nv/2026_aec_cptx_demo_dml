@@ -51,6 +51,7 @@ The working AEC demo server deployment is captured under [`deployment/`](deploym
 
 - `deployment/aec-cptx-profile/` — sanitized Hermes `aec-cptx` profile artifacts copied from the remote server.
 - `deployment/windows-launchers/` — Windows desktop launcher scripts verified to start the interactive `aec-cptx` Hermes shell.
+- `deployment/source/` — captured Hermes Agent source, Daystrom DML integration source, and the active profile Daystrom plugin copy from the working remote deployment.
 
 Verified remote target:
 

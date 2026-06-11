@@ -1,0 +1,36 @@
+﻿# GPU/Ollama-backed Daystrom DML profile for AEC CPTX Hermes demo.
+# Embeddings and summarization run through local Ollama; DML GPU mode is enforced by torch CUDA probe.
+capacity: 4000
+dml_top_k: 8
+token_budget: 800
+embedding_model: ollama:qwen3-embedding:0.6b
+embedding_device: cuda
+strict_embedding_required: true
+llm_backend: ollama
+model_name: llama3:8b
+strict_llm_required: true
+storage_dir: C:/Users/test/AppData/Local/hermes/integrations/daystrom-dml/stores/aec-cptx-runtime-store
+ingest_persist_mode: dml_only
+persistence:
+  enable: true
+  path: ./dml_state.jsonl
+  interval_sec: 120
+rag_store:
+  enable: true
+  enabled: true
+  path: ./rag_index.faiss
+  meta_path: ./rag_meta.json
+  backend: faiss
+  dim: 1024
+dpm:
+  enable: true
+  mode: active-write
+  preference_graph_path: ./dpm_preference_graph.json
+  relationship_id: relationship:mark-aec-cptx
+  project_id: project:cliff-house-02
+  token_budget: 80
+agentic_mode:
+  enabled: true
+  schema_validation: true
+  promotion_pipeline: true
+  scratch_to_durable_threshold: 0.7
