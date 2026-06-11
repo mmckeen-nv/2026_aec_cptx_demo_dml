@@ -72,6 +72,8 @@ aec-cptx ❯
 
 Use `deployment/aec-cptx-profile/config.example.yaml` as a redacted reference for the live profile posture. Do **not** commit live `.env`, auth files, `state.db`, session logs, caches, or DML runtime stores.
 
+Current remote Hermes/DML posture has also been verified for side-task summarization: auxiliary compression/title/web extraction resolve to the same working custom NVIDIA-compatible model endpoint as chat, `compression.threshold` is set to `0.85`, and a `hermes -p aec-cptx chat -q` smoke returned `AUXOK` with no fresh `Compression, summarization, and memory flush will not work` warnings. See [`deployment/README.md`](deployment/README.md#auxiliary-summarizationcompression-posture).
+
 ---
 
 ## Repository structure

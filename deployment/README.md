@@ -93,12 +93,51 @@ sessions:
 
 `AGENTS.md` reinforces that DML should be treated as the continuity spine and that degraded DML/Ollama should be reported explicitly rather than silently behaving stateless.
 
-## Known caveat
+## Auxiliary summarization/compression posture
 
-Remote logs showed auxiliary auto-detect warnings:
+The earlier remote logs showed auxiliary auto-detect warnings:
 
 ```text
 Compression, summarization, and memory flush will not work.
 ```
 
-That means DML retrieval can be configured correctly while compression/summarization/memory-flush paths are still degraded until an auxiliary provider or local summarization model is configured.
+That warning meant DML retrieval could be configured correctly while Hermes side-task LLM paths were still degraded. This is now resolved in the live `aec-cptx` profile by explicitly pinning auxiliary tasks to the same working custom NVIDIA-compatible endpoint/model as the main chat model:
+
+```yaml
+compression:
+  enabled: true
+  threshold: 0.85
+
+auxiliary:
+  compression:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+    context_length: 200000
+  title_generation:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  web_extract:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  goal_judge:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+```
+
+Additional aux task blocks (`approval`, `mcp`, `skills_hub`, `profile_describer`, `triage_specifier`, `kanban_decomposer`, `curator`, `tts_audio_tags`) are also pinned to `provider: custom` / `model: azure/anthropic/claude-opus-4-6` in the sanitized config example.
+
+Verification run on `2026-06-11`:
+
+```text
+compression.threshold 0.85
+resolved compression True azure/anthropic/claude-opus-4-6 https://inference-api.nvidia.com/v1/
+resolved title_generation True azure/anthropic/claude-opus-4-6 https://inference-api.nvidia.com/v1/
+resolved web_extract True azure/anthropic/claude-opus-4-6 https://inference-api.nvidia.com/v1/
+resolved goal_judge True azure/anthropic/claude-opus-4-6 https://inference-api.nvidia.com/v1/
+AUX_RESOLVE_OK
+session_id: 20260611_212123_572fed
+AUXOK
+RECENT_AUX_WARNINGS_AFTER_SMOKE=
+```
+
+`RECENT_AUX_WARNINGS_AFTER_SMOKE=` was empty, meaning no fresh `Auxiliary auto-detect: no provider available` / `Compression, summarization, and memory flush will not work` warnings were emitted by the smoke run.

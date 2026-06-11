@@ -18,7 +18,10 @@ agent:
 
 compression:
   enabled: true
-  threshold: 0.95
+  # 2026-06-11: lowered from 0.95 after aux-provider verification so
+  # compression triggers before the custom endpoint/model gets too close to
+  # its practical 200K context ceiling.
+  threshold: 0.85
   target_ratio: 0.85
   protect_last_n: 10
   hygiene_hard_message_limit: 400
@@ -26,6 +29,49 @@ compression:
   abort_on_summary_failure: false
   codex_gpt55_autoraise: true
   preserve_first_n_turns: 0
+
+# Auxiliary LLM tasks must not be left on blind auto-detect for this demo.
+# The remote profile explicitly pins side-task summarization to the same
+# working custom NVIDIA-compatible endpoint/model as chat, while keeping the
+# API key only in the live profile config/.env.
+auxiliary:
+  compression:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+    context_length: 200000
+  title_generation:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  web_extract:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  goal_judge:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  approval:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  mcp:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  skills_hub:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  profile_describer:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  triage_specifier:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  kanban_decomposer:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  curator:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
+  tts_audio_tags:
+    provider: custom
+    model: azure/anthropic/claude-opus-4-6
 
 memory:
   memory_enabled: true
