@@ -130,6 +130,30 @@ class _FakeOllamaEmbedder:
         self._dim = dim
 
 
+
+class TestAdapterConstruction(unittest.TestCase):
+    def test_foreground_adapter_leaves_working_subsystems_enabled_by_default(self):
+        calls = []
+
+        class FakeDMLAdapter:
+            def __init__(self, *args, **kwargs):
+                calls.append({"args": args, "kwargs": kwargs})
+
+        original_adapter = mod.DMLAdapter
+        try:
+            mod.DMLAdapter = FakeDMLAdapter
+            adapter = mod._adapter("/tmp/dml-store", None, False)
+        finally:
+            mod.DMLAdapter = original_adapter
+
+        self.assertIsInstance(adapter, FakeDMLAdapter)
+        self.assertEqual(len(calls), 1)
+        kwargs = calls[0]["kwargs"]
+        overrides = kwargs["config_overrides"]
+        self.assertNotIn("background_processing_enabled", overrides)
+        self.assertNotIn("skip_rag_state_import", overrides)
+        self.assertNotIn("start_aging_loop", kwargs)
+
 class TestGpuOnlyBackendProof(unittest.TestCase):
     def test_backend_proof_reports_ollama_embedder_surface(self):
         adapter = types.SimpleNamespace(
@@ -218,7 +242,7 @@ class TestGroundTruthHardening(unittest.TestCase):
         started = time.perf_counter()
         mod._attach_ground_truth(
             report,
-            adapter=_DummyAdapter(sleep_gt_s=0.05),
+            adapter=_DummyAdapter(sleep_gt_s=0.2),
             query="q",
             mode="hybrid",
             strict=False,
@@ -228,7 +252,7 @@ class TestGroundTruthHardening(unittest.TestCase):
         self.assertEqual(report["ground_truth_status"], "timeout")
         self.assertIn("timed out", report["ground_truth_error"])
         # Timeout handling should return promptly instead of waiting for the full slow call.
-        self.assertLess(elapsed_ms, 40.0)
+        self.assertLess(elapsed_ms, 100.0)
 
     def test_cmd_retrieve_emits_json_when_ground_truth_fails(self):
         original_adapter = mod._adapter

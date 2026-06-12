@@ -45,6 +45,11 @@ Do not commit or copy these from the live server:
 - DML runtime stores, caches, lock files, model caches, or Ollama data
 - `.lnk` files; recreate them locally if needed because they are machine-specific Windows shell artifacts
 
+
+## Best-code refresh
+
+Deployment source was refreshed on 2026-06-12 from `mmckeen-nv/DML` main at `3c1c86c` (`3c1c86cd2270aae6f7128ddc085f5ba72d5d421c`). The repository snapshot now matches the corrected default posture: DML runtime features are enabled by default because they work; opt-outs are explicit and should only be used for constrained, evidence-backed paths.
+
 ## Launcher behavior
 
 The verified manual launcher is:
