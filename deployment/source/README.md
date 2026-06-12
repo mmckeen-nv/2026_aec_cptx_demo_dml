@@ -35,6 +35,11 @@ The source snapshot intentionally excludes dependency/runtime/private state:
 
 The live remote deployment included local patches to the Daystrom DML foreground wrapper path and the active Hermes Daystrom plugin behavior. This captured source tree preserves the working code state alongside the AEC demo prompts, profile, and launchers so the deployment can be audited or reconstructed from this private repository.
 
+
+## Best-code refresh
+
+Refreshed on 2026-06-12 from `mmckeen-nv/DML` main at `3c1c86c` (`3c1c86cd2270aae6f7128ddc085f5ba72d5d421c`). This includes the corrected full-enabled DML default posture: Hermes DML retrieval defaults to `always`, and foreground `dml_memory.py` adapter calls no longer force-disable background processing, RAG state import, or the aging loop. Constrained opt-outs such as `heuristic`, `never`, and `skip_rag_state_import` remain explicit configuration choices.
+
 ## Secret hygiene
 
 This is a private repo, but do not add live secrets here. Keep provider API keys, OAuth tokens, OBS passwords, auth stores, and DML runtime data outside Git.
