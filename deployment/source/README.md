@@ -38,7 +38,9 @@ The live remote deployment included local patches to the Daystrom DML foreground
 
 ## Best-code refresh
 
-Refreshed on 2026-06-12 from `mmckeen-nv/DML` main at `3c1c86c` (`3c1c86cd2270aae6f7128ddc085f5ba72d5d421c`). This includes the corrected full-enabled DML default posture: Hermes DML retrieval defaults to `always`, and foreground `dml_memory.py` adapter calls no longer force-disable background processing, RAG state import, or the aging loop. Constrained opt-outs such as `heuristic`, `never`, and `skip_rag_state_import` remain explicit configuration choices.
+Refreshed on 2026-06-15 from the live remote AEC Hermes profile plus `mmckeen-nv/DML` main at `dbd3803` (`dbd3803c7513f74452280fd98c1b2fba824e5ea0`). This includes the corrected full-enabled DML default posture, first-class lattice placement metadata, summarizer preface cleanup, and Hermes gateway-wrapper hygiene so recent-channel preludes and injected `<memory-context>` / DPM scaffolding do not get stored as user memory.
+
+Fresh remote verification on `2026-06-15` confirmed `memory.provider: daystrom_dml`, `retrieval_policy: always`, plugin status `available`, wrapper stripping active, and `hermes -p aec-cptx chat -q` returned `REMOTE_DML_PATCH_OK`.
 
 ## Secret hygiene
 

@@ -48,7 +48,7 @@ Do not commit or copy these from the live server:
 
 ## Best-code refresh
 
-Deployment source was refreshed on 2026-06-12 from `mmckeen-nv/DML` main at `3c1c86c` (`3c1c86cd2270aae6f7128ddc085f5ba72d5d421c`). The repository snapshot now matches the corrected default posture: DML runtime features are enabled by default because they work; opt-outs are explicit and should only be used for constrained, evidence-backed paths.
+Deployment source was refreshed on 2026-06-15 from the live remote AEC Hermes profile plus `mmckeen-nv/DML` main at `dbd3803` (`dbd3803c7513f74452280fd98c1b2fba824e5ea0`). The repository snapshot now includes first-class DML lattice placement metadata, summarizer preface cleanup, and gateway-wrapper hygiene for Discord/Hermes payloads while keeping the corrected default posture: DML runtime features are enabled by default because they work; opt-outs are explicit and should only be used for constrained, evidence-backed paths.
 
 ## Launcher behavior
 
@@ -109,6 +109,17 @@ Daystrom DCN active-read ... "decision": "retrieve" ... "retrieve_dml": true ...
 ```
 
 No fresh `Memory provider 'daystrom_dml' loaded but no provider instance found`, health-timeout, auxiliary-provider, or compression/memory-flush warnings were present after that smoke.
+
+Runtime refresh verified on `2026-06-15` after syncing the latest DML/Hermes profile code to the remote server:
+
+```text
+HAS_RECENT_STRIP True
+POLICY_DEFAULT always
+STRIPPED [Mark_NV] real request
+Status: available ✓
+retrieval_policy: always
+REMOTE_DML_PATCH_OK
+```
 
 ## Auxiliary summarization/compression posture
 

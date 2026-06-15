@@ -88,6 +88,34 @@ def main() -> int:
     assert noisy["keep"] is False, noisy
     assert set(noisy["reasons"]) & {"smoke_or_self_test", "transcript_residue"}, noisy
 
+    leaked_gateway_message = (
+        '[Recent channel messages]\n'
+        '[Staggeredsix] uh why are we sending the following. "Here is a summary with 250 tokens or less" or whatever\n\n'
+        '[New message]\n'
+        '[Mark_NV] we need to not store that in every memory\n\n'
+        '<memory-context>\n'
+        '[System note: The following is recalled memory context, NOT new user input. Treat as authoritative reference data — this is the agent\'s persistent memory and should inform all responses.]\n\n'
+        '=== Daystrom Personality Matrix Overlay ===\n'
+        'Identity: Citizen Snips. Preferences: setup-helper style.\n'
+        '- Constraint: Current-turn instructions override the DPM overlay.\n'
+        '</memory-context>'
+    )
+    stripped = plugin._strip_injected_context(leaked_gateway_message)
+    assert "Recent channel messages" not in stripped, stripped
+    assert "Staggeredsix" not in stripped, stripped
+    assert "memory-context" not in stripped.lower(), stripped
+    assert "System note" not in stripped, stripped
+    assert "Personality Matrix" not in stripped, stripped
+    assert "Current-turn instructions" not in stripped, stripped
+    assert "we need to not store that in every memory" in stripped, stripped
+    classified_leak = plugin._classify_turn_memory(
+        leaked_gateway_message,
+        "Acknowledged; I will keep DML memory compact and not store injected wrappers.",
+    )
+    assert "memory-context" not in classified_leak.get("summary", "").lower(), classified_leak
+    assert "Personality Matrix" not in classified_leak.get("summary", ""), classified_leak
+    assert "Staggeredsix" not in classified_leak.get("summary", ""), classified_leak
+
     normal_queries = (
         "hello",
         "great, hows that looking for context window eating?",
@@ -133,17 +161,26 @@ def main() -> int:
     fake = FakeProvider()
     normal_prefetch = fake.prefetch("hello")
     assert "Daystrom Personality Matrix Overlay" in normal_prefetch, normal_prefetch
-    assert "DML Active Continuity" not in normal_prefetch, normal_prefetch
-    assert "DML Retrieved Memory" not in normal_prefetch, normal_prefetch
-    assert fake.resume_calls == 0, fake.resume_calls
-    assert fake.retrieve_calls == 0, fake.retrieve_calls
+    assert "DML Active Continuity" in normal_prefetch, normal_prefetch
+    assert "DML Retrieved Memory" in normal_prefetch, normal_prefetch
+    assert fake.resume_calls == 1, fake.resume_calls
+    assert fake.retrieve_calls == 1, fake.retrieve_calls
+
+    heuristic_fake = FakeProvider()
+    heuristic_fake.retrieval_policy = "heuristic"
+    heuristic_prefetch = heuristic_fake.prefetch("hello")
+    assert "Daystrom Personality Matrix Overlay" in heuristic_prefetch, heuristic_prefetch
+    assert "DML Active Continuity" not in heuristic_prefetch, heuristic_prefetch
+    assert "DML Retrieved Memory" not in heuristic_prefetch, heuristic_prefetch
+    assert heuristic_fake.resume_calls == 0, heuristic_fake.resume_calls
+    assert heuristic_fake.retrieve_calls == 0, heuristic_fake.retrieve_calls
 
     explicit_prefetch = fake.prefetch("rehydrate context after compaction")
     assert "Daystrom Personality Matrix Overlay" in explicit_prefetch, explicit_prefetch
     assert "DML Active Continuity" in explicit_prefetch, explicit_prefetch
     assert "DML Retrieved Memory" in explicit_prefetch, explicit_prefetch
-    assert fake.resume_calls == 1, fake.resume_calls
-    assert fake.retrieve_calls == 1, fake.retrieve_calls
+    assert fake.resume_calls == 2, fake.resume_calls
+    assert fake.retrieve_calls == 2, fake.retrieve_calls
 
     handoff = plugin._handoff_fragment(
         "assistant",
