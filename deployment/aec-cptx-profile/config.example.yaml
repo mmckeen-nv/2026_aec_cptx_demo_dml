@@ -15,6 +15,10 @@ model:
 
 agent:
   gateway_auto_continue_freshness: 3600
+  max_turns_auto_extend: true
+  max_turns_extension_policy: cognition
+  max_turns_extension: 30
+  max_turns_hard_cap: 300
 
 compression:
   enabled: true
