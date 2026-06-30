@@ -53,7 +53,7 @@ SHA256 8496bfd41daef5da0d5b2816ecb1b0ee08ca221ee9bbccab247d9f77492a71dc
 
 Notable live-state facts at capture:
 
-- Remote Hermes source had local modifications and unresolved website/package merge-conflict files; those are preserved here as part of the remote snapshot rather than silently reset.
+- Remote Hermes source had local modifications and unresolved website/package merge-conflict files at capture time; commit `df2bee8` resolves those markers in the repository snapshot while preserving the useful local skill-doc additions and taking upstream package metadata/lockfiles.
 - Remote profile model default remained `azure/anthropic/claude-opus-4-6` via the custom NVIDIA-compatible endpoint.
 - Remote profile also carried NVIDIA GLM 5.2 as an available/vision model option: `nvidia/zai-org/glm-5.2`.
 - Remote DML store health for `stores/aec-cptx-runtime-store` was `status: ok`, `record_count: 123`, `active_continuity_count: 23`, and checksum OK.
