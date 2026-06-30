@@ -1,0 +1,40 @@
+[
+  {
+    "session_id": "proc_dcc272d0a7db",
+    "command": "cd \"C:/Users/test/ComfyUI\" && python main.py --listen 127.0.0.1 --port 8188 2>&1",
+    "pid": 13772,
+    "pid_scope": "host",
+    "cwd": "C:\\Users\\test\\ComfyUI",
+    "started_at": 1782831840.5362267,
+    "task_id": "default",
+    "session_key": "20260630_070812_1d2cc4",
+    "watcher_platform": "",
+    "watcher_chat_id": "",
+    "watcher_user_id": "",
+    "watcher_user_name": "",
+    "watcher_thread_id": "",
+    "watcher_message_id": "",
+    "watcher_interval": 0,
+    "notify_on_complete": false,
+    "watch_patterns": []
+  },
+  {
+    "session_id": "proc_ed4d1358e721",
+    "command": "# Launch MCPGameProject in UE 5.8 - the plugin will start TCP server on 55557\necho \"=== Launching MCPGameProject in UE 5.8 ===\"\n\"/c/Program Files/Epic Games/UE_5.8/Engine/Binaries/Win64/UnrealEditor.exe\" \\\n  \"C:\\Users\\test\\Documents\\unreal-mcp\\MCPGameProject\\MCPGameProject.uproject\" 2>&1\necho \"UE exit code: $?\"",
+    "pid": 26288,
+    "pid_scope": "host",
+    "cwd": "C:\\Users\\test\\Documents\\unreal-mcp\\MCPGameProject",
+    "started_at": 1782843182.4969254,
+    "task_id": "default",
+    "session_key": "20260630_093632_8a06dd",
+    "watcher_platform": "",
+    "watcher_chat_id": "",
+    "watcher_user_id": "",
+    "watcher_user_name": "",
+    "watcher_thread_id": "",
+    "watcher_message_id": "",
+    "watcher_interval": 0,
+    "notify_on_complete": false,
+    "watch_patterns": []
+  }
+]

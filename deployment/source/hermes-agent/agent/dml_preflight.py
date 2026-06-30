@@ -13,8 +13,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
-from hermes_constants import get_default_hermes_root
-
 
 def _as_bool(value: Any) -> bool:
     if isinstance(value, bool):
@@ -30,13 +28,7 @@ def _expand_path(raw: Any, *, hermes_home: Path) -> Path | None:
     text = os.path.expandvars(os.path.expanduser(text))
     path = Path(text)
     if not path.is_absolute():
-        # Default DML paths are rooted at the Hermes install root (not an
-        # individual profile home) so profile-specific homes can still find the
-        # shared Hermes-owned DML handoff under <root>/hermes-agent/....  Fall
-        # back to the profile home for custom relative paths.
-        root_candidate = get_default_hermes_root() / path
-        profile_candidate = hermes_home / path
-        path = root_candidate if root_candidate.exists() else profile_candidate
+        path = hermes_home / path
     return path
 
 

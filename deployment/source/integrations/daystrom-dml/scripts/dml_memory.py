@@ -13,7 +13,10 @@ import sys
 import tarfile
 import time
 import errno
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Windows fallback: single-user lab install uses metadata-only lock.
+    fcntl = None
 import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from contextlib import contextmanager
@@ -337,7 +340,8 @@ def _store_write_lock(storage_dir: str, *, operation: str, timeout_ms: int = 0):
     try:
         while True:
             try:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                if fcntl is not None:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                 acquired = True
                 break
             except OSError as exc:
@@ -373,7 +377,8 @@ def _store_write_lock(storage_dir: str, *, operation: str, timeout_ms: int = 0):
                     lock_meta_path.unlink()
             except Exception:
                 pass
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
         handle.close()
 
 
@@ -1082,6 +1087,12 @@ def _adapter(storage_dir: str, config_path: str | None, require_gpu: bool) -> DM
             "dml.agentic_mode.enabled": True,
             "embedding_device": "cuda" if require_gpu else None,
             "strict_llm_required": False,
+            # Hermes invokes this wrapper for short-lived foreground memory calls.
+            # Do not let adapter startup perform background aging/summarization or
+            # rebuild/import the auxiliary RAG index; those can block on local
+            # Ollama and prevent the actual retrieve/ingest command from running.
+            "background_processing_enabled": False,
+            "skip_rag_state_import": True,
             "dpm": {
                 "enable": dpm_enable,
                 "mode": dpm_mode,
@@ -1091,6 +1102,7 @@ def _adapter(storage_dir: str, config_path: str | None, require_gpu: bool) -> DM
                 "token_budget": int(os.environ.get("DAYSTROM_DPM_TOKEN_BUDGET", "80")),
             },
         },
+        start_aging_loop=False,
     )
     if require_gpu:
         _assert_gpu_only(adapter)

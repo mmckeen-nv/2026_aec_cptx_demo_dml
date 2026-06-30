@@ -112,6 +112,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("status", "Show session info", "Session"),
     CommandDef("whoami", "Show your slash command access (admin / user)", "Info"),
     CommandDef("profile", "Show active profile name and home directory", "Info"),
+    CommandDef("dml-help", "Show Daystrom DML config, preflight, and runtime hook status", "Info"),
     CommandDef("sethome", "Set this chat as the home channel", "Session",
                gateway_only=True, aliases=("set-home",)),
     CommandDef("resume", "Resume a previously-named session", "Session",
@@ -124,7 +125,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("config", "Show current configuration", "Configuration",
                cli_only=True),
     CommandDef("model", "Switch model for this session", "Configuration",
-               args_hint="[model] [--provider name] [--global] [--refresh]"),
+               aliases=("provider",), args_hint="[model] [--provider name] [--global] [--refresh]"),
     CommandDef("codex-runtime", "Toggle codex app-server runtime for OpenAI/Codex models",
                "Configuration", aliases=("codex_runtime",),
                args_hint="[auto|codex_app_server]"),
@@ -167,13 +168,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True),
     CommandDef("skills", "Search, install, inspect, or manage skills",
                "Tools & Skills", cli_only=True,
-               gateway_config_gate="skills.write_approval",
-               subcommands=("search", "browse", "inspect", "install", "audit",
-                            "pending", "approve", "reject", "diff", "approval")),
-    CommandDef("memory", "Review pending memory writes / toggle the approval gate",
-               "Tools & Skills",
-               args_hint="[pending|approve|reject|approval] [id|on|off]",
-               subcommands=("pending", "approve", "reject", "approval")),
+               subcommands=("search", "browse", "inspect", "install", "audit")),
     CommandDef("bundles", "List skill bundles (aliases /<name> for multiple skills)",
                "Tools & Skills"),
     CommandDef("cron", "Manage scheduled tasks", "Tools & Skills",
@@ -222,7 +217,6 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("image", "Attach a local image file for your next prompt", "Info",
                cli_only=True, args_hint="<path>"),
     CommandDef("update", "Update Hermes Agent to the latest version", "Info"),
-    CommandDef("version", "Show Hermes Agent version", "Info", aliases=("v",)),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info"),
 
     # Exit
@@ -356,7 +350,6 @@ ACTIVE_SESSION_BYPASS_COMMANDS: frozenset[str] = frozenset(
         "steer",
         "stop",
         "update",
-        "version",
     }
 )
 
@@ -1079,6 +1072,16 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
         entries.append((slack_name, desc[:140], hint[:100]))
         seen.add(slack_name)
 
+    # Preserve short, heavily documented aliases even as the canonical command
+    # list grows toward Slack's hard 50-command app limit.  Without this
+    # priority pass, adding one new gateway command can silently push aliases
+    # like /q out of Slack native registration.
+    priority_aliases = ("btw", "bg", "reset", "q")
+    for alias in priority_aliases:
+        cmd = resolve_command(alias)
+        if cmd is not None and _is_gateway_available(cmd, overrides):
+            _add(alias, f"Alias for /{cmd.name} — {cmd.description}", cmd.args_hint or "")
+
     # First pass: canonical names (so they win slots if we hit the cap).
     for cmd in COMMAND_REGISTRY:
         if not _is_gateway_available(cmd, overrides):
@@ -1154,6 +1157,41 @@ def slack_subcommand_map() -> dict[str, str]:
 # ---------------------------------------------------------------------------
 # Autocomplete
 # ---------------------------------------------------------------------------
+
+
+# Per-process cache for /model<space> LM Studio autocomplete. Probing on
+# every keystroke would block the UI; a short TTL keeps it live without
+# hammering the server.
+_LMSTUDIO_COMPLETION_CACHE: tuple[float, list[str]] | None = None
+
+
+def _lmstudio_completion_models() -> list[str]:
+    """Locally-loaded LM Studio models for /model autocomplete (cached, gated)."""
+    global _LMSTUDIO_COMPLETION_CACHE
+    # Gate: don't probe 127.0.0.1 on every keystroke for users who don't use LM Studio.
+    if not (os.environ.get("LM_API_KEY") or os.environ.get("LM_BASE_URL")):
+        try:
+            from hermes_cli.auth import _load_auth_store
+            store = _load_auth_store() or {}
+            if "lmstudio" not in (store.get("providers") or {}) \
+               and "lmstudio" not in (store.get("credential_pool") or {}):
+                return []
+        except Exception:
+            return []
+    now = time.time()
+    if _LMSTUDIO_COMPLETION_CACHE and (now - _LMSTUDIO_COMPLETION_CACHE[0]) < 30.0:
+        return _LMSTUDIO_COMPLETION_CACHE[1]
+    try:
+        from hermes_cli.models import fetch_lmstudio_models
+        models = fetch_lmstudio_models(
+            api_key=os.environ.get("LM_API_KEY", ""),
+            base_url=os.environ.get("LM_BASE_URL") or "http://127.0.0.1:1234/v1",
+            timeout=0.8,
+        )
+    except Exception:
+        models = []
+    _LMSTUDIO_COMPLETION_CACHE = (now, models)
+    return models
 
 
 class SlashCommandCompleter(Completer):
@@ -1572,6 +1610,52 @@ class SlashCommandCompleter(Completer):
         except Exception:
             pass
 
+    def _model_completions(self, sub_text: str, sub_lower: str):
+        """Yield completions for /model from config aliases + built-in aliases."""
+        seen = set()
+        # Config-based direct aliases (preferred — include provider info)
+        try:
+            from hermes_cli.model_switch import (
+                _ensure_direct_aliases, DIRECT_ALIASES, MODEL_ALIASES,
+            )
+            _ensure_direct_aliases()
+            for name, da in DIRECT_ALIASES.items():
+                if name.startswith(sub_lower) and name != sub_lower:
+                    seen.add(name)
+                    yield Completion(
+                        name,
+                        start_position=-len(sub_text),
+                        display=name,
+                        display_meta=f"{da.model} ({da.provider})",
+                    )
+            # Built-in catalog aliases not already covered
+            for name in sorted(MODEL_ALIASES.keys()):
+                if name in seen:
+                    continue
+                if name.startswith(sub_lower) and name != sub_lower:
+                    identity = MODEL_ALIASES[name]
+                    yield Completion(
+                        name,
+                        start_position=-len(sub_text),
+                        display=name,
+                        display_meta=f"{identity.vendor}/{identity.family}",
+                    )
+        except Exception:
+            pass
+        # LM Studio: surface locally-loaded models. Gated on the user actually
+        # having LM Studio configured (env var or auth-store entry) so we
+        # don't probe 127.0.0.1 on every keystroke for users who don't use it.
+        for name in _lmstudio_completion_models():
+            if name in seen:
+                continue
+            if name.startswith(sub_lower) and name != sub_lower:
+                yield Completion(
+                    name,
+                    start_position=-len(sub_text),
+                    display=name,
+                    display_meta="LM Studio",
+                )
+
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
         if not text.startswith("/"):
@@ -1595,6 +1679,9 @@ class SlashCommandCompleter(Completer):
 
             # Dynamic completions for commands with runtime lists
             if " " not in sub_text:
+                if base_cmd == "/model":
+                    yield from self._model_completions(sub_text, sub_lower)
+                    return
                 if base_cmd == "/skin":
                     yield from self._skin_completions(sub_text, sub_lower)
                     return
@@ -1712,7 +1799,7 @@ class SlashCommandAutoSuggest(AutoSuggest):
                     return Suggestion(cmd_name[len(word):])
             return None
 
-        # Command is complete — suggest subcommands
+        # Command is complete — suggest subcommands or model names
         sub_text = parts[1] if len(parts) > 1 else ""
         sub_lower = sub_text.lower()
 

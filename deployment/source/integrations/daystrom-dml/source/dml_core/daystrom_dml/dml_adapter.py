@@ -218,37 +218,23 @@ class DMLAdapter:
         else:
             self.persistent_rag_store = None
 
-        # Initialize Agentic Mode components.  Config may arrive from legacy
-        # flat-key overrides ("dml.agentic_mode.enabled") or from normal YAML /
-        # Pydantic model_dump() nested dictionaries (agentic_mode.enabled).  The
-        # nested shape is the portable profile contract; keep flat keys as a
-        # compatibility fallback for older harnesses.
-        dml_cfg = self.config.get("dml", {})
-        if not isinstance(dml_cfg, dict):
-            dml_cfg = {}
-        agentic_cfg = self.config.get("agentic_mode")
-        if not isinstance(agentic_cfg, dict):
-            agentic_cfg = dml_cfg.get("agentic_mode", {})
-        if isinstance(agentic_cfg, dict):
-            self.agentic_mode_enabled = bool(
-                agentic_cfg.get("enabled", self.config.get("dml.agentic_mode.enabled", False))
-            )
+        # Initialize Agentic Mode components
+        # NOTE: config is a nested dict from Pydantic model_dump(), so use
+        # nested access instead of flat dot-key lookups (which always miss).
+        _agentic_cfg = self.config.get("agentic_mode", {})
+        if isinstance(_agentic_cfg, dict):
+            self.agentic_mode_enabled = bool(_agentic_cfg.get("enabled", False))
         else:
             self.agentic_mode_enabled = bool(self.config.get("dml.agentic_mode.enabled", False))
         self.agentic_router: Optional[PolicyRouter] = None
 
         if self.agentic_mode_enabled:
-            router_candidates = [self.config.get("router")]
-            if isinstance(agentic_cfg, dict):
-                router_candidates.append(agentic_cfg.get("router"))
-            router_candidates.append(dml_cfg.get("router"))
-            dml_agentic_cfg = dml_cfg.get("agentic_mode")
-            if isinstance(dml_agentic_cfg, dict):
-                router_candidates.append(dml_agentic_cfg.get("router"))
-            router_cfg = next((candidate for candidate in router_candidates if isinstance(candidate, dict) and candidate), {})
-            router_enabled = bool(router_cfg.get("enabled", self.config.get("dml.router.enabled", True)))
-            router_profile = router_cfg.get("profile", self.config.get("dml.router.profile"))
-            router_log = router_cfg.get("log_level", self.config.get("dml.router.log_level", "info"))
+            _router_cfg = self.config.get("router", {})
+            if not isinstance(_router_cfg, dict):
+                _router_cfg = {}
+            router_enabled = bool(_router_cfg.get("enabled", True))  # default ON when agentic_mode is on
+            router_profile = _router_cfg.get("profile")
+            router_log = _router_cfg.get("log_level", "info")
 
             self.agentic_router = PolicyRouter(
                 enabled=router_enabled,
@@ -260,9 +246,7 @@ class DMLAdapter:
 
             # Initialize promotion pipeline
             self.agentic_promotion = PromotionPipeline(
-                commitment_threshold=float(
-                    self.config.get("commitment_threshold", self.config.get("dml.commitment_threshold", 0.75))
-                ),
+                commitment_threshold=float(self.config.get("commitment_threshold", 0.75)),
                 allow_action_observation=True,
                 strict_mode=True,
             )

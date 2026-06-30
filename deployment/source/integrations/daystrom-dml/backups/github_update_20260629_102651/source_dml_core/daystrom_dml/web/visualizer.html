@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DML Lattice View</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/styles.css?v=activation-layers" />
+    <style>
+      body {
+        overflow: hidden;
+      }
+
+      .full-lattice-shell {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        height: 100vh;
+        padding: 16px;
+        gap: 12px;
+      }
+
+      .full-lattice-header {
+        align-items: center;
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+      }
+
+      .full-lattice-header h1 {
+        font-size: clamp(1.6rem, 3vw, 3rem);
+        margin: 0;
+      }
+
+      .full-lattice-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .full-lattice-stage {
+        min-height: 0;
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #101314;
+        overflow: hidden;
+      }
+
+      .full-lattice-stage .lattice-svg {
+        height: 100%;
+      }
+
+      .full-lattice-help {
+        position: absolute;
+        left: 14px;
+        bottom: 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(17, 21, 22, 0.86);
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        padding: 8px 12px;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="full-lattice-shell">
+      <header class="full-lattice-header">
+        <div>
+          <p class="eyebrow">Daystrom Memory Lattice</p>
+          <h1>Full Lattice</h1>
+        </div>
+        <div class="full-lattice-actions">
+          <span id="visualizer-page-status" class="mini-pill">loading</span>
+          <button id="reset-lattice-view" class="secondary" type="button">Reset View</button>
+          <a class="button-link secondary" href="/" rel="noopener">Back to Demo</a>
+        </div>
+      </header>
+      <section class="full-lattice-stage">
+        <svg id="full-lattice-svg" class="lattice-svg" role="img" aria-label="Full DML lattice"></svg>
+        <div id="visualizer-placeholder">Loading lattice nodes.</div>
+        <div class="full-lattice-help">Drag to move · Shift-drag to rotate · scroll to zoom · double-click to reset</div>
+      </section>
+    </main>
+    <script src="/static/visualizer.js?v=activation-layers" defer></script>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+20:43:22 ENTER: queued interrupt msg='stop', agent_running=True
+20:43:22 interrupt fired: msg='stop', children=0, parent._interrupt=True
+20:43:34 interrupt fired: msg='are you leveraging the DML that has been installed?', children=0, parent._interrupt=True
+20:43:34 ENTER: queued interrupt msg='are you leveraging the DML that has been installed?', agent_running=True
+16:41:46 interrupt fired: msg='are you going to continue?', children=0, parent._interrupt=True
+16:47:25 interrupt fired: msg='why did you not use the DML? That should be used to give you', children=0, parent._interrupt=True
+16:47:25 ENTER: queued interrupt msg='why did you not use the DML? That should be used to give you', agent_running=True
+18:21:55 ENTER: queued interrupt msg='that was incorrect', agent_running=True
+18:21:55 interrupt fired: msg='that was incorrect', children=0, parent._interrupt=True
+18:22:31 interrupt fired: msg='nope, you ruined it. stop', children=0, parent._interrupt=True
+18:57:27 interrupt fired: msg='I think we need to add all the fancy pants stuff to the empi', children=0, parent._interrupt=True
+08:40:26 ENTER: queued interrupt msg='I can see the render completely, did you do the interior?', agent_running=True
+08:40:26 interrupt fired: msg='I can see the render completely, did you do the interior?', children=0, parent._interrupt=True
+09:32:06 interrupt fired: msg="I'd like an ultra-modern even futuristic airport with three ", children=0, parent._interrupt=True
+11:28:48 ENTER: queued interrupt msg="I'm already pushing the fix to github so we are good", agent_running=True
+pt=True
+16:09:16 ENTER: queued interrupt msg='why would the DML be trying to use port 8000? it should be u', agent_running=True
+16:09:16 interrupt fired: msg='why would the DML be trying to use port 8000? it should be u', children=0, parent._interrupt=True
+06:38:55 ENTER: queued interrupt msg='please use the inference API key that has been saved to test', agent_running=True
+06:38:55 interrupt fired: msg='please use the inference API key that has been saved to test', children=0, parent._interrupt=True
+06:38:55 ENTER: queued interrupt msg='{', agent_running=True
+06:38:57 ENTER: queued interrupt msg='"model": "nvidia/zai-org/glm-5.2",', agent_running=True
+06:38:57 ENTER: queued interrupt msg='"messages": [', agent_running=True
+06:38:57 interrupt fired: msg='"messages": [', children=0, parent._interrupt=True
+06:39:00 ENTER: queued interrupt msg='{"role": "system", "content": "You are a helpful assistant."', agent_running=True
+06:39:03 ENTER: queued interrupt msg='{"role": "user", "content": "Hello! Can you help me?"}', agent_running=True
+06:39:03 ENTER: queued interrupt msg='],', agent_running=True
+06:39:04 ENTER: queued interrupt msg='"temperature": 0.7,', agent_running=True
+06:39:05 ENTER: queued interrupt msg='"max_tokens": 1024', agent_running=True
+06:40:09 interrupt fired: msg='{"role": "system", "content": "You are a helpful assistant."', children=0, parent._interrupt=True
+06:43:10 ENTER: queued interrupt msg="here's the API key, save it as inference.env so we can get b", agent_running=True
+06:43:10 interrupt fired: msg="here's the API key, save it as inference.env so we can get b", children=0, parent._interrupt=True
+06:45:08 ENTER: queued interrupt msg='did you test the new model on inference.nvidia.com?', agent_running=True
+pt=True
+06:46:14 ENTER: queued interrupt msg='great, save that as a failover model', agent_running=True
+pt=True
+08:07:36 interrupt fired: msg='lets fine tune the prompts for comfy - those images are too ', children=0, parent._interrupt=True
+11:58:04 interrupt fired: msg='py import_teapot.py', children=0, parent._interrupt=True
+12:10:33 ENTER: queued interrupt msg='the import has to be approved by the user, I imported it', agent_running=True
+12:10:33 interrupt fired: msg='the import has to be approved by the user, I imported it', children=0, parent._interrupt=True

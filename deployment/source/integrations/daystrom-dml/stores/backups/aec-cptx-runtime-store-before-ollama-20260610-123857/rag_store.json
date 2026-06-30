@@ -1,0 +1,43 @@
+{
+  "documents": [
+    {
+      "text": "AEC CPTX Daystrom DML initialized for Hermes profile aec-cptx on lab machine. Use compact semantic handoffs to reduce context compaction lag.",
+      "meta": {
+        "tenant_id": "aec-cptx",
+        "client_id": null,
+        "session_id": "aec-cptx-demo",
+        "instance_id": null,
+        "kind": "action",
+        "summary": "AEC CPTX Daystrom DML initialized for Hermes profile aec-cptx on lab machine. Use compact semantic handoffs to reduce context compaction lag.",
+        "summary_source": "deterministic",
+        "memory_id": 0
+      }
+    },
+    {
+      "text": "AEC CPTX DML continuity smoke marker 2026-06-10T1929Z.",
+      "meta": {
+        "tenant_id": "openclaw",
+        "client_id": null,
+        "session_id": null,
+        "instance_id": null,
+        "kind": "action",
+        "summary": "AEC CPTX DML continuity smoke marker 2026-06-10T1929Z.",
+        "summary_source": "deterministic",
+        "memory_id": 1
+      }
+    },
+    {
+      "text": "AEC-CPTX-DML-SMOKE-UNIQUE-1934Z Rhino MCP official McNeel stdio router configured instead of localhost 3001 for plug and play demo continuity task decision.",
+      "meta": {
+        "tenant_id": "aec-cptx",
+        "client_id": null,
+        "session_id": "aec-demo-smoke",
+        "instance_id": null,
+        "kind": "action",
+        "summary": "AEC-CPTX-DML-SMOKE-UNIQUE-1934Z Rhino MCP official McNeel stdio router configured instead of localhost 3001 for plug and play demo continuity task decision.",
+        "summary_source": "deterministic",
+        "memory_id": 2
+      }
+    }
+  ]
+}

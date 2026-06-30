@@ -85,7 +85,7 @@ with DMLAdapter(...) as adapter:
 ```bash
 cd /home/nvidia/.openclaw/workspace/DML
 source venv/bin/activate
-python -m pytest openclaw-wrapper/tests/test_dml_memory.py -q
+python test_dml_ready.py
 ```
 
 ### Run All Tests
@@ -191,6 +191,9 @@ The durable production default is:
 ## 📝 Documentation
 
 - `TEST_PLAN.md` - Comprehensive test plan
+- `GPU_CONFIG.md` - GPU setup guide
+- `BENCHMARK.md` - Performance metrics
+- `DEPLOYMENT_STATUS.md` - Deployment status
 
 ## 🚀 Ready to Run
 

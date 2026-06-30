@@ -32,9 +32,7 @@ adapter.ingest_agentic(
         "outcome": "success",
         "provenance": {
             "task_id": "t1",
-            "step_id": "s1",
-            "episode_id": "e1",
-            "timestamp": 0.0,
+            "step_id": "s1"
         }
     }
 )

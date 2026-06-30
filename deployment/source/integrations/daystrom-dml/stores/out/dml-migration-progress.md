@@ -1,0 +1,21 @@
+# DML Migration Progress
+
+- status: ok
+- phase: done
+- detail: reused cached compatibility proof; full scan skipped
+- total_items: 123
+- checked: 123
+- remaining_items: 0
+- mismatched: 0
+- reembedded: 0
+- failed: 0
+- target_dim: 1024
+- progress_pct: 100.0
+- current_item_index: 123
+- current_item_preview: None
+- last_completed_item_index: 123
+- last_completed_item_preview: teapot_build Phase 3 COMPLETE. FBX teapot mesh imported into UE5.8 via Python sc
+- started_at: 2026-06-30T19:06:19.696335+00:00
+- updated_at: 2026-06-30T20:08:40.945177+00:00
+- elapsed_ms: 2299.77
+- storage_report_path: C:\Users\test\AppData\Local\hermes\integrations\daystrom-dml\stores\aec-cptx-runtime-store\embedding_compatibility_report.json

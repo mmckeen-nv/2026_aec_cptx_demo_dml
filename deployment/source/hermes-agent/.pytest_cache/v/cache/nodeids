@@ -1,9 +1,0 @@
-[
-  "tests/agent/test_iteration_budget.py::test_iteration_budget_extend_noops_at_cap_or_nonpositive",
-  "tests/agent/test_iteration_budget.py::test_iteration_budget_extends_until_hard_cap",
-  "tests/agent/test_iteration_budget.py::test_iteration_extension_heuristic_denies_completed_noise",
-  "tests/agent/test_iteration_budget.py::test_iteration_extension_state_and_heuristic_grants_incomplete_tool_work",
-  "tests/agent/test_iteration_budget.py::test_memory_manager_provider_error_fails_closed",
-  "tests/agent/test_iteration_budget.py::test_memory_manager_returns_provider_extension_decision",
-  "tests/agent/test_iteration_budget.py::test_normalize_extension_decision_aliases_and_invalids"
-]

@@ -24,7 +24,7 @@ curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 
 Run in powershell:
 ```powershell
-iex (irm https://hermes-agent.nousresearch.com/install.ps1) 
+iex (irm https://hermes-agent.nousresearch.com/install.ps1)
 ```
 
 If you want to install & run Hermes Desktop after a command-line only install, simply run
@@ -34,9 +34,7 @@ hermes desktop
 
 ### What the Installer Does
 
-The installer handles everything automatically — all dependencies (Python, Node.js, ripgrep, ffmpeg), the repo clone, virtual environment, global `hermes` command setup, LLM provider configuration, and the default Daystrom DML memory wiring when the DML handoff is present. By the end, you're ready to chat.
-
-Agent operators should treat DML as the default continuity substrate: leave `memory.provider: daystrom_dml` in place unless the user explicitly disables external memory, run `hermes memory status` / `/dml-help` during preflight, and store only compact semantic successes/failures — never secrets, raw transcripts, or raw tool logs.
+The installer handles everything automatically — all dependencies (Python, Node.js, ripgrep, ffmpeg), the repo clone, virtual environment, global `hermes` command setup, and LLM provider configuration. By the end, you're ready to chat.
 
 #### Install Layout
 

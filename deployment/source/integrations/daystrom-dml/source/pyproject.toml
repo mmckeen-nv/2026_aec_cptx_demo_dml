@@ -19,8 +19,6 @@ packages = [
     "daystrom_dml.stm",
     "daystrom_dml.cognition",
     "daystrom_dml.inference",
-    "daystrom_dml.contracts",
-    "daystrom_dml.contracts.schemas",
     "cma",
     "scripts",
     "dml_mcp",
@@ -32,7 +30,6 @@ packages = [
     "web/**/*",
     "provider_web/*",
 ]
-"daystrom_dml.contracts.schemas" = ["*.json"]
 
 [project]
 name = "cma"
@@ -40,7 +37,7 @@ version = "0.1.0"
 description = "Concept Memory Adapter providing lossy associative memory for LLMs"
 readme = "README.md"
 authors = [{name="CMA Authors", email="cma@example.com"}]
-license = {text = "Apache-2.0"}
+license = {text = "MIT"}
 requires-python = ">=3.10"
 dependencies = [
     "typer>=0.9",

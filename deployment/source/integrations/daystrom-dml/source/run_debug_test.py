@@ -101,7 +101,7 @@ print('-' * 60)
 
 # Memory statistics
 print("\n5. Memory statistics...")
-total_memories = len(adapter.store.items())
+total_memories = adapter.memory_count()
 print(f"   Total memories: {total_memories}")
 
 # Cleanup

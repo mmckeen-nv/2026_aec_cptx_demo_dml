@@ -166,14 +166,14 @@ class MemoryProvider(ABC):
         """Decide whether an exhausted tool-iteration budget should extend.
 
         Hermes calls this optional hook only when ``max_turns_auto_extend`` is
-        enabled and the current run has consumed its iteration budget. Providers
+        enabled and the current run has consumed its iteration budget.  Providers
         with cognition/retrieval state (for example Daystrom DML/DCN) can inspect
         the compact ``run_state`` and return one of:
 
         - ``{"decision": "grant", "reason_codes": [...], "extend_by": 30}``
         - ``{"decision": "deny", "reason_codes": [...]}``
 
-        Empty dict means "no opinion". The default is no opinion for backward
+        Empty dict means "no opinion".  The default is no opinion for backward
         compatibility with existing memory providers.
         """
         return {}

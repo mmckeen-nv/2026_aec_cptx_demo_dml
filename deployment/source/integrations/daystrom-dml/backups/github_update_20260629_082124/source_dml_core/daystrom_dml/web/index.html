@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DML Playground</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/styles.css?v=lattice-camera" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Daystrom Memory Lattice</p>
+          <h1>Memory Demo</h1>
+        </div>
+        <div class="topbar-actions">
+          <span id="service-status" class="status-pill">checking</span>
+          <button id="refresh-status" class="secondary" type="button">Refresh</button>
+          <a class="button-link secondary" href="/visualizer" target="_blank" rel="noopener noreferrer">Full Visualizer</a>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="overview-strip" aria-label="DML status">
+          <article class="metric-card">
+            <span>Memories</span>
+            <strong id="metric-memories">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>Stored Tokens</span>
+            <strong id="metric-dml-tokens">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>Avg Fidelity</span>
+            <strong id="metric-fidelity">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>Visualizer</span>
+            <strong id="metric-visualizer">-</strong>
+          </article>
+        </section>
+
+        <section class="demo-stage">
+          <article class="panel ask-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Ask the Lattice</h2>
+                <p>Run a prompt and inspect what DML retrieves, how much context it sends, and how it compares with the RAG path.</p>
+              </div>
+              <span id="query-mode" class="mini-pill">idle</span>
+            </div>
+
+            <div class="prompt-presets" aria-label="Prompt presets">
+              <button class="preset-button secondary" type="button" data-prompt="For Asteria Crossing, who controls inventory, what medical stores are aboard, and what are the fuel reserves?">Inventory</button>
+              <button class="preset-button secondary" type="button" data-prompt="Summarize the Asteria Crossing propulsion stack, burn budget, and fuel reserve constraints.">Propulsion</button>
+              <button class="preset-button secondary" type="button" data-prompt="Which crew members are responsible for habitat, medical, comms, and inventory operations on Asteria Crossing?">Crew</button>
+            </div>
+
+            <label for="prompt">Prompt</label>
+            <textarea id="prompt" rows="7" spellcheck="true">For Asteria Crossing, who controls inventory, what medical stores are aboard, and what are the fuel reserves?</textarea>
+
+            <div class="control-row">
+              <label>
+                Top K
+                <input id="top-k" type="number" min="1" max="30" value="6" />
+              </label>
+              <label>
+                Max Tokens
+                <input id="max-tokens" type="number" min="32" max="4096" value="512" />
+              </label>
+              <button id="run-query" type="button">Run Demo</button>
+            </div>
+            <div id="query-status" class="status-line"></div>
+          </article>
+
+          <article class="panel lattice-panel">
+            <div class="panel-heading compact">
+              <h2>Live Lattice</h2>
+              <span id="visualizer-status" class="mini-pill">loading</span>
+            </div>
+            <div class="visualizer-preview">
+              <svg id="lattice-svg" class="lattice-svg" role="img" aria-label="DML lattice preview"></svg>
+              <div id="visualizer-placeholder">Loading lattice nodes.</div>
+            </div>
+            <div class="button-row">
+              <button id="launch-visualizer" type="button">Refresh Lattice</button>
+              <a id="open-visualizer" class="button-link secondary" href="/visualizer" target="_blank" rel="noopener noreferrer">Open Full View</a>
+            </div>
+          </article>
+        </section>
+
+        <section class="telemetry-panel panel" aria-label="Latest comparison telemetry">
+          <div class="panel-heading compact">
+            <h2>Telemetry</h2>
+            <span id="run-latency" class="mini-pill">-</span>
+          </div>
+          <div class="telemetry-layout">
+            <div class="run-strip">
+              <article class="run-card">
+                <span>Base Model</span>
+                <strong id="metric-run-base-latency">-</strong>
+                <small id="metric-run-base-detail">prompt only</small>
+              </article>
+              <article class="run-card">
+                <span>DML Context</span>
+                <strong id="metric-run-dml-latency">-</strong>
+                <small id="metric-run-dml-latency-detail">retrieval + generation</small>
+              </article>
+              <article class="run-card">
+                <span>RAG Context</span>
+                <strong id="metric-run-rag-latency">-</strong>
+                <small id="metric-run-rag-latency-detail">retrieval + generation</small>
+              </article>
+              <article class="run-card">
+                <span>Inference Model</span>
+                <strong id="metric-inference-model">-</strong>
+                <small id="metric-inference-backend">LLM backend</small>
+              </article>
+            </div>
+            <div class="telemetry-graphs">
+              <div class="graph-block">
+                <div class="graph-heading">
+                  <span>Latency</span>
+                  <small>retrieval + generation</small>
+                </div>
+                <div class="bar-row">
+                  <span>Base</span>
+                  <div class="stack-bar" aria-hidden="true">
+                    <i id="bar-base-generation" class="bar-segment generation"></i>
+                  </div>
+                  <strong id="graph-base-latency">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>DML</span>
+                  <div class="stack-bar" aria-hidden="true">
+                    <i id="bar-dml-retrieval" class="bar-segment retrieval"></i>
+                    <i id="bar-dml-generation" class="bar-segment generation"></i>
+                  </div>
+                  <strong id="graph-dml-latency">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>RAG</span>
+                  <div class="stack-bar" aria-hidden="true">
+                    <i id="bar-rag-retrieval" class="bar-segment retrieval rag"></i>
+                    <i id="bar-rag-generation" class="bar-segment generation rag"></i>
+                  </div>
+                  <strong id="graph-rag-latency">-</strong>
+                </div>
+              </div>
+              <div class="graph-block">
+                <div class="graph-heading">
+                  <span>Tokens</span>
+                  <small>input + output</small>
+                </div>
+                <div class="bar-row">
+                  <span>Base</span>
+                  <div class="stack-bar token-bar" aria-hidden="true">
+                    <i id="bar-base-input" class="bar-segment input"></i>
+                    <i id="bar-base-output" class="bar-segment output"></i>
+                  </div>
+                  <strong id="graph-base-tokens">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>DML</span>
+                  <div class="stack-bar token-bar" aria-hidden="true">
+                    <i id="bar-dml-input" class="bar-segment input"></i>
+                    <i id="bar-dml-output" class="bar-segment output"></i>
+                  </div>
+                  <strong id="graph-dml-tokens">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>RAG</span>
+                  <div class="stack-bar token-bar" aria-hidden="true">
+                    <i id="bar-rag-input" class="bar-segment input rag"></i>
+                    <i id="bar-rag-output" class="bar-segment output rag"></i>
+                  </div>
+                  <strong id="graph-rag-tokens">-</strong>
+                </div>
+              </div>
+              <div class="graph-block accuracy-block">
+                <div class="graph-heading">
+                  <span>Accuracy</span>
+                  <small>answer-key facts</small>
+                </div>
+                <div class="bar-row">
+                  <span>Base</span>
+                  <div class="stack-bar accuracy-bar" aria-hidden="true">
+                    <i id="bar-base-accuracy" class="bar-segment accuracy"></i>
+                  </div>
+                  <strong id="graph-base-accuracy">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>DML</span>
+                  <div class="stack-bar accuracy-bar" aria-hidden="true">
+                    <i id="bar-dml-accuracy" class="bar-segment accuracy"></i>
+                  </div>
+                  <strong id="graph-dml-accuracy">-</strong>
+                </div>
+                <div class="bar-row">
+                  <span>RAG</span>
+                  <div class="stack-bar accuracy-bar" aria-hidden="true">
+                    <i id="bar-rag-accuracy" class="bar-segment accuracy rag"></i>
+                  </div>
+                  <strong id="graph-rag-accuracy">-</strong>
+                </div>
+              </div>
+            </div>
+            <div class="telemetry-counts">
+              <span>DML nodes <strong id="metric-run-nodes">0</strong></span>
+              <span>DML context <strong id="metric-run-dml-tokens">-</strong></span>
+              <span>RAG docs <strong id="metric-run-docs">0</strong></span>
+              <span>RAG context <strong id="metric-run-rag-tokens">-</strong></span>
+              <span>Fact key <strong id="metric-accuracy-key">not scored</strong></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="comparison-panel panel">
+          <div class="panel-heading compact">
+            <h2>Comparison</h2>
+            <span id="comparison-status" class="mini-pill">waiting</span>
+          </div>
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <div class="panel-heading compact">
+                <h3>DML Context Sent to LLM</h3>
+                <span id="dml-context-count" class="mini-pill">0 tokens</span>
+              </div>
+              <pre id="dml-context" class="output-box context-box empty">Run a prompt to inspect the compact DML context sent to the model.</pre>
+            </article>
+            <article class="comparison-card">
+              <div class="panel-heading compact">
+                <h3>RAG Context Sent to LLM</h3>
+                <span id="rag-context-count" class="mini-pill">0 tokens</span>
+              </div>
+              <pre id="rag-context" class="output-box context-box empty">Run a prompt to inspect the retrieved RAG document context sent to the model.</pre>
+            </article>
+            <article class="comparison-card">
+              <div class="panel-heading compact">
+                <h3>DML Response</h3>
+                <span id="response-mode" class="mini-pill">waiting</span>
+              </div>
+              <pre id="dml-response" class="output-box empty">Run a prompt to see the model response using DML context.</pre>
+            </article>
+            <article class="comparison-card">
+              <div class="panel-heading compact">
+                <h3>RAG Response</h3>
+                <span id="rag-mode" class="mini-pill">waiting</span>
+              </div>
+              <pre id="rag-response" class="output-box empty">Run a prompt to see the model response using RAG context.</pre>
+            </article>
+          </div>
+        </section>
+
+        <section class="setup-grid">
+          <details class="panel setup-card">
+            <summary>Add Knowledge</summary>
+            <label for="memory-text">Memory text</label>
+            <textarea id="memory-text" rows="5" spellcheck="true">DML stores compressed, fidelity-scored memories and retrieves compact contextual history for agent sessions.</textarea>
+            <div class="control-row">
+              <label>
+                Source
+                <input id="memory-source" type="text" value="playground" />
+              </label>
+              <button id="ingest-memory" type="button">Ingest</button>
+            </div>
+            <form id="upload-form" class="upload-form">
+              <input
+                id="file-input"
+                name="files"
+                type="file"
+                multiple
+                accept=".txt,.pdf,.md,.markdown,.json,.csv,.tsv,.log,.yaml,.yml,.html,.htm,.zip"
+              />
+              <button class="secondary" type="submit">Upload Files</button>
+            </form>
+            <ul id="selected-files" class="file-list"></ul>
+            <div id="ingest-status" class="status-line"></div>
+          </details>
+
+          <details class="panel setup-card">
+            <summary>Knowledge Browser <span id="knowledge-status" class="mini-pill">loading</span></summary>
+            <div id="knowledge-list" class="knowledge-list"></div>
+          </details>
+
+          <details class="panel setup-card">
+            <summary>Provider Surface</summary>
+            <div class="provider-grid">
+              <code>daystrom-dml server --host 127.0.0.1 --port 8765</code>
+              <code>dml-ollama serve --host 127.0.0.1 --port 11435</code>
+              <code>curl http://127.0.0.1:8765/knowledge</code>
+            </div>
+          </details>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js?v=lattice-camera" defer></script>
+  </body>
+</html>

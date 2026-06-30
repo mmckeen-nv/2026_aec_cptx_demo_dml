@@ -1,0 +1,19 @@
+﻿{
+    "github_repo":  "mmckeen-nv/DML",
+    "git_sha":  "9f864161401308d696049a5d2987b872ee0fc399",
+    "updated_at":  "2026-06-29T10:26:52.0376600-07:00",
+    "updated_by":  "Citizen Snips via SSH payload",
+    "backed_up_to":  "C:\\Users\\test\\AppData\\Local\\hermes\\integrations\\daystrom-dml\\backups\\github_update_20260629_102651",
+    "preserved":  [
+                      "config",
+                      "stores",
+                      ".venv-dml",
+                      "profile config.yaml"
+                  ],
+    "synced_paths":  [
+                         "source/dml_core",
+                         "source/openclaw-wrapper",
+                         "source/repo-docs",
+                         "profile plugins/daystrom_dml"
+                     ]
+}

@@ -27,7 +27,7 @@ dpm:
   mode: active-write
   preference_graph_path: ./dpm_preference_graph.json
   relationship_id: relationship:mark-aec-cptx
-  project_id: project:cliff-house-02
+  project_id: project:vp-studio-01
   token_budget: 80
 agentic_mode:
   enabled: true

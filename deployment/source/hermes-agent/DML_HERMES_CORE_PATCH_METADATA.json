@@ -1,0 +1,22 @@
+﻿{
+    "hermes_local_git_sha":  "c895c9a23f015a2c3138fd5d371bd5832ff49070",
+    "updated_at":  "2026-06-29T10:41:06.9645031-07:00",
+    "updated_by":  "Citizen Snips via SSH targeted Hermes+DML config patch",
+    "backed_up_to":  "C:\\Users\\test\\AppData\\Local\\hermes\\hermes-agent\\backups\\dml_core_config_20260629_104106",
+    "patched_files":  [
+                          "agent\\iteration_extension.py",
+                          "agent\\iteration_budget.py",
+                          "agent\\conversation_loop.py",
+                          "agent\\memory_manager.py",
+                          "agent\\memory_provider.py",
+                          "agent\\agent_init.py",
+                          "hermes_cli\\config.py"
+                      ],
+    "profile_config":  "C:\\Users\\test\\AppData\\Local\\hermes\\profiles\\aec-cptx\\config.yaml",
+    "profile_agent_iteration_config":  {
+                                           "max_turns_auto_extend":  true,
+                                           "max_turns_extension":  30,
+                                           "max_turns_hard_cap":  300,
+                                           "max_turns_extension_policy":  "cognition"
+                                       }
+}

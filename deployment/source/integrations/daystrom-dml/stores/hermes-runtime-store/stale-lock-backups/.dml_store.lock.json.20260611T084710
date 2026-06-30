@@ -1,6 +1,0 @@
-{
-  "created_at": "2026-06-11T14:44:43.545665+00:00",
-  "lock_path": "/Users/markmckeen/.hermes/hermes-agent/integrations/daystrom-dml/stores/hermes-runtime-store/.dml_store.lock",
-  "operation": "ingest",
-  "pid": 78524
-}

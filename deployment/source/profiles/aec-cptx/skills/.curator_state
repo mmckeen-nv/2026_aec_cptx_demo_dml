@@ -1,0 +1,9 @@
+{
+  "last_report_path": "C:\\Users\\test\\AppData\\Local\\hermes\\profiles\\aec-cptx\\logs\\curator\\20260629-152859",
+  "last_run_at": "2026-06-29T15:28:59.452649+00:00",
+  "last_run_duration_seconds": 1086.940751,
+  "last_run_summary": "auto: no changes; llm: The consolidation is complete. 53 skills remain active (down from 72). Let me write the final summary.\n\n---\n\n## Human Summary\n\n### Clusters Processed (10 umbrellas, 18 skills archived)\n\n**1. Apple/macOS ecosystem (5 → 1)**\nCreated `apple-ec…\narchived 17 skill(s):\n  • codebase-inspection → github-repo-management\n  • codex → claude-code\n  • design-md → claude-design\n  • heartmula → songwriting-and-ai-music\n  • hermes-agent-skill-authoring → hermes-agent\n  • kanban-worker → kanban-orchestrator\n  • nano-pdf → ocr-and-documents\n  • node-inspect-debugger → systematic-debugging\n  • opencode → claude-code\n  • python-debugpy → systematic-debugging\n  … and 7 more\nfull report: hermes curator status\nkeep an umbrella stable: hermes curator pin claude-code",
+  "last_run_summary_shown_at": null,
+  "paused": false,
+  "run_count": 1
+}
