@@ -1,0 +1,12 @@
+{
+  "schema_version": "dml.sessions.v1",
+  "sessions": {
+    "snips2-discord-home": {
+      "created_at": "2026-05-31T09:55:26.379919Z",
+      "label": "snips2-discord-home",
+      "session_id": "snips2-discord-1510575377045524580",
+      "tenant_id": "openclaw",
+      "updated_at": "2026-05-31T09:55:26.379919Z"
+    }
+  }
+}
