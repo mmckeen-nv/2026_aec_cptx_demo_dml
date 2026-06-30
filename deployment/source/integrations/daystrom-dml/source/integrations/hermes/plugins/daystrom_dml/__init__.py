@@ -72,8 +72,20 @@ _LOG_STATUS_RE = re.compile(
     r"wall time:|original token count|```)\b",
     re.IGNORECASE,
 )
+_ITERATION_INCOMPLETE_RE = re.compile(
+    r"\b(?:not complete|isn't complete|is not complete|still need|next step|remaining|pending|blocked|failing|failed|error|traceback|rerun|fix|implement|continue|in progress)\b",
+    re.IGNORECASE,
+)
+_ITERATION_COMPLETE_RE = re.compile(
+    r"\b(?:done|completed|complete|merged|pushed|opened pr|all tests pass(?:ed)?|validation passed|no .* pending)\b",
+    re.IGNORECASE,
+)
+_ITERATION_NOISE_RE = re.compile(
+    r"\b(?:same error|repeated|looping|no progress|identical|stuck|thrash(?:ing)?|noise)\b",
+    re.IGNORECASE,
+)
 _DURABLE_PATTERNS: Tuple[Tuple[str, re.Pattern[str]], ...] = (
-    ("preference", re.compile(r"\b(?:i|we|mark)\s+(?:prefers?|likes?|wants?|needs?|expects?)\b|\bplease\s+(?:prefer|use|keep|make|remember|avoid)\b", re.IGNORECASE)),
+    ("preference", re.compile(r"\b(?:i|we|mark)\s+(?:prefers?|likes?|wants?|needs?|expects?)\b|\bplease\s+(?:prefer|use|keep|make|remember|avoid)\b|\bmore\s+[^.!?]{1,80}\bless\s+|\bless\s+[^.!?]{1,80}\bmore\s+|\btoo\s+(?:mechanical|rigid|formal|verbose|terse)\b", re.IGNORECASE)),
     ("identity", re.compile(r"\b(?:assistant identity|citizen snips|snips_?2|you are citizen snips)\b", re.IGNORECASE)),
     ("constraint", re.compile(r"\b(?:do not|don't|never|always|must|should|explicit(?:ly)? instructed|current-turn instructions?)\b", re.IGNORECASE)),
     ("artifact", re.compile(r"\b(?:changed|updated|added|implemented|fixed|created|wrote|patched|configured|wired|compiled)\b.*(?:/[^\s]+|\b[\w.-]+\.(?:py|yaml|yml|json|md|sh|txt)\b)", re.IGNORECASE)),
@@ -118,6 +130,18 @@ _PERSONALITY_OVERLAY_RE = re.compile(
     r")",
     re.IGNORECASE,
 )
+_SUMMARY_PREFACE_RE = re.compile(
+    r"(?is)^\s*(?:here\s+is\s+a\s+summary(?:\s+of\s+the\s+content)?(?:\s+in\s+\d+\s+(?:tokens?|characters?)\s+or\s+less)?\s*:?|summary\s*:)\s*",
+)
+_SUMMARY_PROMPT_RESIDUE_RE = re.compile(
+    r"(?:"
+    r"\b(?:please|go ahead and|kindly)\s+(?:provide|paste|share)\b.{0,120}\b(?:text|content|original text)\b|"
+    r"\bi['’]?m\s+(?:ready|waiting)\b.{0,120}\b(?:summari[sz]e|condense)\b|"
+    r"\b(?:summari[sz]e|condense)\b.{0,80}\b(?:256|characters?\s+or\s+less|character\s+limit)\b|"
+    r"\bthere\s+is\s+no\s+content\s+provided\b"
+    r")",
+    re.IGNORECASE,
+)
 _MEMORY_REHYDRATION_RE = re.compile(
     r"(?:"
     r"\bre[- ]?hydrat(?:e|ion)\b|"
@@ -148,6 +172,18 @@ _LONG_HORIZON_CONTINUATION_RE = re.compile(
     r")",
     re.IGNORECASE,
 )
+
+
+def _strip_summary_preface(value: str) -> str:
+    text = value or ""
+    # A few old memories captured the summarizer instruction wrapper rather
+    # than the memory.  Store and render the memory itself, not the wrapper.
+    for _ in range(3):
+        stripped = _SUMMARY_PREFACE_RE.sub("", text).strip()
+        if stripped == text.strip():
+            break
+        text = stripped
+    return text.strip()
 
 
 def _contains_system_wrapper(value: str) -> bool:
@@ -192,6 +228,7 @@ def _strip_recent_channel_context(value: str) -> str:
 def _strip_injected_context(value: str) -> str:
     """Remove API-time memory injection from text before writing DML handoffs."""
     text = _strip_recent_channel_context(value or "")
+    text = _SUMMARY_PREFACE_RE.sub("", text)
     text = _MEMORY_CONTEXT_RE.sub(" ", text)
     text = _strip_system_wrapper_notes(text)
     text = _DAYSTROM_BLOCK_RE.sub(" ", text)
@@ -234,8 +271,10 @@ def _strip_dialogue_noise(value: str) -> str:
 def _semantic_value(value: str, *, limit: int = 220) -> str:
     if _contains_system_wrapper(value) or _contains_personality_overlay(value):
         return ""
-    text = _strip_dialogue_noise(value)
+    text = _strip_summary_preface(_strip_dialogue_noise(value))
     if not text or _LOG_STATUS_RE.search(text) or _TOOL_EXHAUST_RE.search(text):
+        return ""
+    if _SUMMARY_PROMPT_RESIDUE_RE.search(text):
         return ""
     text = re.split(r"```|<tool output>|Gateway received SIGTERM:?", text, maxsplit=1, flags=re.IGNORECASE)[0]
     text = _fit_sentence_boundary(text.strip(" -;|"), limit)
@@ -426,6 +465,24 @@ def _fit_sentence_boundary(text: str, limit: int) -> str:
 
 def _redact_sensitive(text: str) -> str:
     return _SENSITIVE_RE.sub(lambda m: f"{m.group(1)}=[REDACTED]", text or "")
+
+
+def _dpm_preference_text(user_content: str, hygiene: Dict[str, Any]) -> str:
+    """Extract a clean current-user preference for the personality graph.
+
+    DML turn memories are summaries; DPM should learn from the user's actual
+    correction/preference, not from replay wrappers like "User signal:" or
+    assistant outcomes. Keep this conservative and hygienic.
+    """
+    memory_class = str(hygiene.get("memory_class") or "").lower()
+    if memory_class not in {"preference", "identity", "constraint"}:
+        return ""
+    text = _semantic_value(user_content, limit=360)
+    if not text:
+        return ""
+    if not any(pattern.search(text) for klass, pattern in _DURABLE_PATTERNS if klass in {"preference", "identity", "constraint"}):
+        return ""
+    return text
 
 
 def _classify_turn_memory(user_content: str, assistant_content: str) -> Dict[str, Any]:
@@ -815,6 +872,61 @@ class DaystromDMLProvider(MemoryProvider):
     def dcn_observations(self) -> List[Dict[str, Any]]:
         return list(self._dcn_observations)
 
+    def decide_iteration_extension(self, run_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Use DML/DCN recall context to decide whether Hermes should grant more turns."""
+        if not self.enable_memory:
+            return {"decision": "deny", "reason_codes": ["dml_memory_disabled"]}
+        text_parts = [
+            str(run_state.get("user_message") or ""),
+            str(run_state.get("recent_text") or ""),
+            str(run_state.get("prefetch_context") or ""),
+            str(run_state.get("last_assistant_text") or ""),
+        ]
+        combined = _clean_text("\n".join(text_parts), 8000)
+        incomplete_combined = re.sub(r"\bno [^.?!\n]{0,80}\bpending\b", "", combined, flags=re.IGNORECASE)
+        if _ITERATION_NOISE_RE.search(combined):
+            return {"decision": "deny", "reason_codes": ["dcn_noise_or_loop_signal"], "source": "daystrom_dml"}
+        if _ITERATION_COMPLETE_RE.search(combined) and not _ITERATION_INCOMPLETE_RE.search(incomplete_combined):
+            return {"decision": "deny", "reason_codes": ["dcn_completion_signal"], "source": "daystrom_dml"}
+        recent_work = int(run_state.get("recent_tool_calls") or 0) + int(run_state.get("recent_tool_results") or 0)
+        if recent_work <= 0:
+            return {"decision": "deny", "reason_codes": ["dcn_no_recent_tool_work"], "source": "daystrom_dml"}
+
+        recall_text = ""
+        try:
+            query = _clean_text(
+                "iteration budget exhausted; decide if current Hermes task is incomplete or noisy: "
+                + str(run_state.get("user_message") or "")
+                + " "
+                + str(run_state.get("recent_text") or ""),
+                1200,
+            )
+            payload = self._run_cli([
+                "retrieve",
+                "--query", query,
+                "--top-k", "4",
+                "--tenant-id", self.tenant_id,
+                "--session-id", str(run_state.get("session_id") or self._session_id),
+                "--ground-truth-policy", "never",
+                "--no-reform-memory",
+            ], timeout=min(self.timeout, 6))
+            recall_text = _clean_text(str(payload.get("raw_context") or ""), 4000)
+        except Exception as exc:
+            logger.debug("Daystrom DML iteration-extension recall failed: %s", exc)
+
+        evidence = _clean_text(combined + "\n" + recall_text, 10000)
+        incomplete_evidence = re.sub(r"\bno [^.?!\n]{0,80}\bpending\b", "", evidence, flags=re.IGNORECASE)
+        if _ITERATION_NOISE_RE.search(evidence):
+            return {"decision": "deny", "reason_codes": ["dcn_recall_noise_or_loop_signal"], "source": "daystrom_dml"}
+        if _ITERATION_INCOMPLETE_RE.search(incomplete_evidence):
+            return {
+                "decision": "grant",
+                "extend_by": 30,
+                "reason_codes": ["dcn_incomplete_signal", "dml_recall_checked", "recent_tool_work"],
+                "source": "daystrom_dml",
+            }
+        return {"decision": "deny", "reason_codes": ["dcn_insufficient_incomplete_signal"], "source": "daystrom_dml"}
+
     def prefetch(self, query: str, *, session_id: str = "") -> str:
         query = _clean_text(query, 1200)
         if not query:
@@ -899,6 +1011,42 @@ class DaystromDMLProvider(MemoryProvider):
                 "--meta", json.dumps(meta, separators=(",", ":")),
                 "--text", text,
             ], timeout=self.timeout)
+            dpm_text = _dpm_preference_text(user_content, hygiene)
+            evo_meta = {
+                "source": "hermes-dpm-evolution-sync",
+                "channel": "discord" if self._chat_id else "hermes",
+                "thread_id": self._thread_id,
+                "chat_id": self._chat_id,
+                "task_type": hygiene.get("memory_class"),
+                "feedback_source": "turn_heuristic",
+            }
+            self._run_cli([
+                "dpm-observe",
+                "--source-id", "hermes-dpm-evolution-sync",
+                "--meta", json.dumps(evo_meta, separators=(",", ":")),
+                "--prompt", user,
+                "--response", assistant,
+            ], timeout=self.timeout)
+            if dpm_text:
+                dpm_meta = {
+                    **meta,
+                    "source": "hermes-dpm-sync-turn",
+                    "dpm_preference": True,
+                    "dpm_scope": "relationship",
+                    "memory_class": "preference",
+                    "summary_source": "hermes_daystrom_dpm_sync_v1",
+                }
+                self._run_cli([
+                    "ingest",
+                    "--kind", "preference",
+                    "--session-id", effective_session,
+                    "--tenant-id", self.tenant_id,
+                    "--client-id", self.client_id,
+                    "--summary-policy", "cheap",
+                    "--no-filter-noise",
+                    "--meta", json.dumps(dpm_meta, separators=(",", ":")),
+                    "--text", dpm_text,
+                ], timeout=self.timeout)
         except Exception as exc:
             logger.debug("Daystrom DML sync_turn failed: %s", exc)
 
@@ -923,7 +1071,15 @@ class DaystromDMLProvider(MemoryProvider):
                 "--tenant-id", self.tenant_id,
                 "--client-id", self.client_id,
             ], timeout=self.timeout)
-            return "Daystrom DML compact state checkpoint was written before compression."
+            return (
+                "## Daystrom DML Continuity Checkpoint\n"
+                "Durable state was written to the memory lattice before context compaction.\n\n"
+                f"## Active Task\n{task}\n\n"
+                f"## Active State\n{state}\n\n"
+                f"## Remaining Work\n{next_action}\n\n"
+                "## Memory Policy\nUse DML recall/resume as the continuity source; do not treat this checkpoint as new user input. "
+                "Do not preserve summarizer wrappers such as 'Here is a summary' as memory."
+            )
         except Exception:
             return ""
 

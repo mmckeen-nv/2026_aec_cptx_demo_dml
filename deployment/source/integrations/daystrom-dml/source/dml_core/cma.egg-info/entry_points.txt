@@ -1,0 +1,7 @@
+[console_scripts]
+cma = cma.cli:app
+dml = daystrom_dml.provider_cli:main
+dml-mcp-server = dml_mcp.dml_mcp_server:main
+dml-ollama = daystrom_dml.ollama_wrapper:main
+dml-provider = daystrom_dml.provider_server:main
+dml-server = daystrom_dml.server:main

@@ -184,14 +184,6 @@ def _backend_proof(adapter: DMLAdapter) -> dict:
 
 
 def _assert_gpu_only(adapter: DMLAdapter) -> None:
-    try:
-        import torch  # type: ignore
-    except Exception as exc:  # pragma: no cover
-        raise RuntimeError("GPU-only mode requires torch with CUDA support") from exc
-
-    if not torch.cuda.is_available():
-        raise RuntimeError("GPU-only mode enabled, but CUDA is not available")
-
     backend = _backend_proof(adapter)
     if backend.get("embedder_backend") == "ollama":
         if not backend.get("embedder_ready"):
@@ -200,7 +192,21 @@ def _assert_gpu_only(adapter: DMLAdapter) -> None:
             raise RuntimeError(
                 f"GPU-only Ollama mode requires embedding_device config to stay explicit as cuda, got: {backend.get('embedding_device_cfg') or 'unknown'}"
             )
+        # Ollama owns device placement for ollama:* embedding models. Hosts such
+        # as macOS may have no torch/CUDA package in the DML venv while Ollama
+        # still runs the embedding model on GPU/Metal. Keep the DML-side contract
+        # strict (Ollama embedder + explicit embedding_device: cuda) without
+        # requiring a local torch CUDA probe that cannot represent Ollama-managed
+        # accelerators.
         return
+
+    try:
+        import torch  # type: ignore
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError("GPU-only mode requires torch with CUDA support") from exc
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("GPU-only mode enabled, but CUDA is not available")
 
     if not backend.get("embedder_ready"):
         raise RuntimeError("GPU-only mode requires SentenceTransformer embedder (fallback embedder detected)")
@@ -1079,6 +1085,11 @@ def _adapter(storage_dir: str, config_path: str | None, require_gpu: bool) -> DM
         config_path=config_path,
         config_overrides={
             "storage_dir": storage_dir,
+            # Wrapper health/verify/backup/export operate on the portable JSONL
+            # contract at <storage_dir>/dml_state.jsonl. Keep foreground wrapper
+            # adapters on that same persistence path; otherwise ingest batches can
+            # write legacy dml_store.json while audit/dedup report success.
+            "persistence": {"enable": True, "path": "dml_state.jsonl", "interval_sec": 0},
             "dml.agentic_mode.enabled": True,
             "embedding_device": "cuda" if require_gpu else None,
             "strict_llm_required": False,
@@ -1210,6 +1221,22 @@ def cmd_ingest(args: argparse.Namespace) -> int:
             indent=2,
         )
     )
+    return 0
+
+
+def cmd_dpm_observe(args: argparse.Namespace) -> int:
+    adapter = _adapter(args.storage_dir, args.config_path, args.require_gpu)
+    try:
+        meta = json.loads(args.meta) if args.meta else {}
+        result = adapter.record_personality_interaction(
+            args.prompt,
+            args.response or "",
+            source_id=args.source_id or "wrapper:dpm-observe",
+            meta=meta,
+        )
+    finally:
+        adapter.close()
+    print(json.dumps({"status": "ok" if result else "skipped", "action": "dpm-observe", "result": result}, indent=2))
     return 0
 
 
@@ -2705,6 +2732,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum deterministic summary length for auto/cheap policies",
     )
     ing.set_defaults(func=cmd_ingest)
+
+    dpm_observe = sub.add_parser("dpm-observe")
+    dpm_observe.add_argument("--prompt", required=True)
+    dpm_observe.add_argument("--response", default="")
+    dpm_observe.add_argument("--source-id", default="wrapper:dpm-observe")
+    dpm_observe.add_argument("--meta", help="JSON object")
+    dpm_observe.set_defaults(func=cmd_dpm_observe)
 
     session = sub.add_parser("session")
     session.add_argument("--label", default="default")
