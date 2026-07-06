@@ -26,7 +26,7 @@ Key ideas:
 - **Adaptive routing** – the router can choose semantic, literal, or hybrid retrieval based on the prompt.
 - **Self-maintenance** – salience decay, reinforcement, and summariz ation continuously rebalance the store.
 - **OpenAI-compatible generation** – the lattice can drive NVIDIA NIMs or any OpenAI-compatible endpoint.
-- **Multi-RAG fanout** – a single ingest feeds FAISS, Chroma, and the persistent lattice simultaneously.
+- **Multi-RAG fanout** – a single ingest can feed FAISS and the persistent lattice; the Chroma backend is available for trusted/manual installs but is not installed by default while its upstream advisory has no patched release.
 
 ---
 
@@ -102,7 +102,7 @@ pip install .[server]
 Optional extras:
 - `pip install .[embeddings]` – GPU/CPU embedding backends
 - `pip install .[faiss]` – FAISS vector index acceleration
-- `pip install .[multiplex_rag]` – combined FAISS + Chroma fanout
+- `pip install .[multiplex_rag]` – FAISS fanout. Chroma can still be used by installing `chromadb` manually in a trusted/local-only environment once upstream publishes a patched release.
 - `pip install .[playground]` – 3D Streamlit visualiser
 - `pip install .[mcp]` – MCP server adapter
 
@@ -273,7 +273,7 @@ Literal versus semantic routing is automatically selected, but can be forced via
 - `GET /knowledge` produces a combined catalogue (capped to 200 entries) containing lattice summaries and multi-RAG inventory counts.
 
 ### 5. Multi-RAG fanout & comparisons
-- Every ingest fans out to FAISS, Chroma, and the disk-backed persistent index (when enabled).
+- Every ingest fans out to FAISS and the disk-backed persistent index when enabled. Chroma fanout remains code-supported for trusted/manual installs, but it is excluded from the optional dependency set pending an upstream patched release.
 - `POST /rag/compare` runs: baseline model → DML-augmented model → each RAG backend, then grades their outputs, traces pipeline order, and records token budgets.
 
 ### 6. Persistence & checkpoints

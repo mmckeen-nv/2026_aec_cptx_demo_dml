@@ -66,7 +66,8 @@ tokenizer = ["tiktoken>=0.4"]
 embeddings = ["sentence-transformers>=2.2"]
 faiss = ["faiss-cpu>=1.7"]
 multiplex_rag = [
-    "chromadb>=0.4",
+    # ChromaDB removed from the optional install set while GHSA-f4j7-r4q5-qw2c
+    # has no patched release; backend remains available when installed manually.
     "faiss-cpu>=1.7",
 ]
 mcp = ["mcp>=0.1.0"]

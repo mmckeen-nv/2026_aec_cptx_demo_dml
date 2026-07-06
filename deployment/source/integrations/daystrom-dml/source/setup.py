@@ -116,7 +116,7 @@ setup(
         "tokenizer": ["tiktoken>=0.4"],
         "embeddings": ["sentence-transformers>=2.2"],
         "faiss": ["faiss-cpu>=1.7"],
-        "multiplex_rag": ["chromadb>=0.4", "faiss-cpu>=1.7"],
+        "multiplex_rag": ["faiss-cpu>=1.7"],
         "mcp": ["mcp>=0.1.0"],
         "playground": ["streamlit>=1.39", "plotly>=5.22"],
         "dev": ["pytest>=7.4", "ruff>=0.1.9", "mypy>=1.6.0"],
