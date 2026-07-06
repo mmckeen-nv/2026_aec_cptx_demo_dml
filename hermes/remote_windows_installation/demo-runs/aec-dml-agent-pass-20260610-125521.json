@@ -1,0 +1,110 @@
+{
+  "stamp": "20260610-125521",
+  "session": "aec-demo-pass-20260610-125521",
+  "mode": "DML-prefetch + deterministic MCP dispatch",
+  "steps": [
+    {
+      "kind": "dml",
+      "name": "seed_demo_contract",
+      "exit": 0,
+      "seconds": 23.199,
+      "stdout": "{\n  \"status\": \"ok\",\n  \"action\": \"ingest\",\n  \"kind\": \"action\",\n  \"chunks_ingested\": 1,\n  \"chunks_skipped_duplicate\": 0,\n  \"summary_policy\": \"cheap\",\n  \"cheap_summaries\": 1,\n  \"skipped_summaries\": 0,\n  \"llm_summaries_allowed\": 0,\n  \"conflicts_detected\": 0,\n  \"conflicts\": [],\n  \"lock\": {\n    \"path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\.dml_store.lock\",\n    \"metadata_path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\.dml_store.lock.json\",\n    \"operation\": \"ingest\",\n    \"pid\": 27464,\n    \"created_at\": \"2026-06-10T19:55:35.527172+00:00\",\n    \"lock_path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\.dml_store.lock\"\n  },\n  \"audit\": {\n    \"path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\dml_audit.jsonl\",\n    \"event_ts\": \"2026-06-10T19:55:44.889742+00:00\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "kind": "mcp",
+      "name": "register_servers",
+      "registered_count": 180,
+      "seconds": null,
+      "exit": 0
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_obs_obs_get_scene_list",
+      "exit": 0,
+      "seconds": 0.006,
+      "dml_prefetch_seconds": 13.268,
+      "result": {
+        "result": "{\n  \"currentPreviewSceneName\": null,\n  \"currentPreviewSceneUuid\": null,\n  \"currentProgramSceneName\": \"Scene\",\n  \"currentProgramSceneUuid\": \"9b8dbcb5-9ba6-4f44-aa51-e3270c1c0ad2\",\n  \"scenes\": [\n    {\n      \"sceneIndex\": 0,\n      \"sceneName\": \"Claude-rhino_capture\",\n      \"sceneUuid\": \"66a4561b-4821-4f4b-ae46-7a3dee078b62\"\n    },\n    {\n      \"sceneIndex\": 1,\n      \"sceneName\": \"Scene\",\n      \"sceneUuid\": \"9b8dbcb5-9ba6-4f44-aa51-e3270c1c0ad2\"\n    }\n  ]\n}"
+      }
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_obs_obs_get_record_status",
+      "exit": 0,
+      "seconds": 0.003,
+      "dml_prefetch_seconds": 11.061,
+      "result": {
+        "result": "{\n  \"outputActive\": false,\n  \"outputBytes\": 0,\n  \"outputDuration\": 0,\n  \"outputPaused\": false,\n  \"outputTimecode\": \"00:00:00.000\"\n}"
+      }
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_obs_obs_start_record",
+      "exit": 0,
+      "seconds": 0.002,
+      "dml_prefetch_seconds": 11.221,
+      "result": {
+        "result": "Recording started"
+      }
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_rhino_run_python",
+      "exit": 0,
+      "seconds": 1.039,
+      "dml_prefetch_seconds": 9.001,
+      "result": {
+        "result": "{\"error\":{\"code\":\"unexpected\",\"message\":\"Win32Exception: CreateProcess failed for \\u0027C:\\\\Program Files\\\\Rhino 8\\\\System\\\\Rhino.exe\\u0027 (error 5). If access-denied, the router\\u0027s parent Job Object disallows breakaway.\"}}"
+      }
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_rhino_get_viewport_image",
+      "exit": 0,
+      "seconds": 1.01,
+      "dml_prefetch_seconds": 11.074,
+      "result": {
+        "result": "{\"error\":{\"code\":\"unexpected\",\"message\":\"Win32Exception: CreateProcess failed for \\u0027C:\\\\Program Files\\\\Rhino 8\\\\System\\\\Rhino.exe\\u0027 (error 5). If access-denied, the router\\u0027s parent Job Object disallows breakaway.\"}}"
+      }
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_blender_execute_blender_code",
+      "exit": 1,
+      "seconds": 180.021,
+      "dml_prefetch_seconds": 8.935,
+      "result": {
+        "error": "MCP call failed: TimeoutError: MCP call timed out after 180.0s (configured timeout: 180.0s)"
+      }
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_blender_get_viewport_screenshot",
+      "exit": 1,
+      "seconds": 179.993,
+      "dml_prefetch_seconds": 9.056,
+      "result": {
+        "error": "MCP call failed: TimeoutError: MCP call timed out after 180.0s (configured timeout: 180.0s)"
+      }
+    },
+    {
+      "kind": "mcp_call",
+      "name": "mcp_obs_obs_stop_record",
+      "exit": 0,
+      "seconds": 0.003,
+      "dml_prefetch_seconds": 9.071,
+      "result": {
+        "result": "Recording stopped, saved to: C:/Users/test/Videos/2026-06-10 12-56-21.mp4"
+      }
+    },
+    {
+      "kind": "dml",
+      "name": "final_handoff",
+      "exit": 0,
+      "seconds": 11.33,
+      "stdout": "{\n  \"status\": \"ok\",\n  \"action\": \"ingest\",\n  \"kind\": \"action\",\n  \"chunks_ingested\": 1,\n  \"chunks_skipped_duplicate\": 0,\n  \"summary_policy\": \"cheap\",\n  \"cheap_summaries\": 1,\n  \"skipped_summaries\": 0,\n  \"llm_summaries_allowed\": 0,\n  \"conflicts_detected\": 0,\n  \"conflicts\": [],\n  \"lock\": {\n    \"path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\.dml_store.lock\",\n    \"metadata_path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\.dml_store.lock.json\",\n    \"operation\": \"ingest\",\n    \"pid\": 23556,\n    \"created_at\": \"2026-06-10T20:03:15.096105+00:00\",\n    \"lock_path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\.dml_store.lock\"\n  },\n  \"audit\": {\n    \"path\": \"C:\\\\Users\\\\test\\\\AppData\\\\Local\\\\hermes\\\\integrations\\\\daystrom-dml\\\\stores\\\\aec-cptx-runtime-store\\\\dml_audit.jsonl\",\n    \"event_ts\": \"2026-06-10T20:03:24.652570+00:00\"\n  }\n}\n",
+      "stderr": ""
+    }
+  ]
+}

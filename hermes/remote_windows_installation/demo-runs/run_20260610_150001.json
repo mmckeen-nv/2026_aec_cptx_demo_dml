@@ -1,0 +1,13 @@
+{
+  "run_id": "20260610_150001",
+  "phase": "mcp-minimal-demo",
+  "status": "completed",
+  "artifacts": {
+    "json": "C:/Users/test/AppData/Local/hermes/demo-runs\\run_20260610_150001.json",
+    "md": "C:/Users/test/AppData/Local/hermes/demo-runs\\run_20260610_150001.md"
+  },
+  "obs_recording": {
+    "file": "C:/Users/test/Videos/2026-06-10 14-59-53.mp4",
+    "stopped_at": "2026-06-10T15:00:40.038882"
+  }
+}

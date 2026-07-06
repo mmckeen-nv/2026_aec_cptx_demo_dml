@@ -1,0 +1,24 @@
+⚠️  API call failed (attempt 1/3): BadRequestError [HTTP 400]
+   �� Provider: custom  Model: azure/anthropic/claude-opus-4-6
+   �� Endpoint: https://inference-api.nvidia.com/v1
+   �� Error: HTTP 400: litellm.BadRequestError: Azure_aiException - b'{"type":"error","error":{"type":"invalid_request_error","message":"This model does not support assistant message prefill. The conversation must end with a user message."},"request_id":"req_011CcYBc4YYTncD3y3aUctyd"}'No fallback model group found for ori
+   �� Details: {'message': 'litellm.BadRequestError: Azure_aiException - b\'{"type":"error","error":{"type":"invalid_request_error","message":"This model does not support assistant message prefill. The conversation must end with a user message."},"request_id":"req_011CcYBc4YYTncD3y3aUctyd"}\'No fallback model grou
+   ⏱️  Elapsed: 0.96s  Context: 153 msgs, ~73,036 tokens
+❌ Non-retryable error (HTTP 400): HTTP 400: litellm.BadRequestError: Azure_aiException - b'{"type":"error","error":{"type":"invalid_request_error","message":"This model does not support assistant message prefill. The conversation must end with a user message."},"request_id":"req_011CcYBc4YYTncD3y3aUctyd"}'No fallback model group found for ori
+❌ Non-retryable client error (HTTP 400). Aborting.
+   �� Provider: custom  Model: azure/anthropic/claude-opus-4-6
+   �� Endpoint: https://inference-api.nvidia.com/v1
+   �� This type of error won't be fixed by retrying.
+⚠️  Skipping session persistence for large failed session to prevent growth loop.
+ ─  ⚕ Hermes  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+     Error: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: Azure_aiException -
+     b\'{"type":"error","error":{"type":"invalid_request_error","message":"This model does not support assistant message prefill. The conversation must
+     end with a user message."},"request_id":"req_011CcYBc4YYTncD3y3aUctyd"}\'No fallback model group found for original
+     model_group=azure/anthropic/claude-opus-4-6. Fallbacks=[{\'nvidia/deepseek-ai/deepseek-v4-pro\': [\'azure/deepseek-ai/deepseek-v4-pro\']},
+     {\'nvidia/moonshotai/kimi-k2.6\': [\'baseten/moonshotai/kimi-k2.6\']}]. Received Model Group=azure/anthropic/claude-opus-4-6\nAvailable Model
+     Group Fallbacks=None\nError doing the fallback: litellm.BadRequestError: Azure_aiException -
+     b\'{"type":"error","error":{"type":"invalid_request_error","message":"This model does not support assistant message prefill. The conversation must
+     end with a user message."},"request_id":"req_011CcYBc4YYTncD3y3aUctyd"}\'No fallback model group found for original
+     model_group=azure/anthropic/claude-opus-4-6. Fallbacks=[{\'nvidia/deepseek-ai/deepseek-v4-pro\': [\'azure/deepseek-ai/deepseek-v4-pro\']},
+     {\'nvidia/moonshotai/kimi-k2.6\': [\'baseten/moonshotai/kimi-k2.6\']}]', 'type': None, 'param': None, 'code': '400'}}

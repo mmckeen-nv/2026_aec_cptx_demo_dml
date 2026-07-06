@@ -1,0 +1,12 @@
+[
+  {
+    "tool": "mcp_rhino_list_slots",
+    "sec": 0.016,
+    "raw": "{\"result\": \"{\\\"payload\\\":[]}\"}"
+  },
+  {
+    "tool": "mcp_rhino_run_python",
+    "sec": 1.026,
+    "raw": "{\"result\": \"{\\\"error\\\":{\\\"code\\\":\\\"unexpected\\\",\\\"message\\\":\\\"Win32Exception: CreateProcess failed for \\\\u0027C:\\\\\\\\Program Files\\\\\\\\Rhino 8\\\\\\\\System\\\\\\\\Rhino.exe\\\\u0027 (error 5). If access-denied, the router\\\\u0027s parent Job Object disallows breakaway.\\\"}}\"}"
+  }
+]
