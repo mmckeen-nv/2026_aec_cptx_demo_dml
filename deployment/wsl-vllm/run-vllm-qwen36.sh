@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# run-vllm-qwen36.sh
+#
+# Creates (or, if it already exists, just starts) the vllm-qwen36 container:
+# the CHAT model for the aec-cptx / bac_teapot Hermes profiles.
+#   Model:  nvidia/Qwen3.6-35B-A3B-NVFP4
+#   Port:   8000 (OpenAI-compatible /v1 API)
+#   GPU:    0 (all GPUs visible; tensor-parallel-size=1 so it only uses one)
+#
+# Run inside the target WSL2 distro:
+#   bash run-vllm-qwen36.sh
+#
+# IMPORTANT: HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1 are set deliberately.
+# vLLM normally re-fetches HF image-processor/config metadata from
+# huggingface.co on every single startup, even when the weights are already
+# fully cached locally. On this machine's WSL2 networking, that outbound
+# HF metadata call intermittently fails ("Temporary failure in name
+# resolution" / "Cannot send a request, as the client has been closed"),
+# which crashes the whole container on startup. Forcing offline mode makes
+# vLLM load entirely from the local HF cache and skips that network call.
+# Do not remove these two env vars without re-testing multiple cold starts.
+#
+# Idempotency: if a container named vllm-qwen36 already exists, this script
+# just starts it (fast — seconds to ~2min depending on whether it needs to
+# recompile CUDA graphs) instead of recreating it. Use --recreate to force
+# a full docker rm + docker run (e.g. after intentionally changing flags
+# below).
+
+set -euo pipefail
+
+RECREATE=0
+if [ "${1:-}" = "--recreate" ]; then
+    RECREATE=1
+fi
+
+NAME=vllm-qwen36
+IMAGE=vllm/vllm-openai:latest
+MODEL=nvidia/Qwen3.6-35B-A3B-NVFP4
+PORT=8000
+
+if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
+    if [ "$RECREATE" = "1" ]; then
+        echo "[run-vllm-qwen36] --recreate passed, removing existing container..."
+        docker rm -f "$NAME"
+    else
+        echo "[run-vllm-qwen36] Container '$NAME' already exists, starting it..."
+        docker start "$NAME"
+        echo "[run-vllm-qwen36] Started. Poll http://localhost:${PORT}/v1/models until it returns 200."
+        exit 0
+    fi
+fi
+
+echo "[run-vllm-qwen36] Creating and starting '$NAME'..."
+docker run -d --name "$NAME" \
+  --gpus all \
+  --shm-size=64m \
+  --ipc=private \
+  -p ${PORT}:${PORT} \
+  -v /root/.cache/huggingface:/root/.cache/huggingface \
+  -e HF_HUB_OFFLINE=1 \
+  -e TRANSFORMERS_OFFLINE=1 \
+  "$IMAGE" \
+  "$MODEL" \
+  --host 0.0.0.0 --port ${PORT} \
+  --tensor-parallel-size 1 \
+  --trust-remote-code \
+  --kv-cache-dtype fp8 \
+  --attention-backend flashinfer \
+  --moe-backend marlin \
+  --gpu-memory-utilization 0.4 \
+  --max-model-len 262144 \
+  --max-num-seqs 4 \
+  --max-num-batched-tokens 8192 \
+  --enable-chunked-prefill \
+  --async-scheduling \
+  --enable-prefix-caching \
+  --speculative-config '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}' \
+  --load-format fastsafetensors \
+  --reasoning-parser qwen3 \
+  --tool-call-parser qwen3_xml \
+  --enable-auto-tool-choice
+
+echo "[run-vllm-qwen36] Container created. First run downloads weights from HF (large, can take a while)."
+echo "[run-vllm-qwen36] Poll http://localhost:${PORT}/v1/models until it returns 200, or:"
+echo "[run-vllm-qwen36]   docker logs -f ${NAME}"

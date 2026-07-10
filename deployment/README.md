@@ -270,3 +270,30 @@ DML/DCN is now genuinely active for `bac_teapot`, matching `default` and
 `hermes -p <profile> memory status` after cloning — config parity does
 not imply functional parity for anything living under `plugins/`.
 
+---
+
+## WSL2 vLLM model backend (2026-07-10)
+
+`aec-cptx` and `bac_teapot` both point their model config at local vLLM
+endpoints served from Docker containers inside a WSL2 Ubuntu distro on the
+same Windows host (chat model on `:8000`/GPU0, vision model on
+`:8001`/GPU1). The full provisioning scripts, per-model run scripts,
+Windows Desktop launchers (`start_vllm.bat` / `stop_vllm.bat` /
+`check_vllm.bat`), and an `AGENTS.md` with build-from-scratch instructions
+and known pitfalls (notably a DNS-flake crash-loop fix via
+`HF_HUB_OFFLINE=1`) live in:
+
+```text
+deployment/wsl-vllm/
+├── AGENTS.md                       # full build-from-scratch + troubleshooting guide
+├── provision-wsl2.sh               # one-time WSL2 setup: Docker + NVIDIA Container Toolkit
+├── run-vllm-qwen36.sh              # chat model container (idempotent start/create)
+├── run-vllm-nemotron-vision.sh     # vision model container (idempotent start/create)
+├── status-vllm.sh / stop-vllm.sh   # WSL2-side helpers
+└── start_vllm.bat / stop_vllm.bat / check_vllm.bat   # Windows Desktop launchers
+```
+
+See `deployment/wsl-vllm/AGENTS.md` before touching WSL2/Docker on this or
+any new machine — it documents the exact `docker run` flags for both
+models, GPU pinning, and a known intermittent startup crash and its fix.
+
