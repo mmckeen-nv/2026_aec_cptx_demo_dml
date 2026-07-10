@@ -169,3 +169,81 @@ RECENT_AUX_WARNINGS_AFTER_SMOKE=
 ```
 
 `RECENT_AUX_WARNINGS_AFTER_SMOKE=` was empty, meaning no fresh `Auxiliary auto-detect: no provider available` / `Compression, summarization, and memory flush will not work` warnings were emitted by the smoke run.
+
+---
+
+## BAC_Teapot profile (2026-07-10)
+
+A second profile, `BAC_Teapot` (stored on disk as `bac_teapot`), was
+created for teapot-demo material/shading work — separate session
+history and memory store from `aec-cptx`, but sharing the same machine
+and the same permanently-enforced Daystrom DML/DCN posture.
+
+- Host: `DESKTOP-14FNBB2`
+- Windows user: `test`
+- Hermes profile: `bac_teapot`
+- Profile path: `C:\Users\test\AppData\Local\hermes\profiles\bac_teapot`
+- Created via: `hermes profile create BAC_Teapot --clone` (clones
+  config, `.env`, `SOUL.md`, and skills from `default`)
+
+### What is included
+
+```text
+deployment/
+├── bac-teapot-profile/
+│   ├── SOUL.md                       # default template, no custom content
+│   ├── config.example.yaml           # sanitized excerpt, not live config
+│   └── Start-BAC_Teapot.ps1          # launcher script (sets env, prints banner, runs hermes -p bac_teapot chat)
+└── windows-launchers/
+    └── BAC_Teapot.bat                # the actual Desktop double-click launcher
+```
+
+Same exclusions apply as above: no `.env`, no `auth.json`, no live
+`config.yaml` with keys, no `state.db`/`sessions/`/`logs/`/`home/`/`cron/`,
+no DML runtime stores/caches.
+
+### Launcher behavior
+
+The verified manual launcher is:
+
+```text
+C:\Users\test\Desktop\BAC_Teapot.bat
+```
+
+It calls:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\test\AppData\Local\hermes\bin\Start-BAC_Teapot.ps1"
+```
+
+which runs:
+
+```cmd
+%LOCALAPPDATA%\hermes\hermes-agent\venv\Scripts\hermes.exe -p bac_teapot chat
+```
+
+Verified via `hermes -p bac_teapot profile show bac_teapot`:
+
+```text
+Profile: bac_teapot
+Path:    C:\Users\test\AppData\Local\hermes\profiles\bac_teapot
+Model:   nvidia/Qwen3.6-35B-A3B-NVFP4 (custom:vllm_local)
+Gateway: stopped
+Skills:  80
+.env:    exists
+SOUL.md: exists
+```
+
+### DML posture
+
+Inherited automatically from `default` at clone time (see the root
+README's "Daystrom DML/DCN posture" section for the full verification).
+Confirmed independently via `hermes memory status --profile BAC_Teapot`:
+
+```text
+Provider:  daystrom_dml
+Plugin:    installed ✓
+Status:    available ✓
+daystrom_dml  (no setup needed) ← active
+```
+
