@@ -133,8 +133,14 @@ both report `Plugin: installed ✓`, `Status: available ✓`, and
 `daystrom_dml ← active`. Real DCN iteration-budget-extension decisions
 (`decide_iteration_extension`) have been confirmed firing in production
 session logs, not just in the plugin's own smoke test. New profiles
-created with `hermes profile create <name> --clone` inherit this
-posture automatically since it's baked into the root config. See also
+created with `hermes profile create <name> --clone` inherit the
+**config** for this automatically since it's baked into the root config
+— but **not the plugin files themselves**: `--clone` does not copy
+`plugins/`, so a freshly-cloned profile can show the right config while
+the plugin is genuinely not installed. This bit the `BAC_Teapot` profile
+(see `deployment/README.md`'s BAC_Teapot section) — verify with
+`hermes -p <profile> memory status` after any `--clone`, don't assume
+config parity means functional parity. See also
 [`deployment/README.md`](deployment/README.md#dml-posture) and
 [`deployment/README.md`](deployment/README.md#auxiliary-summarizationcompression-posture).
 

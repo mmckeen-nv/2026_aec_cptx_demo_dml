@@ -236,14 +236,27 @@ SOUL.md: exists
 
 ### DML posture
 
-Inherited automatically from `default` at clone time (see the root
-README's "Daystrom DML/DCN posture" section for the full verification).
-Confirmed independently via `hermes memory status --profile BAC_Teapot`:
+Config was inherited automatically from `default` at clone time (see the
+root README's "Daystrom DML/DCN posture" section for the full
+verification of `default` and `aec-cptx`). However, `hermes profile
+create --clone` only clones `config.yaml`, `.env`, `SOUL.md`, and skills
+— it does **not** clone the `plugins/` directory. As a result, verifying
+independently via `hermes -p bac_teapot memory status` shows:
 
 ```text
 Provider:  daystrom_dml
-Plugin:    installed ✓
-Status:    available ✓
-daystrom_dml  (no setup needed) ← active
+    dcn: {'mode': 'active_read'}
+Plugin:    NOT installed ✗
+Install the 'daystrom_dml' memory plugin to ~/.hermes/plugins/
 ```
+
+`config.yaml` correctly says `provider: daystrom_dml` / `dcn.mode:
+active_read`, but the plugin directory itself
+(`profiles/bac_teapot/plugins/daystrom_dml/`) does not exist on disk, so
+DML/DCN is **configured but not actually active** for this profile as of
+2026-07-10. This is a known gap, not yet fixed — the fix is to copy the
+`plugins/daystrom_dml/` directory from `default` or `aec-cptx` into
+`profiles/bac_teapot/plugins/daystrom_dml/`, matching what those two
+profiles already have. Do this before relying on cross-session memory or
+iteration-budget extension in `BAC_Teapot`.
 

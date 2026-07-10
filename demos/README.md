@@ -36,7 +36,7 @@ demos/
 └── teapot/                            Demo 4: Utah teapot (Blender-only)
     ├── utah_teapot.{3dm,obj}          source geometry
     ├── build_teapot_demo.py           reusable Blender build/render script
-    ├── teapot_demo.blend              built scene (chrome/mirror material, camera, sun light)
+    ├── teapot_demo.blend              scene (see material history below)
     └── renders/
         └── blender_teapot_hero.png    Blender Cycles hero render
 ```
@@ -47,15 +47,27 @@ on 2026-07-10 (Maya/UE support shelved — see `DEPENDENCIES.md`). The old
 
 **Material history:** originally built with a ceramic (`M_Teapot_Ceramic`)
 Principled BSDF material; converted to a polished chrome/mirror metal
-(`M_Teapot_Chrome`: Metallic=1.0, Roughness≈0.02) on 2026-07-10. The saved
-`.blend` also has the mesh shade-smoothed and Eevee Next raytracing enabled
-so the chrome reflections render correctly — see the
-`blender-mcp-scene-debugging` Hermes skill for the pitfalls hit along the
-way (orphaned scene-collection objects, flat shading, AgX color rolloff,
-fluid-sim bake instability). A fire/flame environment experiment (emissive
-flame-mesh ring + Cycles GPU path tracing) was explored in the live session
-but is not yet folded into the committed `.blend` — that work remains
-in-progress.
+(`M_Teapot_Chrome`: Metallic=1.0, Roughness≈0.02) on 2026-07-10, with the
+mesh shade-smoothed and Eevee Next raytracing enabled so reflections
+render correctly (see the `blender-mcp-scene-debugging` Hermes skill for
+the pitfalls hit along the way — orphaned scene-collection objects, flat
+shading, AgX color rolloff, fluid-sim bake instability). A fire/flame
+environment experiment (emissive flame-mesh ring + Cycles GPU path
+tracing) was explored in a live session but never folded into a saved
+`.blend`.
+
+**2026-07-10, later same day — model replaced from the `BAC_Teapot`
+profile session:** the committed `.blend` now contains a single object,
+`utah_teapot_canonical` (14,336 polys, dimensions 6.43×3.0×4.0, no
+material, no camera, no lights, no ground plane — render engine left on
+`BLENDER_EEVEE`). This does not carry forward the chrome material, camera,
+or lighting setup described above; it looks like a fresh import/reset
+rather than an edit on top of the prior scene. This was captured and
+committed as the current on-disk state per explicit instruction, but has
+**not been independently verified as intentional** — treat it as
+in-progress until confirmed. If picking this demo back up, check with
+whoever last worked in `BAC_Teapot` before assuming the chrome/camera/
+lighting setup is gone for good.
 
 ## Hero / Session Model Rule (Cliff House only)
 
