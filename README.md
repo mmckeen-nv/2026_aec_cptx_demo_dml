@@ -137,10 +137,11 @@ created with `hermes profile create <name> --clone` inherit the
 **config** for this automatically since it's baked into the root config
 — but **not the plugin files themselves**: `--clone` does not copy
 `plugins/`, so a freshly-cloned profile can show the right config while
-the plugin is genuinely not installed. This bit the `BAC_Teapot` profile
-(see `deployment/README.md`'s BAC_Teapot section) — verify with
-`hermes -p <profile> memory status` after any `--clone`, don't assume
-config parity means functional parity. See also
+the plugin is genuinely not installed. This bit `BAC_Teapot` (see
+`deployment/README.md`'s BAC_Teapot section) — fixed the same day by
+copying the plugin directory in from the shared root location. Always
+verify with `hermes -p <profile> memory status` after any `--clone`,
+don't assume config parity means functional parity. See also
 [`deployment/README.md`](deployment/README.md#dml-posture) and
 [`deployment/README.md`](deployment/README.md#auxiliary-summarizationcompression-posture).
 

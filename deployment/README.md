@@ -240,23 +240,33 @@ Config was inherited automatically from `default` at clone time (see the
 root README's "Daystrom DML/DCN posture" section for the full
 verification of `default` and `aec-cptx`). However, `hermes profile
 create --clone` only clones `config.yaml`, `.env`, `SOUL.md`, and skills
-— it does **not** clone the `plugins/` directory. As a result, verifying
-independently via `hermes -p bac_teapot memory status` shows:
+— it does **not** clone the `plugins/` directory. This was caught on
+2026-07-10: `hermes -p bac_teapot memory status` showed `Plugin: NOT
+installed ✗` despite `config.yaml` correctly saying `provider:
+daystrom_dml` / `dcn.mode: active_read`.
+
+**Fixed the same day** by copying the plugin from the shared root
+location (`~/AppData/Local/hermes/plugins/daystrom_dml/`, confirmed as
+where the plugin genuinely lives on this machine) into
+`profiles/bac_teapot/plugins/daystrom_dml/`. Note this shared root
+directory is **not** on the profile-scoped search path automatically —
+`get_hermes_home()` rebinds to the profile directory when `-p <profile>`
+is passed, and memory-provider discovery only checks bundled providers
+plus `$HERMES_HOME/plugins/` for that rebound path, with no fallback to
+the outer shared `plugins/` dir. It has to be copied in per profile.
+
+Re-verified via `hermes -p bac_teapot memory status`:
 
 ```text
 Provider:  daystrom_dml
     dcn: {'mode': 'active_read'}
-Plugin:    NOT installed ✗
-Install the 'daystrom_dml' memory plugin to ~/.hermes/plugins/
+Plugin:    installed ✓
+Status:    available ✓
+daystrom_dml  (no setup needed) ← active
 ```
 
-`config.yaml` correctly says `provider: daystrom_dml` / `dcn.mode:
-active_read`, but the plugin directory itself
-(`profiles/bac_teapot/plugins/daystrom_dml/`) does not exist on disk, so
-DML/DCN is **configured but not actually active** for this profile as of
-2026-07-10. This is a known gap, not yet fixed — the fix is to copy the
-`plugins/daystrom_dml/` directory from `default` or `aec-cptx` into
-`profiles/bac_teapot/plugins/daystrom_dml/`, matching what those two
-profiles already have. Do this before relying on cross-session memory or
-iteration-budget extension in `BAC_Teapot`.
+DML/DCN is now genuinely active for `bac_teapot`, matching `default` and
+`aec-cptx`. Takeaway for future `--clone`'d profiles: always verify with
+`hermes -p <profile> memory status` after cloning — config parity does
+not imply functional parity for anything living under `plugins/`.
 
