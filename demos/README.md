@@ -36,7 +36,7 @@ demos/
 └── teapot/                            Demo 4: Utah teapot (Blender-only)
     ├── utah_teapot.{3dm,obj}          source geometry
     ├── build_teapot_demo.py           reusable Blender build/render script
-    ├── teapot_demo.blend              built scene (ceramic material, camera, sun light)
+    ├── teapot_demo.blend              built scene (chrome/mirror material, camera, sun light)
     └── renders/
         └── blender_teapot_hero.png    Blender Cycles hero render
 ```
@@ -44,6 +44,18 @@ demos/
 **Note:** the Teapot demo was converted from Unreal Engine to Blender-only
 on 2026-07-10 (Maya/UE support shelved — see `DEPENDENCIES.md`). The old
 `.fbx`, UE import script, and UE render outputs were removed.
+
+**Material history:** originally built with a ceramic (`M_Teapot_Ceramic`)
+Principled BSDF material; converted to a polished chrome/mirror metal
+(`M_Teapot_Chrome`: Metallic=1.0, Roughness≈0.02) on 2026-07-10. The saved
+`.blend` also has the mesh shade-smoothed and Eevee Next raytracing enabled
+so the chrome reflections render correctly — see the
+`blender-mcp-scene-debugging` Hermes skill for the pitfalls hit along the
+way (orphaned scene-collection objects, flat shading, AgX color rolloff,
+fluid-sim bake instability). A fire/flame environment experiment (emissive
+flame-mesh ring + Cycles GPU path tracing) was explored in the live session
+but is not yet folded into the committed `.blend` — that work remains
+in-progress.
 
 ## Hero / Session Model Rule (Cliff House only)
 
