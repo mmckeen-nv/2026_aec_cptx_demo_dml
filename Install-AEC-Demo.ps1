@@ -387,8 +387,8 @@ if ($ProvisionVllm -and $PSCmdlet.ShouldProcess($wslRepo.Distro, 'Provision Dock
 
 if ($StartVllm -and $PSCmdlet.ShouldProcess($wslRepo.Distro, 'Create/start local vLLM model containers')) {
   Write-Step 'Create or start local vLLM model containers'
-  Invoke-Checked 'wsl.exe' @('-d', $wslRepo.Distro, '-e', 'bash', "$($wslRepo.Path)/deployment/wsl-vllm/run-vllm-qwen36.sh")
-  Invoke-Checked 'wsl.exe' @('-d', $wslRepo.Distro, '-e', 'bash', "$($wslRepo.Path)/deployment/wsl-vllm/run-vllm-nemotron-vision.sh")
+  Invoke-Checked 'wsl.exe' @('-d', $wslRepo.Distro, '-u', 'root', '-e', 'bash', "$($wslRepo.Path)/deployment/wsl-vllm/run-vllm-qwen36.sh")
+  Invoke-Checked 'wsl.exe' @('-d', $wslRepo.Distro, '-u', 'root', '-e', 'bash', "$($wslRepo.Path)/deployment/wsl-vllm/run-vllm-nemotron-vision.sh")
   Invoke-Checked (Join-Path $RepoRoot 'deployment\wsl-vllm\start_vllm.bat') @('--no-pause')
 }
 
