@@ -27,11 +27,43 @@ function Get-WslPathInfo {
     return [pscustomobject]@{
       Distro = $parts[1]
       Path = '/' + (($parts | Select-Object -Skip 2) -join '/')
+      DriveLetter = $null
+      MountRoot = $null
     }
   }
-  $converted = (& wsl.exe -d $RequestedDistro -e wslpath -a $WindowsPath | Select-Object -Last 1).Trim()
+  if ($WindowsPath -match '^(?<drive>[A-Za-z]):(?:\\(?<tail>.*))?$') {
+    $drive = $Matches.drive.ToLowerInvariant()
+    $mountRoot = "/mnt/$drive"
+    $tail = if ($Matches.tail) { '/' + ($Matches.tail -replace '\\', '/') } else { '' }
+    return [pscustomobject]@{
+      Distro = $RequestedDistro
+      Path = $mountRoot + $tail
+      DriveLetter = "$($Matches.drive):"
+      MountRoot = $mountRoot
+    }
+  }
+  $convertedOutput = @(& wsl.exe -d $RequestedDistro -e wslpath -a $WindowsPath)
+  $converted = if ($convertedOutput) { ($convertedOutput | Select-Object -Last 1).Trim() } else { $null }
   if ($LASTEXITCODE -ne 0 -or -not $converted) { throw "Cannot map path into WSL: $WindowsPath" }
-  return [pscustomobject]@{ Distro = $RequestedDistro; Path = $converted }
+  return [pscustomobject]@{
+    Distro = $RequestedDistro
+    Path = $converted
+    DriveLetter = $null
+    MountRoot = $null
+  }
+}
+
+function Ensure-WslDriveMounted {
+  param($PathInfo)
+  if (-not $PathInfo.DriveLetter) { return }
+
+  & wsl.exe -d $PathInfo.Distro -e mountpoint -q $PathInfo.MountRoot
+  if ($LASTEXITCODE -ne 0) {
+    Invoke-Checked 'wsl.exe' @('-d', $PathInfo.Distro, '-u', 'root', '-e', 'mkdir', '-p', $PathInfo.MountRoot)
+    Invoke-Checked 'wsl.exe' @('-d', $PathInfo.Distro, '-u', 'root', '-e', 'mount', '-t', 'drvfs', $PathInfo.DriveLetter, $PathInfo.MountRoot)
+  }
+
+  Invoke-Checked 'wsl.exe' @('-d', $PathInfo.Distro, '-e', 'test', '-d', $PathInfo.Path)
 }
 
 function Get-TrackedFiles {
@@ -117,6 +149,7 @@ if ($IncludeVllmRuntime) {
   Assert-ModelEndpoint 8000 'nvidia/Qwen3.6-35B-A3B-NVFP4'
   Assert-ModelEndpoint 8001 'nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4'
   $bundleWsl = Get-WslPathInfo $Destination $Distro
+  if (-not $WhatIfPreference) { Ensure-WslDriveMounted $bundleWsl }
   $dockerDir = Join-Path $Destination 'offline\docker'
   if ($PSCmdlet.ShouldProcess($dockerDir, 'Create portable runtime directory')) {
     New-Item -ItemType Directory -Path $dockerDir -Force | Out-Null
