@@ -165,6 +165,15 @@ if ($PSCmdlet.ShouldProcess($Destination, 'Copy tracked portable repository file
     New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
     Copy-Item -LiteralPath $source -Destination $target -Force
   }
+  # Explicitly remove retired tracked files from incremental bundles. Do not
+  # mirror-delete generally because the destination may contain user artifacts.
+  foreach ($retired in @('demos\virtual_production_studio\scripts\build_rhino_massing.py')) {
+    $retiredPath = Join-Path $Destination $retired
+    if (Test-Path -LiteralPath $retiredPath -PathType Leaf) {
+      Remove-Item -LiteralPath $retiredPath -Force
+      Write-Host "Removed retired bundle file: $retired"
+    }
+  }
 }
 
 $assets = @()

@@ -74,6 +74,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("127.0.0.1:10500", contract)
         self.assertIn("Do not edit Hermes MCP configuration", contract)
         self.assertIn("06_mcp_operations_contract.md", contract)
+        self.assertIn("The agent must design and generate the Rhino geometry itself", contract)
+        self.assertNotIn("build_rhino_massing.py", contract)
 
     def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
         demos = {
@@ -187,6 +189,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Restore-PortableDaystromStores", installer)
         self.assertIn("Preserved existing Daystrom store", installer)
         self.assertIn("Seed-DemoDmlKnowledge", installer)
+        self.assertIn("--tenant-id aec-cptx", installer)
+        self.assertIn("--project-id $ProjectId", installer)
         self.assertIn("teapot-01-runtime-store", installer)
         self.assertIn("cliff-house-01-runtime-store", installer)
         self.assertNotIn("C:\\Users\\", installer)
@@ -213,6 +217,11 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Daystrom/DCN runtime hook", preflight)
         self.assertIn("load_memory_provider('daystrom_dml')", preflight)
 
+    def test_dml_seed_knowledge_is_profile_retrievable(self):
+        seed = (REPO_ROOT / "scripts/seed_demo_dml.py").read_text(encoding="utf-8")
+        for required in ("tenant_id", "client_id", "project_id", '"kind": "note"', '"no_merge": True'):
+            self.assertIn(required, seed)
+
     def test_portable_bundle_builder_exports_only_tracked_source(self):
         builder = (REPO_ROOT / "New-AEC-PortableBundle.ps1").read_text()
         self.assertIn("git -C $info.Path ls-files", builder)
@@ -228,6 +237,7 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Hugging Face cache archive copy failed", builder)
         self.assertIn('$mountRoot = "/mnt/$drive"', builder)
         self.assertIn("ReuseExistingAssets", builder)
+        self.assertIn("Removed retired bundle file", builder)
         self.assertIn("Cannot reuse missing or empty runtime archive", builder)
         self.assertIn("SkipDmlStores", builder)
         self.assertIn("offline\\daystrom\\stores", builder)

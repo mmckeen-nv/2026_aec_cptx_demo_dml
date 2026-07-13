@@ -250,7 +250,7 @@ function Restore-PortableDaystromStores {
 }
 
 function Seed-DemoDmlKnowledge {
-  param([string]$DemoName, [string]$StoreName)
+  param([string]$DemoName, [string]$StoreName, [string]$ProjectId)
   $python = Join-Path $HermesHome 'integrations\daystrom-dml\.venv-dml\Scripts\python.exe'
   $config = Join-Path $HermesHome 'integrations\daystrom-dml\config\aec-cptx-portable.yaml'
   $knowledge = Join-Path $RepoRoot "demos\$DemoName\knowledge\dml"
@@ -260,7 +260,7 @@ function Seed-DemoDmlKnowledge {
       -not (Test-Path -LiteralPath $config -PathType Leaf) -or
       -not (Test-Path -LiteralPath $knowledge -PathType Container)) { return }
   if ($script:InstallerCmdlet.ShouldProcess($storage, "Seed durable $DemoName DML knowledge")) {
-    & $python $seedScript --config $config --storage $storage --knowledge $knowledge
+    & $python $seedScript --config $config --storage $storage --knowledge $knowledge --tenant-id aec-cptx --client-id citizen-snips-aec-demo --project-id $ProjectId
     if ($LASTEXITCODE -ne 0) {
       Write-Warning "DML knowledge seed for $DemoName failed; the installer preserved the store and can be rerun after the embedding service is ready."
     }
@@ -583,9 +583,9 @@ if ($PortableBundle) {
 }
 
 Write-Step 'Seed repository-owned knowledge into demo DML stores'
-Seed-DemoDmlKnowledge 'virtual_production_studio' 'vp-studio-01-runtime-store'
-Seed-DemoDmlKnowledge 'cliff_house' 'cliff-house-01-runtime-store'
-Seed-DemoDmlKnowledge 'teapot' 'teapot-01-runtime-store'
+Seed-DemoDmlKnowledge 'virtual_production_studio' 'vp-studio-01-runtime-store' 'project:vp-studio-01'
+Seed-DemoDmlKnowledge 'cliff_house' 'cliff-house-01-runtime-store' 'project:cliff-house-01'
+Seed-DemoDmlKnowledge 'teapot' 'teapot-01-runtime-store' 'project:teapot-01'
 
 if ($ProvisionVllm -and $PSCmdlet.ShouldProcess($wslRepo.Distro, 'Provision Docker and NVIDIA vLLM runtime')) {
   Write-Step 'Provision WSL2 Docker and NVIDIA Container Toolkit'

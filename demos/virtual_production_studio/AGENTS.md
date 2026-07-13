@@ -8,9 +8,25 @@ This directory is the active RTX Pro project. Build and modify the virtual-produ
 
 Do not build the architectural studio directly in Blender. Do not install a package called `rhino-mcp`; the configured Rhino MCP router is already the authority. Do not advance to another application until the current phase passes its acceptance gate.
 
-For a fresh Rhino build, the authoritative geometry program is `scripts/build_rhino_massing.py`. Read that file completely and pass its contents unchanged in one `mcp_rhino_run_python` call. Do not improvise replacement RhinoCommon/C# code, translate it into Rhino command macros, or delete/restart the scene when a call fails. The script is idempotent and owns only objects tagged `project=vp-studio-01`.
+The agent must design and generate the Rhino geometry itself. There is no checked-in
+studio builder, object schedule, JSON geometry plan, or complete model script to
+replay. Follow the project brief and phase prompts, decide the composition, then
+author bounded Python or C# directly in each `mcp_rhino_run_python` or
+`mcp_rhino_run_csharp` call. A call may create one coherent element group only.
+Inspect Rhino before and after it. Do not use `exec(open(...))`, import a project
+geometry script, or assemble the entire studio in one tool call.
 
-Do not use periodic saves or the repository-wide backup-before-change rule during this generated massing phase. Never invoke `_Save`, `_SaveAs`, `Save`, `SaveAs`, or a Rhino command macro for persistence. The builder performs no save. After its JSON result reports `passed=true`, call `mcp_rhino_save_doc` exactly once with a new timestamped path. If validation fails, do not save and do not advance.
+Use the same phase style as the original Cliff House workflow: purpose, inputs,
+design decisions, execution steps, post-phase inspection, and a review gate.
+Complete these Rhino subphases in order: site and shell; stage and LED volume;
+rooms and access; rigging and cameras; electrical and mechanical; life safety and
+data. Query DML and augment through CMA before each subphase. The brief supplies
+requirements and planning assumptions, not a predetermined solution.
+
+Do not use periodic saves. Never invoke `_Save`, `_SaveAs`, `Save`, `SaveAs`, or
+a Rhino command macro for persistence. After every Rhino subphase passes and the
+full model audit succeeds, call `mcp_rhino_save_doc` exactly once with a new
+timestamped path. If validation fails, do not save and do not advance.
 
 The Windows launcher starts Rhino's MCP listener on `127.0.0.1:10500` before Hermes. At phase 0, `mcp_rhino_list_slots` must return a ready slot before any modeling call. If it does not, stop and report the preflight failure. Do not edit Hermes MCP configuration, install another Rhino integration, repeatedly spawn slots, or fall back to shell/Blender geometry.
 
@@ -19,6 +35,12 @@ Before doing project work, read these files completely:
 - `prompts/00_workflow_and_dml.md`
 - `prompts/01_standard_vp_studio_brief.md`
 - `prompts/02_rhino_modeling_contract.md`
+- `prompts/02a_phase_site_shell.md`
+- `prompts/02b_phase_stage_led.md`
+- `prompts/02c_phase_rooms_access.md`
+- `prompts/02d_phase_rigging_cameras.md`
+- `prompts/02e_phase_electrical_mechanical.md`
+- `prompts/02f_phase_life_safety_data.md`
 - `prompts/03_asset_sourcing_contract.md`
 - `prompts/04_comfyui_stylization_contract.md`
 - `prompts/05_dml_learning_contract.md`
@@ -69,12 +91,13 @@ If DML is unavailable, stop before destructive or irreversible work. Report the 
 ## Rhino-to-Blender authority
 
 Restore and follow the repository's original metadata-preserving handoff. Rhino
-must create render meshes for all 98 managed Breps and write a new `.3dm` handoff
+must create render meshes for every managed Brep and write a new `.3dm` handoff
 with `WriteUserData=true` and `IncludeRenderMeshes=true`. Blender must read that
 file directly through `../../skills/import_with_metadata.py`. Do not export or
 import OBJ or FBX, do not use Rhino's interactive Export command, and do not write
 a replacement exporter. Before import, use Blender MCP and `rhino3dm` read-only to
-confirm 98 Breps, 98 Breps with render meshes, and `UnitSystem.Inches`. The importer
+confirm that the current managed-object count equals both the Brep count and the
+render-meshed Brep count, and confirm `UnitSystem.Inches`. The importer
 converts inches to metres exactly once and preserves Rhino names, layers, and User
 Text.
 

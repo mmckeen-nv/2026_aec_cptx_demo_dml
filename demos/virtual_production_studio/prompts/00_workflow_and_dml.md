@@ -10,7 +10,11 @@ Use the tools that Hermes actually exposes. Rhino and Blender are MCP applicatio
 
 ## Phase 1: Rhino design model
 
-Rhino owns all architectural and spatial geometry. Follow `02_rhino_modeling_contract.md`. Save only to a timestamped working copy until the user approves replacing any hero file.
+Rhino owns all architectural and spatial geometry. Follow
+`02_rhino_modeling_contract.md` and its six Cliff-House-style execution prompts.
+The agent authors the geometry code directly in bounded MCP calls and validates
+between element groups; it does not execute a complete checked-in builder. Save
+only once to a timestamped working copy after the full Rhino gate passes.
 
 Gate:
 
@@ -44,8 +48,9 @@ Gate:
 - Required architectural objects are present in Blender.
 - Scale and world origin match Rhino.
 - Missing materials, duplicate names, and critical overlaps fail validation.
-- The expected 98 managed Rhino solids remain individually identifiable in
-  Blender by stable name/collection; one flattened anonymous mesh fails.
+- Every managed Rhino object from the accepted dynamic source count remains
+  individually identifiable in Blender by stable name/collection; one flattened
+  anonymous mesh or a source/destination count mismatch fails.
 - Expected bounds are approximately `121.92 m x 91.44 m x 16.00 m`, with +Z up.
   Convert inches to meters exactly once.
 - Face indices, non-degenerate faces, and connected-component/object counts pass

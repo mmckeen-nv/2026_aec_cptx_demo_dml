@@ -1,96 +1,107 @@
-# Rhino MCP modeling contract
+# Rhino MCP agent-authored modeling contract
+
+## Purpose
+
+Hermes designs and models the studio in Rhino from the brief. The repository
+does not contain a complete geometry builder or object-by-object schedule. Treat
+the dimensions in `01_standard_vp_studio_brief.md` as requirements and planning
+envelopes; make and document the actual spatial decisions needed to satisfy them.
 
 ## Tool discipline
 
-Use only registered `mcp_rhino_*` tools for architectural modeling. Begin with `mcp_rhino_list_slots`; attach to the already-ready Rhino 8 slot and confirm the active document. For a fresh build, read `scripts/build_rhino_massing.py` completely and pass its exact contents, unchanged, to one `mcp_rhino_run_python` call. That checked-in builder is the geometry authority. Do not write substitute Python or C#, experiment with RhinoCommon overloads, translate the builder into command macros, or repeatedly spawn slots. Use `mcp_rhino_list_objects`, viewport captures, selection/zoom tools, and `mcp_rhino_save_doc` only as described below.
+Use only registered `mcp_rhino_*` tools for architectural modeling. Begin with
+`mcp_rhino_list_slots`, attach to the existing ready Rhino 8 slot, inspect the
+active document, and establish units/tolerances. Author the Python or C# for each
+bounded modeling operation yourself and send it directly to
+`mcp_rhino_run_python` or `mcp_rhino_run_csharp`.
 
-Do not send Blender Python to Rhino. Do not recreate the building in Blender. Do not overwrite `vp_studio_01_base_model.3dm`; create `work/vp_studio_01_YYYYMMDD_HHMMSS.3dm` and promote it only after approval.
+Prohibited shortcuts:
 
-## Save and dialog discipline
+- Do not read or execute a checked-in geometry builder; none is authoritative.
+- Do not use `exec(open(...))`, a JSON geometry plan, or a generated disk script.
+- Do not create the whole building or all required systems in one MCP call.
+- Do not copy geometry from an earlier `.3dm` as a substitute for designing it.
+- Do not move architectural modeling to Blender.
 
-The massing builder never saves. During construction and validation, do not call `_Save`, `_SaveAs`, `Save`, `SaveAs`, `mcp_rhino_save_doc`, or any periodic/checkpoint save. The repository-wide `BACKUP_RULE.md` is superseded for this generated phase because the builder is idempotent and a failed build must not be persisted. Do not use Rhino command macros for file operations; they can leave Rhino waiting on a modal filename/options dialog.
+One mutation call handles one coherent element group and should normally create
+no more than 20 objects. Keep helpers local to that call. After the call, inspect
+object names, layers, geometry, dimensions, and a relevant viewport before the
+next group. A successful return without inspection is not a passed step.
 
-Parse the builder's `VP_STUDIO_BUILD_RESULT` JSON. Only when `passed=true`, all required layers are nonempty, and the independent object query agrees with the report may you call `mcp_rhino_save_doc` exactly once, to a new timestamped `.3dm` path. If that single MCP save fails, stop and report it. Do not retry with interactive commands.
+## Phase sequence
+
+Read and execute these Cliff-House-style phase prompts in order:
+
+1. `02a_phase_site_shell.md`
+2. `02b_phase_stage_led.md`
+3. `02c_phase_rooms_access.md`
+4. `02d_phase_rigging_cameras.md`
+5. `02e_phase_electrical_mechanical.md`
+6. `02f_phase_life_safety_data.md`
+
+Before every phase, query DML for the phase, prior geometry decisions, failures,
+and acceptance evidence, then call CMA augment with the proposed design and MCP
+operation. After every bounded mutation, validate and ingest a success or failure
+event under `work/dml_events/`. Reinforce only validated success.
 
 ## Coordinate and units contract
 
 - Units: inches.
 - Origin: southwest lot corner at `(0,0,0)`.
 - +X: east; +Y: north; +Z: up.
-- Finished stage floor elevation: 0 in local building datum, with site datum recorded separately.
+- Finished stage floor elevation: 0 in local building datum.
 - Absolute tolerance: 0.01 in; angle tolerance: 0.1 degrees.
 - Keep geometry within a numerically stable distance of the origin.
 
 ## Required layer tree
 
-Create this exact hierarchy:
+Create layers as they become necessary; do not create empty layers merely to
+inflate a checklist. Use these canonical paths:
 
-- `00_REFERENCE::Lot_Datum`
-- `00_REFERENCE::Clearances`
-- `01_SITE::Property`
-- `01_SITE::Drives_Loading`
-- `01_SITE::Parking_Service`
-- `02_ARCH::Shell`
-- `02_ARCH::Stage_Floor`
-- `02_ARCH::Interior_Partitions`
-- `02_ARCH::Doors_Loading`
-- `02_ARCH::Rooms_Ancillary`
-- `03_LED::Main_Wall`
-- `03_LED::Ceiling`
-- `03_LED::Floor_Alternate`
-- `03_LED::Support_ServiceZone`
-- `04_RIGGING::Grid_Catwalks`
-- `04_RIGGING::Hoist_Envelopes`
-- `05_CAMERA::Bodies`
-- `05_CAMERA::Frustums`
-- `05_CAMERA::Movement_Envelopes`
-- `05_CAMERA::Tracking_Sensors`
-- `06_ELECTRICAL::Service_Distribution`
-- `06_ELECTRICAL::LED_Power`
-- `06_ELECTRICAL::Technical_Power_UPS`
-- `06_ELECTRICAL::Lighting_CompanySwitch`
-- `07_MECHANICAL::Equipment_Zones`
-- `07_MECHANICAL::Stage_Air_Paths`
-- `08_LIFE_SAFETY::Egress`
-- `08_LIFE_SAFETY::Fire_Access`
+- `00_REFERENCE::Lot_Datum`, `00_REFERENCE::Clearances`
+- `01_SITE::Property`, `01_SITE::Drives_Loading`, `01_SITE::Parking_Service`
+- `02_ARCH::Shell`, `02_ARCH::Stage_Floor`, `02_ARCH::Interior_Partitions`
+- `02_ARCH::Doors_Loading`, `02_ARCH::Rooms_Ancillary`
+- `03_LED::Main_Wall`, `03_LED::Ceiling`, `03_LED::Floor_Alternate`, `03_LED::Support_ServiceZone`
+- `04_RIGGING::Grid_Catwalks`, `04_RIGGING::Hoist_Envelopes`
+- `05_CAMERA::Bodies`, `05_CAMERA::Frustums`, `05_CAMERA::Movement_Envelopes`, `05_CAMERA::Tracking_Sensors`
+- `06_ELECTRICAL::Service_Distribution`, `06_ELECTRICAL::LED_Power`, `06_ELECTRICAL::Technical_Power_UPS`, `06_ELECTRICAL::Lighting_CompanySwitch`
+- `07_MECHANICAL::Equipment_Zones`, `07_MECHANICAL::Stage_Air_Paths`
+- `08_LIFE_SAFETY::Egress`, `08_LIFE_SAFETY::Fire_Access`
 - `09_DATA::Control_Tracking_Networks`
-- `90_ANNOTATION::Room_Load_Tags`
-- `99_VALIDATION::Issues`
+- `90_ANNOTATION::Room_Load_Tags`, `99_VALIDATION::Issues`
 
-## Construction order
+## Object identity and metadata
 
-1. Query DML and augment the task through CMA.
-2. Read `scripts/build_rhino_massing.py` and execute the complete file unchanged in one `mcp_rhino_run_python` call.
-3. Require the returned JSON gate to report at least 90 managed closed solids, zero invalid/open Breps, no empty required layers, the 120 ft x 100 ft x 40 ft stage, and the 80 ft diameter x 24 ft high 180-degree LED wall.
-4. Independently query objects/layers and capture plan, interior, and axonometric evidence. Do not patch a failed build through improvised API calls; stop with the exact report instead.
-5. Save exactly once through `mcp_rhino_save_doc`, ingest the validated artifact/decisions into DML, and reinforce only passed checks.
+Choose stable uppercase names that communicate design intent, such as
+`ARCH_STAGE_FLOOR`, `LED_MAIN_WALL_SEGMENT_01`, `ELEC_LED_DIST_ZONE_A`, and
+`CAM_A_HERO_TRACKED`. Do not rely on autogenerated names.
 
-## Object naming and metadata
+Every modeled object receives User Text for `project=vp-studio-01`, `discipline`,
+`system`, `agentic_phase`, `phase=SCHEMATIC`, `assumption_status`, `source_basis`,
+and `export_to_blender`. Electrical objects also carry applicable connected-load
+and voltage-basis metadata plus `engineering_status=NOT_FOR_CONSTRUCTION`.
 
-Use stable uppercase names such as `ARCH_STAGE_SHELL_001`, `LED_MAIN_WALL_DESIGN_SURFACE`, `ELEC_LED_DIST_ZONE_A`, and `CAM_A_HERO_TRACKED`. Never rely on autogenerated names like `Surface.001`.
+## Save discipline
 
-Every object receives:
+Never invoke interactive Save/SaveAs commands and do not save periodically. The
+model remains live in Rhino while the six phases are developed. After the final
+audit passes, call `mcp_rhino_save_doc` exactly once to a new timestamped path
+under `work/`. If the save fails, stop; do not retry through a command macro.
 
-- `project=vp-studio-01`
-- `discipline`
-- `system`
-- `phase=SCHEMATIC`
-- `assumption_status` (`CONFIRMED`, `PLANNING_ASSUMPTION`, or `OPTION`)
-- `source_basis`
-- `export_to_blender=true|false`
-
-Electrical/load objects additionally receive `connected_kw`, `demand_kw` when legitimately defined, `voltage_basis`, and `engineering_status=NOT_FOR_CONSTRUCTION`.
-
-## Rhino acceptance gate
+## Final Rhino acceptance gate
 
 Before claiming completion:
 
-- List objects and report counts by required layer.
-- Confirm all required layers are nonempty where the brief requires geometry.
-- Confirm stage clear dimensions and LED radius/height numerically.
-- Confirm no invalid objects and no accidental duplicates.
-- Confirm closed solids where enclosure geometry is intended.
-- Confirm camera names and envelope objects.
-- Confirm all load-bearing, electrical, HVAC, and life-safety values remain visibly marked as planning assumptions.
-- Save successfully, reopen or re-query the document, and capture at least plan, stage interior, exterior axonometric, and services-zone viewport images.
-- Record the saved `.3dm` path, validation evidence, unresolved issues, and decisions in Daystrom DML.
+- Report dynamic object counts by agentic phase and layer; no fixed count is a
+  design target.
+- Confirm the 300 ft x 400 ft lot, approximately 180 ft x 150 ft building,
+  minimum 120 ft x 100 ft x 40 ft clear stage, and 80 ft diameter x 24 ft high
+  180-degree LED volume numerically.
+- Confirm required rooms, loading path, camera names/envelopes, rigging zones,
+  electrical/mechanical allowances, egress, and data/control zones.
+- Confirm stable unique names, required User Text, valid geometry, intended
+  closed solids, and no accidental duplicates.
+- Capture plan, stage interior, exterior axonometric, and services-zone views.
+- Save once, re-query the document, and ingest the artifact path plus objective
+  evidence into DML.

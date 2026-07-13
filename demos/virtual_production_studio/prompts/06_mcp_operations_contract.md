@@ -6,7 +6,10 @@ Use the configured application MCP servers as stateful application bridges. Insp
 
 - The configured Rhino router and the existing Rhino 8 slot on `127.0.0.1:10500` are authoritative.
 - Call `mcp_rhino_list_slots`, attach to the ready slot, and never spawn a replacement while that slot is healthy.
-- Use `mcp_rhino_run_python` or `mcp_rhino_run_csharp` for scripted work and `mcp_rhino_save_doc` for the single gated save.
+- Author bounded Python or C# directly for one coherent element group at a time
+  and send it through `mcp_rhino_run_python` or `mcp_rhino_run_csharp`. Inspect
+  after every mutation. Do not execute a disk geometry script, JSON object plan,
+  or complete studio builder. Use `mcp_rhino_save_doc` for the single gated save.
 - Never drive interactive `Export`, `Save`, or `SaveAs` commands. If Rhino reports that a command is already running, cancel the pending interactive command, re-list the slot, and probe `run_python` before diagnosing MCP or Python.
 - For Blender handoff, generate render meshes and save a metadata-bearing `.3dm`; do not invent OBJ or FBX export paths.
 
