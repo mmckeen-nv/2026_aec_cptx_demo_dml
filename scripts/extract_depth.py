@@ -9,9 +9,10 @@ and writes 16-bit grayscale PNGs to DEPTH_DIR.
 """
 
 import bpy, os, struct, array
+from path_config import RENDER_ROOT
 
-EXR_DIR   = r"C:\Users\swags\Documents\aec_demo_master\renders\ocean_view\v_20260514_2109\exr"
-DEPTH_DIR = r"C:\Users\swags\Documents\aec_demo_master\renders\ocean_view\v_20260514_2109\depth"
+EXR_DIR   = os.environ.get("AEC_EXR_DIR", str(RENDER_ROOT / "exr"))
+DEPTH_DIR = os.environ.get("AEC_DEPTH_DIR", str(RENDER_ROOT / "depth"))
 os.makedirs(DEPTH_DIR, exist_ok=True)
 
 exr_files = sorted([f for f in os.listdir(EXR_DIR) if f.endswith('.exr')])

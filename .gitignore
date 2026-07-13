@@ -79,6 +79,25 @@ desktop.ini
 .env
 *.env
 secrets.json
+config/demo.env
+tools/obs_recorder_config.json
+
+# ── Deployment/runtime snapshots ─────────────────────────────────
+# Keep source provenance in deployment/SOURCE_VERSIONS.md. Do not vendor
+# entire installations, memory stores, caches, or generated backups here.
+deployment/source/
+hermes/remote_windows_installation/
+**/runtime-store/
+**/stores/
+**/state.db*
+**/sessions/
+**/logs/
+**/backups/
+**/*.bak
+**/*.bak.*
+**/*.snips-*
+**/*.egg-info/
+**/.pytest_cache/
 
 # ── Tools working files ──────────────────────────────────────────
 tools/*.zip
@@ -91,22 +110,3 @@ aa_demo_versions/cliff_house_02/demo_assets/
 aa_demo_versions/cliff_house_02/work_to_do/
 aa_demo_versions/cliff_house_02/scripts/
 aa_demo_versions/cliff_house_02/screenshots/
-
-# ── Tracked remote Hermes installation snapshot ──────────────────
-!hermes/remote_windows_installation/
-!hermes/remote_windows_installation/**
-hermes/remote_windows_installation/**/.env
-hermes/remote_windows_installation/**/*.env
-hermes/remote_windows_installation/**/*auth*.json
-hermes/remote_windows_installation/**/*auth*.lock
-hermes/remote_windows_installation/**/auth.lock
-hermes/remote_windows_installation/**/auth.json
-hermes/remote_windows_installation/**/state.db*
-hermes/remote_windows_installation/**/sessions/
-hermes/remote_windows_installation/**/logs/
-hermes/remote_windows_installation/**/audio_cache/
-hermes/remote_windows_installation/**/image_cache/
-hermes/remote_windows_installation/**/sandboxes/
-hermes/remote_windows_installation/**/venv/
-hermes/remote_windows_installation/**/.venv*/
-hermes/remote_windows_installation/**/node_modules/

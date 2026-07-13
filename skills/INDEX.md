@@ -1,6 +1,6 @@
 # Skills INDEX -- aec_cptx_demo
 # Last updated: May 2026
-# ROOT: C:\Users\swags\Documents\2026_aec_cptx_demo
+# ROOT: resolved from AEC_DEMO_ROOT or the repository checkout
 # All paths below are relative to ROOT.
 
 ---
@@ -17,7 +17,7 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 
 1. Read INDEX.md first. Before any task.
 2. MCP health check at session start. Ping: Rhino, Blender, OBS, ComfyUI.
-   Report what is up/down. If a required server is down, notify Sean -- do not
+   Report what is up/down. If a required server is down, notify the operator -- do not
    work around or fail silently.
 3. Read session_state.md second. Know exactly where the project is.
 4. Then view the specific skill(s) for the task. Don't rely on memory.

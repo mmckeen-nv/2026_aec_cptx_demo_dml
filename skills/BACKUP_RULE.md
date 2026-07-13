@@ -27,4 +27,4 @@ Backups are kept until end-of-project review. Do not delete during active work.
 - Importing or merging files
 - Any operation that cannot be trivially undone by hand
 
-*Added: 2026-05-20 per Sean's directive after scene wipe incident.*
+*Added: 2026-05-20 per the operator's directive after scene wipe incident.*

@@ -7,7 +7,7 @@
 
 ## ROOT
 
-C:\Users\swags\Documents\2026_aec_cptx_demo
+`{ROOT}` (resolved from `AEC_DEMO_ROOT`)
 
 ---
 
@@ -21,7 +21,7 @@ C:\Users\swags\Documents\2026_aec_cptx_demo
 | obs             | Recording       | Auto-restart via tools/obs_mcp_wrapper.ps1               | Working |
 | davinci-resolve | Post-production | Wired in config, not yet tested end-to-end               | Pending |
 
-OBS WebSocket password: bigfish (port 4455)
+OBS WebSocket password: ${OBS_WEBSOCKET_PASSWORD} (port 4455)
 BlenderMCP port: 9876
 
 ---
@@ -29,7 +29,7 @@ BlenderMCP port: 9876
 ## Active project
 
 cliff_house_02
-Location: C:\Users\swags\Documents\2026_aec_cptx_demo\aa_demo_versions\cliff_house_02\
+Location: `{ROOT}/aa_demo_versions/cliff_house_02/`
 All new and active projects are under the new root.
 
 ---

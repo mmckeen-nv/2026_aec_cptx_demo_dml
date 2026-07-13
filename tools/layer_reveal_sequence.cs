@@ -42,12 +42,16 @@ string pyScript =
 "    rs.LayerVisible(sc.doc.Layers[i].Id, False)\n" +
 "sc.doc.Views.Redraw()\n";
 
-System.IO.File.WriteAllText(
-    @"C:\Users\swags\Documents\2026_aec_cptx_demo\aa_demo_versions\cliff_house_02\logs\hide_layers.py",
-    pyScript);
+string root = System.Environment.GetEnvironmentVariable("AEC_DEMO_ROOT");
+if (string.IsNullOrWhiteSpace(root))
+    throw new System.InvalidOperationException("Set AEC_DEMO_ROOT before running the reveal sequence.");
+string hideScript = System.IO.Path.Combine(
+    root, "aa_demo_versions", "cliff_house_02", "logs", "hide_layers.py");
+System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(hideScript));
+System.IO.File.WriteAllText(hideScript, pyScript);
 
 RhinoApp.RunScript(
-    "-_RunPythonScript \"C:\\Users\\swags\\Documents\\2026_aec_cptx_demo\\aa_demo_versions\\cliff_house_02\\logs\\hide_layers.py\"",
+    "-_RunPythonScript \"" + hideScript.Replace("\\", "\\\\") + "\"",
     false);
 
 var waitEnd = System.DateTime.Now.AddSeconds(2);

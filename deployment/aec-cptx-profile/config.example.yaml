@@ -1,5 +1,5 @@
 # Sanitized Hermes profile config excerpt for the remote AEC CPTX demo deployment.
-# Source: DESKTOP-14FNBB2 / C:\Users\test\AppData\Local\hermes\profiles\aec-cptx\config.yaml
+# Sanitized from a working Windows profile. No host or username is required.
 # Do not commit live config.yaml, .env, auth files, state.db, sessions, logs, caches, or DML runtime stores.
 
 model:

@@ -17,13 +17,13 @@ Passes extracted:
     CryptoObject00  → masks/crypto_obj_####.png   (RGBA 8-bit, if present)
     CryptoMaterial00 → masks/crypto_mat_####.png  (RGBA 8-bit, if present)
 
-To re-run from command line:
-    & "C:\Program Files\Blender Foundation\Blender 5.1\5.1\python\bin\python.exe" extract_passes.py
+Run with the Python environment where OpenEXR, Pillow, and NumPy are installed.
 """
 
 import os, glob, argparse
 import numpy as np
 from PIL import Image
+from path_config import RENDER_ROOT
 
 try:
     import OpenEXR, Imath
@@ -31,7 +31,7 @@ except ImportError:
     raise SystemExit("OpenEXR not installed. Run: pip install openexr")
 
 # ---------- default paths ----------
-BASE    = r"C:\Users\swags\Documents\aec_demo_master\renders\ocean_view"
+BASE    = str(RENDER_ROOT)
 EXR_DIR = os.path.join(BASE, "exr")
 DEP_DIR = os.path.join(BASE, "depth")
 MSK_DIR = os.path.join(BASE, "masks")
@@ -157,10 +157,7 @@ def main():
     print("  2. Connect to ControlNetApply (use a depth ControlNet model)")
     print("  3. depth_####.png is 16-bit grayscale: near=white, far=black")
     print()
-    print("To re-run:")
-    blender_py = r"C:\Program Files\Blender Foundation\Blender 5.1\5.1\python\bin\python.exe"
-    script = r"C:\Users\swags\Documents\aec_demo_master\scripts\extract_passes.py"
-    print(f'  & "{blender_py}" "{script}"')
+    print("To re-run: python scripts/extract_passes.py")
 
 
 if __name__ == "__main__":

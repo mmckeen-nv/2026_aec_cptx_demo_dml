@@ -1,79 +1,64 @@
-# Setup Guide — AEC CPTX Demo
+# Setup Guide
 
-## 1. Clone the repo
+## 1. Clone and run preflight
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/aec-cptx-demo.git
-cd aec-cptx-demo
+git clone https://github.com/mmckeen-nv/2026_aec_cptx_demo_dml.git
+cd 2026_aec_cptx_demo_dml
+python scripts/aec_setup.py --check --tier viewer
 ```
 
-## 2. Set your ROOT path
+Choose the tier that matches the intended use:
 
-Open `README.md` and note the `{ROOT}` variable. This must point to wherever you cloned the repo.
+- `viewer`: open/render the packaged Blender demos.
+- `agent`: Hermes, Blender MCP, CUDA/Ollama, and Daystrom DML.
+- `enhancement`: Blender, FFmpeg, and ComfyUI.
+- `full`: all integrations, including Rhino and OBS.
 
-All other documents use `{ROOT}` as a relative anchor — you only need to set it once.
+Run `python scripts/aec_setup.py --configure` if an executable, endpoint, HDRI,
+or source checkout is not auto-detected. The generated configuration is ignored
+by Git.
 
-## 3. Configure Hermes
+## 2. Configure Hermes
 
-In your Hermes config, set the project profile to point to this directory. The agent reads the session startup sequence automatically on launch.
+Use `deployment/aec-cptx-profile/config.example.yaml` as a sanitized reference.
+Keep the real `config.yaml`, `.env`, API keys, sessions, logs, and DML stores in
+the local Hermes profile, never in this repository.
 
-System prompt variables:
+Set `AEC_DEMO_ROOT` to this checkout before starting Hermes or the Rhino helper
+scripts. On Windows, the portable launchers derive Hermes from `%LOCALAPPDATA%`.
+
+## 3. Start only the services required by the phase
+
+- Rhino MCP: phases 02–07 and 12–13; default HTTP endpoint `localhost:3001`.
+- Blender MCP: live Blender editing; default TCP endpoint `localhost:9876`.
+- ComfyUI: optional stylization; default `http://127.0.0.1:8188`.
+- Ollama: DML embeddings/summarization; default `http://127.0.0.1:11434`.
+- OBS WebSocket: recording only. Set `OBS_WEBSOCKET_PASSWORD` locally.
+
+Copy `tools/obs_recorder_config.example.json` to the ignored
+`tools/obs_recorder_config.json` and match its scene/source names to OBS.
+
+## 4. Verify the actual workflow
+
+```bash
+python scripts/aec_setup.py --check --tier full
+blender --background --python demos/teapot/build_teapot_demo.py -- \
+  --render /tmp/teapot.png
 ```
-{ROOT}       = /path/to/aec-cptx-demo
-{ASSET_ROOT} = /path/to/your/hdri-and-reference-assets
+
+For an agent-driven session, verify DML separately:
+
+```bash
+hermes -p aec-cptx memory status
 ```
 
-## 4. Start the MCP servers
+Then start the relevant MCP applications and tell Hermes:
 
-**Rhino MCP** (required for phases 02–06, 12–13):
-- Open Rhino
-- Start the Rhino MCP server plugin
-- Verify: `curl http://localhost:3001/mcp/`
+```text
+Resume cliff_house_02
+```
 
-**Blender MCP** (required for phases 07–11):
-- Open Blender
-- In the Scripting tab, run: `bpy.ops.blendermcp.start_server()`
-- Port: 9876 (TCP, localhost only)
-- Note: Hermes reaches Blender via a Rhino C# TcpClient proxy
-
-**OBS WebSocket** (required for demo recording):
-- Open OBS
-- Tools → WebSocket Server Settings → enable, port 4455, password: bigfish
-- Agent writes `tools/current_stage.json` to control scene names
-- You control start/stop recording manually from the OBS tray
-
-## 5. Prepare the Rhino base file
-
-The file `aa_demo_versions/cliff_house_02/rhino_assets/base_model.3dm` is the Phase 0 starting point. It contains:
-- Terrain network curves (uCurves + vCurves)
-- Site analysis annotations
-- Lot lines
-- Footprint plan curves (pad_plan, patio_plan, driveway_plan, garage_plan)
-
-It does NOT contain any built geometry. The agent builds everything during the demo.
-
-## 6. Fill in the design brief
-
-Edit `aa_demo_versions/cliff_house_02/user_prompts/project_prompt.md`.
-
-Or tell Hermes: **"Interview me about my project"** — it will read each section aloud and fill the document in for you.
-
-## 7. Run the demo
-
-Tell Hermes: **"Resume cliff_house_02"**
-
-Hermes will:
-1. Read all session files
-2. Ping all MCP connections
-3. Report what is up/down
-4. Ask: "What's next? Prepare the building site?"
-
-Say yes. Watch it build.
-
-## Notes
-
-- **Model units:** meters
-- **Render resolution:** 1920×1080 final / 960×540 test
-- **Sun study location:** San Diego (32.7°N, -117.2°W, TZ=-8), time 17:30
-- **NetworkSurface tolerances (fixed):** edge=0.0001, interior=0.0001, angle=1.0
-- **EXR depth channel:** Depth.V FLOAT
+Model units are metres. Test renders are 960×540; final renders default to
+1920×1080. Render scripts use environment/config values rather than usernames
+or fixed machine paths.

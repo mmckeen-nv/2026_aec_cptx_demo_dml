@@ -3,7 +3,7 @@
 #
 # Idempotent provisioning script for the WSL2 Ubuntu instance that hosts the
 # vLLM model containers for the aec-cptx / bac_teapot Hermes profiles on
-# DESKTOP-14FNBB2 (host user: test).
+# the target Windows host.
 #
 # Run this INSIDE the target WSL2 distro (not from Windows):
 #   wsl -d Ubuntu
@@ -131,7 +131,7 @@ log ""
 log "Provisioning complete. Next steps:"
 log "  1. Copy run-vllm-qwen36.sh and run-vllm-nemotron-vision.sh into this WSL2 distro"
 log "     (or run them directly from the Windows-mounted repo path, e.g."
-log "     /mnt/c/Users/test/2026_aec_cptx_demo_dml/deployment/wsl-vllm/)."
+log "     /mnt/c/Users/<windows-user>/<repo>/deployment/wsl-vllm/)."
 log "  2. bash run-vllm-qwen36.sh          # first run downloads the chat model weights"
 log "  3. bash run-vllm-nemotron-vision.sh # first run downloads the vision model weights"
 log "  4. Verify: curl http://localhost:8000/v1/models && curl http://localhost:8001/v1/models"

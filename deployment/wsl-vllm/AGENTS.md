@@ -56,7 +56,7 @@ Files in this directory:
    mount, no copying needed:
    ```
    wsl -d Ubuntu
-   cd /mnt/c/Users/test/2026_aec_cptx_demo_dml/deployment/wsl-vllm
+   cd /mnt/c/Users/<windows-user>/<repo>/deployment/wsl-vllm
    ```
 
 3. Run the provisioning script:

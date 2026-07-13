@@ -1,11 +1,11 @@
 
-import sys, os
-sys.path.insert(0, r"C:\Program Files\Blender Foundation\Blender 5.1\5.1\python\lib\site-packages")
+import os
 import OpenEXR, numpy as np
 from PIL import Image as PILImage
+from path_config import RENDER_ROOT
 
-TEMP      = r"C:\Users\swags\Documents\aec_demo_master\renders\ocean_view\v_20260514_2109\depth_raw_temp"
-DEPTH_DIR = r"C:\Users\swags\Documents\aec_demo_master\renders\ocean_view\v_20260514_2109\depth"
+TEMP      = os.environ.get("AEC_DEPTH_TEMP", str(RENDER_ROOT / "depth_raw_temp"))
+DEPTH_DIR = os.environ.get("AEC_DEPTH_DIR", str(RENDER_ROOT / "depth"))
 
 for f in os.listdir(DEPTH_DIR): os.remove(os.path.join(DEPTH_DIR, f))
 

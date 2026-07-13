@@ -28,7 +28,7 @@ Ask one question only: "What are we building?"
 
 ### Step 2 -- Propose a project name
 Format: `[style_or_type]_[number]`  e.g. `barndominium_01`  `hillside_modern_02`
-Confirm with Sean before creating anything.
+Confirm with the operator before creating anything.
 
 ### Step 3 -- Create the project directory
 Under `aa_demo_versions/[project_name]/`:
@@ -141,7 +141,7 @@ Active phases:
 
 ## OBS Recording Protocol
 
-**Hermes's only job: write the stage file. Sean controls recording from the tray.**
+**Hermes's only job: write the stage file. the operator controls recording from the tray.**
 
 Hermes NEVER calls obs-start-record, obs-stop-record, obs-set-current-scene,
 or obs-set-scene-item-enabled. The tray app (tools/obs_recorder.py) owns all of that.
@@ -228,7 +228,7 @@ Create the file (and `logs/` folder) if it doesn't exist. Append to it if it doe
 
 ---
 
-### 👤 Sean
+### 👤 the operator
 [exact user prompt, verbatim]
 
 ---

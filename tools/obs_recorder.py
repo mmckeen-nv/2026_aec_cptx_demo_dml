@@ -1,9 +1,9 @@
 ﻿"""
-OBS Recorder Tray  v3  --  aec_demo_master
+OBS Recorder Tray  v3  --  AEC CPTX demo
 ======================================================================
 ARCHITECTURE
 
-  Claude's only job:
+  The agent's only job:
     Write  tools/current_stage.json  ->  {"project": "...", "phase": "..."}
     That is it. Claude does NOT call any OBS MCP tools for recording.
 
@@ -38,7 +38,9 @@ import json, threading, time, os, re, websocket, hashlib, base64
 TOOLS_DIR   = os.path.dirname(os.path.abspath(__file__))
 AEC_BASE    = os.path.normpath(os.path.join(TOOLS_DIR, ".."))
 STAGE_FILE  = os.path.join(TOOLS_DIR, "current_stage.json")
-CONFIG_FILE = os.path.join(TOOLS_DIR, "obs_recorder_config.json")
+CONFIG_FILE = os.environ.get(
+    "AEC_OBS_CONFIG", os.path.join(TOOLS_DIR, "obs_recorder_config.json"))
+CONFIG_EXAMPLE = os.path.join(TOOLS_DIR, "obs_recorder_config.example.json")
 
 RESOLUTIONS = [
     (3200, 2000, "3200 x 2000  (native)"),
@@ -52,13 +54,13 @@ RESOLUTIONS = [
 # ---- CONFIG ---------------------------------------------------------------
 _CFG_DEFAULTS = {
     "connections": {
-        "4455": {"host": "localhost", "password": "bigfish", "scene": "Claude-rhino_capture"},
-        "4456": {"host": "localhost", "password": "bigfish", "scene": "Claude-rhino_capture"},
+        "4455": {"host": "localhost", "password": "", "scene": "AEC Capture"},
+        "4456": {"host": "localhost", "password": "", "scene": "AEC Capture"},
     },
     "items": {
-        "claude":  {"source": "claude_window",  "port": 4455, "label": "Record Claude"},
-        "rhino":   {"source": "Rhino_window",   "port": 4455, "label": "Record Rhino"},
-        "blender": {"source": "blender_window", "port": 4456, "label": "Record Blender"},
+        "agent":   {"source": "Agent Window",   "port": 4455, "label": "Record Agent"},
+        "rhino":   {"source": "Rhino Window",   "port": 4455, "label": "Record Rhino"},
+        "blender": {"source": "Blender Window", "port": 4456, "label": "Record Blender"},
         "display": {"source": "Display Capture","port": 4456, "label": "Record Display"},
     },
     "capture_root": "",
@@ -66,7 +68,8 @@ _CFG_DEFAULTS = {
 
 def load_config():
     try:
-        with open(CONFIG_FILE) as f:
+        source = CONFIG_FILE if os.path.exists(CONFIG_FILE) else CONFIG_EXAMPLE
+        with open(source) as f:
             data = json.load(f)
         cfg = {**_CFG_DEFAULTS, **data}
         if "connections" not in cfg:
@@ -75,10 +78,16 @@ def load_config():
         for k, v in cfg["items"].items():
             if isinstance(v, str):
                 cfg["items"][k] = {"source": v, "port": 4455, "label": f"Record {k.title()}"}
+        for conn in cfg["connections"].values():
+            password = str(conn.get("password", ""))
+            match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", password)
+            if match:
+                conn["password"] = os.environ.get(match.group(1), "")
+            elif not password:
+                conn["password"] = os.environ.get("OBS_WEBSOCKET_PASSWORD", "")
         return cfg
-    except Exception:
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(_CFG_DEFAULTS, f, indent=2)
+    except Exception as exc:
+        print(f"OBS config load failed ({exc}); using safe defaults")
         return dict(_CFG_DEFAULTS)
 
 def save_config(cfg):
@@ -244,7 +253,7 @@ def get_obs(port):
             host     = conn.get("host",     "localhost"),
             port     = port,
             password = conn.get("password", ""),
-            scene    = conn.get("scene",    "Claude-rhino_capture"),
+            scene    = conn.get("scene",    "AEC Capture"),
         )
         _obs_pool[port] = client
         threading.Thread(target=client.connect, daemon=True).start()

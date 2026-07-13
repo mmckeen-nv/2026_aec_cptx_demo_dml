@@ -324,7 +324,8 @@ Use `System.IO.File.WriteAllText` to inspect values:
 
 ```csharp
 System.IO.File.WriteAllText(
-    @"C:\Users\swags\Documents\AEC_demo_v2\debug.txt",
+    System.IO.Path.Combine(
+        System.Environment.GetEnvironmentVariable("AEC_DEMO_ROOT"), "debug.txt"),
     "Layer count: " + doc.Layers.Count + "\nObjects: " + doc.Objects.Count);
 ```
 

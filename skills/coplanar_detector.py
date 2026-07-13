@@ -6,7 +6,7 @@ projections are literal coplanar z-fights, regardless of rendering.
 
 Usage:
     import sys
-    sys.path.insert(0, "C:/Users/swags/Documents/aec_demo_master/skills")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     import coplanar_detector as cd
     pairs, offenders = cd.run(min_overlap_area=0.10, offset_resolution=0.005)
 """

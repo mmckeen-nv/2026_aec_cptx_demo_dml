@@ -1,7 +1,8 @@
 $ErrorActionPreference = 'Stop'
-$env:HERMES_HOME = 'C:\Users\test\AppData\Local\hermes'
-$env:Path = 'C:\Users\test\AppData\Local\hermes\hermes-agent\venv\Scripts;C:\Users\test\AppData\Local\hermes\bin;' + [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
-Set-Location 'C:\Users\test'
+$env:HERMES_HOME = Join-Path $env:LOCALAPPDATA 'hermes'
+$hermesScripts = Join-Path $env:HERMES_HOME 'hermes-agent\venv\Scripts'
+$env:Path = $hermesScripts + ';' + (Join-Path $env:HERMES_HOME 'bin') + ';' + $env:Path
+Set-Location $env:USERPROFILE
 Write-Host ''
 Write-Host '============================================================'
 Write-Host ' BAC_Teapot - Hermes Profile'
@@ -11,7 +12,9 @@ Write-Host ' Vision: Nemotron-3-Nano-Omni-30B-A3B (local vLLM, Docker/WSL2)'
 Write-Host ' Endpoint: http://localhost:8000/v1 (chat), :8001 (vision)'
 Write-Host '============================================================'
 Write-Host ''
-& 'C:\Users\test\AppData\Local\hermes\hermes-agent\venv\Scripts\hermes.exe' -p bac_teapot chat
+$hermesExe = Join-Path $hermesScripts 'hermes.exe'
+if (-not (Test-Path $hermesExe)) { throw "Hermes not found at $hermesExe" }
+& $hermesExe -p bac_teapot chat
 $code = $LASTEXITCODE
 Write-Host ''
 Write-Host "Hermes exited with code $code. Press Enter to close."

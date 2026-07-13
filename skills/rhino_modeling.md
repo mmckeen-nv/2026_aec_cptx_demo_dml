@@ -13,7 +13,7 @@ boundaries from existing geometry.**
 
 ## Terrain — NurbsSurface.CreateNetworkSurface tolerances (FIXED VALUES — do not change)
 
-These are Sean's specified values. Do not substitute model absolute tolerance or any other value:
+These are the operator's specified values. Do not substitute model absolute tolerance or any other value:
 
 ```
 edge tolerance:     0.0001

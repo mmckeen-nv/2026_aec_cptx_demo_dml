@@ -1,14 +1,16 @@
 # obs_mcp_wrapper.ps1
-# Wraps obs-mcp with auto-restart so Claude Desktop never loses the MCP connection.
-# Claude Desktop calls this script as the MCP server command.
+# Wraps obs-mcp with auto-restart so the agent never loses the MCP connection.
+# Configure OBS_WEBSOCKET_PASSWORD in the user environment.
 # If obs-mcp exits for any reason, this wrapper restarts it after a short delay.
 
-$env:OBS_WEBSOCKET_PASSWORD = "bigfish"
-$obsCmd = "C:\Users\swags\AppData\Roaming\npm\obs-mcp.cmd"
+$obsCmd = Get-Command obs-mcp -ErrorAction SilentlyContinue
+if (-not $obsCmd) {
+    throw "obs-mcp is not on PATH. Install it, then rerun this wrapper."
+}
 
 while ($true) {
     try {
-        & $obsCmd
+        & $obsCmd.Source
     } catch {
         # process exited with error — fall through to restart
     }

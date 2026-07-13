@@ -2,28 +2,28 @@
   "connections": {
     "4455": {
       "host": "localhost",
-      "password": "bigfish",
-      "scene": "Claude-rhino_capture"
+      "password": "${OBS_WEBSOCKET_PASSWORD}",
+      "scene": "AEC Capture"
     },
     "4456": {
       "host": "localhost",
-      "password": "bigfish",
-      "scene": "Claude-rhino_capture"
+      "password": "${OBS_WEBSOCKET_PASSWORD}",
+      "scene": "AEC Capture"
     }
   },
   "items": {
-    "claude": {
-      "source": "claude_window",
+    "agent": {
+      "source": "Agent Window",
       "port": 4455,
-      "label": "Record Claude"
+      "label": "Record Agent"
     },
     "rhino": {
-      "source": "Rhino_window",
+      "source": "Rhino Window",
       "port": 4455,
       "label": "Record Rhino"
     },
     "blender": {
-      "source": "blender_window",
+      "source": "Blender Window",
       "port": 4456,
       "label": "Record Blender"
     },

@@ -1,7 +1,7 @@
 """
 comfyui_phase7.py — Phase 7 automation: Blender renders → ComfyUI → enhanced MP4
 
-Connects to ComfyUI on the DGX Spark at 192.168.50.67:8188, queries available
+Connects to the configured ComfyUI endpoint, queries available
 models, uploads frame pairs (beauty + depth), queues depth-conditioned img2img
 workflows, downloads results, and encodes ocean_view_ai.mp4.
 
@@ -26,6 +26,7 @@ import urllib.request
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from path_config import COMFYUI_URL as CONFIG_COMFYUI_URL, FFMPEG_BIN, RENDER_ROOT
 
 try:
     import requests
@@ -39,16 +40,14 @@ except ImportError:
     HAS_TQDM = False
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-BASE      = Path(r"C:\Users\swags\Documents\aec_demo_master\renders\ocean_view")
+BASE      = RENDER_ROOT
 PNG_DIR   = BASE / "png"
 DEPTH_DIR = BASE / "depth"
 OUT_DIR   = BASE / "ai_enhanced"
-FFMPEG    = (r"C:\Users\swags\AppData\Local\Microsoft\WinGet\Packages"
-             r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe"
-             r"\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe")
+FFMPEG    = FFMPEG_BIN
 
 # ─── ComfyUI settings ─────────────────────────────────────────────────────────
-COMFYUI_URL        = "http://192.168.50.67:8188"
+COMFYUI_URL        = CONFIG_COMFYUI_URL
 CHECKPOINT         = None     # None = auto-select first available
 CONTROLNET         = None     # None = auto-select first depth model
 POSITIVE_PROMPT    = (
@@ -334,8 +333,11 @@ def encode_mp4(frame_dir, out_mp4, fps=24):
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
+    global COMFYUI_URL, BASE, PNG_DIR, DEPTH_DIR, OUT_DIR, FFMPEG
     parser = argparse.ArgumentParser(description="Phase 7 — ComfyUI post-processing")
     parser.add_argument("--url",        default=COMFYUI_URL)
+    parser.add_argument("--base",       type=Path, default=BASE, help="Render root containing png/ and depth/.")
+    parser.add_argument("--ffmpeg",     default=FFMPEG)
     parser.add_argument("--checkpoint", default=None)
     parser.add_argument("--controlnet", default=None)
     parser.add_argument("--denoise",    type=float, default=DENOISE)
@@ -348,8 +350,12 @@ def main():
     parser.add_argument("--dry-run",    action="store_true", help="Connect and show models only")
     args = parser.parse_args()
 
-    global COMFYUI_URL
     COMFYUI_URL = args.url
+    BASE = args.base.expanduser().resolve()
+    PNG_DIR = BASE / "png"
+    DEPTH_DIR = BASE / "depth"
+    OUT_DIR = BASE / "ai_enhanced"
+    FFMPEG = args.ffmpeg
 
     print("=" * 60)
     print("Phase 7 — ComfyUI Post-Processing")

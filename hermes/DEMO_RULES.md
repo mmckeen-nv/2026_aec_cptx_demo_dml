@@ -67,8 +67,8 @@ reference geometry, or intentionally pausing between steps of model building. Do
 - Tool name: `rhinoceros_operator` — parameter key is `"script"` (NOT `"code"`)
 - Always include header: `Accept: application/json, text/event-stream`
 - C# scripts do NOT return values — write output to file, read back from Python
-- Output file path: `C:/Users/swags/Documents/2026_aec_cptx_demo/hermes/output.txt`
-- Audit file path: `C:/Users/swags/Documents/2026_aec_cptx_demo/hermes/ref_audit.txt`
+- Output file path: `{ROOT}/hermes/output.txt`
+- Audit file path: `{ROOT}/hermes/ref_audit.txt`
 - Use `AreaMassProperties.Compute()` for surface area (works on Brep + Extrusion)
 - Use `VolumeMassProperties.Compute()` for volume — cast geometry to Brep first if needed
 - AreaMassProperties/VolumeMassProperties require typed geometry — cast with `o.Geometry as Rhino.Geometry.Brep` or `as Rhino.Geometry.Extrusion`

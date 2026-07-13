@@ -4,12 +4,14 @@ Full scene setup + versioned render for ocean_view animation.
 Run via: blender --background base_model.blend --python scripts/render_ocean_view.py
 """
 import bpy, math, mathutils, os, datetime, subprocess, time
+from pathlib import Path
+from path_config import FFMPEG_BIN, HDRI_PATH, RENDER_ROOT, require_file
 
 scene = bpy.context.scene
 
 # ── Versioned output ──────────────────────────────────────────────────────
 stamp   = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-BASE    = r"C:\Users\swags\Documents\aec_demo_master\renders\ocean_view"
+BASE    = str(RENDER_ROOT)
 OUT_DIR = os.path.join(BASE, f"v_{stamp}")
 PNG_DIR = os.path.join(OUT_DIR, "png")
 os.makedirs(PNG_DIR, exist_ok=True)
@@ -68,7 +70,7 @@ for obj in bpy.data.objects:
         obj.data.update()
 
 # ── World / HDRI ──────────────────────────────────────────────────────────
-HDR = r"C:\Users\swags\Documents\aec_demo_master\assets\RADSKY-007SX.hdr"
+HDR = str(require_file(HDRI_PATH, "AEC_HDRI_PATH"))
 world = scene.world
 world.use_nodes = True
 nt = world.node_tree
@@ -175,9 +177,7 @@ elapsed = (time.time()-t)/60
 print(f"Render complete: {elapsed:.1f} min → {PNG_DIR}")
 
 # ── Encode MP4 ────────────────────────────────────────────────────────────
-ffmpeg = (r"C:\Users\swags\AppData\Local\Microsoft\WinGet\Packages"
-          r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe"
-          r"\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe")
+ffmpeg = FFMPEG_BIN
 mp4 = os.path.join(OUT_DIR, "ocean_view.mp4")
 subprocess.run([ffmpeg,"-y","-framerate","24","-start_number","0",
     "-i",os.path.join(PNG_DIR,"frame_%04d.png"),

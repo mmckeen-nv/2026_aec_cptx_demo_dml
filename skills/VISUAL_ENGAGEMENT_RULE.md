@@ -16,7 +16,7 @@ as part of the conversation so the discussion is grounded in visuals.
 When discussing changes to the Rhino scene — terrain, building footprint,
 walls, patios, stairs, or any geometry — get a Rhino viewport screenshot
 showing the area being discussed. Display it before and after changes so
-Sean can see exactly what is being modified.
+the operator can see exactly what is being modified.
 
 ## Image viewer always active
 The image viewer (Rhino viewport screenshot or reference image) should
@@ -29,4 +29,4 @@ project. Update it as the topic shifts.
   orient camera to relevant area before screenshotting
 - Timing: display BEFORE discussing, not after — images lead, words follow
 
-*Added: 2026-05-20 per Sean's directive.*
+*Added: 2026-05-20 per the operator's directive.*

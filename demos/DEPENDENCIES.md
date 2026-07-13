@@ -5,6 +5,20 @@ new machine, from a single prompt like "deploy the demo pack." This file
 is the dependency manifest + step-by-step deploy playbook. Read this
 BEFORE touching the demos themselves.
 
+Run the executable preflight before copying commands from this document:
+
+```bash
+python scripts/aec_setup.py --check --tier viewer
+python scripts/aec_setup.py --check --tier agent
+python scripts/aec_setup.py --check --tier enhancement
+python scripts/aec_setup.py --check --tier full
+```
+
+`--configure` creates an ignored machine-local environment file. `--install`
+offers supported package-manager commands interactively and then rechecks the
+machine. Commercial software, private source, model weights, and credentials
+remain explicit manual steps.
+
 Scope note: Maya and Unreal Engine are SHELVED. Do not install or wire up
 either. The Teapot demo is Blender-only (see `teapot/` — no `.fbx`, no UE
 import script). If a user asks to revive Maya/UE support, treat that as a
@@ -21,14 +35,14 @@ this file.
 | Cliff House Modification | Blender 4.0+, ComfyUI + SDXL checkpoint + depth ControlNet model | comfy-cli (convenience layer over ComfyUI's REST API) |
 | Virtual Production Studio | Blender 4.0+ | Rhino 8 + rhino3dm (base model source), ComfyUI (enhanced passes) |
 | Teapot | Blender 4.0+ | — (fully self-contained, no external deps beyond Blender itself) |
-| **All demos (agent memory layer)** | **Daystrom DML — REQUIRED, see Section 2.5** | — |
+| **Agent-driven continuity** | **Daystrom DML — REQUIRED for persistent agent memory, see Section 2.5** | — |
 
 Nothing in this pack requires Maya, Unreal Engine, or Windows specifically
 — Blender and ComfyUI both run natively on Linux, and Rhino (Windows/macOS
 only) is optional/source-only, not required to run the demos as shipped.
-Daystrom DML (the agent's project-memory/cookbook layer) IS required —
-see Section 2.5 — and needs a CUDA GPU + Ollama; this is the one piece of
-this pack that cannot degrade gracefully to CPU-only or be skipped.
+Daystrom DML is required for the persistent agent-memory workflow and needs a
+CUDA GPU + Ollama. It is not required to open or render the packaged Blender
+scenes without Hermes.
 
 ---
 
@@ -162,21 +176,22 @@ running headless scripts. Two pieces:
 - Recommended CLI layer (optional but used by the `comfyui` skill's
   scripts): `comfy-cli`
   ```bash
-  pipx install comfy-cli   # or: pip install --user comfy-cli
-  comfy --skip-prompt tracking disable
+  pip install comfy-cli
+  comfy setup --where local
+  comfy tracking disable
   ```
 
 #### Required models
 
 | Model | Used by | Install |
 |---|---|---|
-| `sd_xl_base_1.0.safetensors` (SDXL base checkpoint) | Cliff House Modification | `comfy model download --url "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors" --relative-path models/checkpoints` |
-| `controlnet-depth-sdxl-1.0` (depth ControlNet) | Cliff House Modification (depth-conditioned img2img) | `comfy model download --url "<huggingface controlnet-depth-sdxl-1.0 URL>" --relative-path models/controlnet` |
+| `sd_xl_base_1.0.safetensors` (SDXL base checkpoint) | Cliff House Modification | Install from the official `stabilityai/stable-diffusion-xl-base-1.0` model card or ComfyUI Manager |
+| An SDXL-compatible depth ControlNet | Cliff House Modification (depth-conditioned img2img) | Install through ComfyUI Manager and verify that it appears in `ControlNetLoader`; model filenames vary by release |
 
 Verify both are present:
 ```bash
-curl -s http://127.0.0.1:8188/models/checkpoints
-curl -s http://127.0.0.1:8188/models/controlnet
+curl -s http://127.0.0.1:8188/object_info
+python scripts/comfyui_phase7.py --dry-run
 ```
 
 #### GPU / hardware
@@ -221,7 +236,7 @@ DML would otherwise answer from its store.
 
 **Install (Windows — reference machine layout):**
 ```bash
-# 1. Get the daystrom-dml source (wherever your org hosts it) into:
+# 1. Get the Daystrom source recorded in deployment/SOURCE_VERSIONS.md into:
 #    <hermes_home>/integrations/daystrom-dml/source/
 
 # 2. Create a dedicated venv (Python 3.10+) and install:
@@ -362,7 +377,8 @@ If needed anyway:
   Note: on this reference machine, the git-bash default `python` resolves
   to the Hermes venv, which does NOT have `rhino3dm`. Use the system
   Python explicitly:
-  `C:\Users\test\AppData\Local\Programs\Python\Python312\python.exe`.
+  the interpreter returned by `py -0p` or
+  `python -c "import sys; print(sys.executable)"`.
   On Linux this is less likely to be an issue — a single system Python
   with `pip install rhino3dm` is normally sufficient.
 

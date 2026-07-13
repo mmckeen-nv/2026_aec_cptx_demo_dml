@@ -40,7 +40,7 @@ subgraph AGENT["LAYER 2 — AGENT BRAIN (Hermes / Claude Sonnet)"]
 
     subgraph MEM["Persistent Memory"]
         M1[(Path variables\nMCP ports\nTool quirks)]
-        M2[(User profile\nSean's preferences\nportability rules)]
+        M2[(User profile\nthe operator's preferences\nportability rules)]
         M3[(Skills — reusable\nprocedural workflows)]
     end
 end
@@ -48,7 +48,7 @@ end
 %% ─────────────────────────────────────────────
 %%  SUBGRAPH: FILE SYSTEM
 %% ─────────────────────────────────────────────
-subgraph FS["LAYER 3 — PROJECT FILE SYSTEM  (ROOT = C:\\Users\\swags\\Documents\\2026_aec_cptx_demo)"]
+subgraph FS["LAYER 3 — PROJECT FILE SYSTEM  (ROOT = AEC_DEMO_ROOT)"]
     direction LR
 
     subgraph SKILLS["skills/"]
@@ -149,16 +149,16 @@ subgraph MCP["LAYER 5 — MCP CONNECTIONS"]
         BM1[TCP JSON — localhost only]
         BM2[Reached via Rhino C# TcpClient proxy]
         BM3{render call?}
-        BM4[bpy.ops.render.render — blocks socket\nUse timer OR Sean presses F12]
+        BM4[bpy.ops.render.render — blocks socket\nUse timer OR the operator presses F12]
         BM5[Non-blocking Blender ops]
         BM1 --> BM2 --> BM3
         BM3 -->|render| BM4
         BM3 -->|other| BM5
     end
 
-    subgraph OBS_MCP["OBS WebSocket — localhost:4455 / pw:bigfish"]
+    subgraph OBS_MCP["OBS WebSocket — localhost:4455 / pw:${OBS_WEBSOCKET_PASSWORD}"]
         OM1[Agent ONLY writes\ntools/current_stage.json]
-        OM2[Sean controls recording\nvia tray app]
+        OM2[the operator controls recording\nvia tray app]
         OM3[⚠ Agent NEVER calls\nobs-start/stop-record]
     end
 

@@ -39,7 +39,7 @@ Follow every step exactly.
 - [ ] Rhino document is open with Phase 5 geometry
 - [ ] Blender is open (empty or existing base scene)
 - [ ] BlenderMCP running on port 9876 (Scripting tab → `bpy.ops.blendermcp.start_server()`)
-- [ ] `skills/import_with_metadata.py` exists at `C:\Users\swags\Documents\the project root\skills\`
+- [ ] `skills/import_with_metadata.py` exists under `{ROOT}/skills/`
 - [ ] `skills/pre_export_validate.py` exists at same location
 
 ---

@@ -68,7 +68,7 @@ Your answer:  cliff_house_02
 
 // Who is this project for? (Optional — used for greetings and sign-offs)
 //
-// 💡 Example:  Sean
+// 💡 Example:  the operator
 
 Your answer:  [FILL IN]
 
@@ -539,7 +539,7 @@ Scene elements:
 
 Layer audit:
   8 layers confirmed. 24 objects mapped. 0 unknown elements.
-  Same physical site as cliff_house_01 — geometry confirmed by Sean 2026-05-21.
+  Same physical site as cliff_house_01 — geometry confirmed by the operator 2026-05-21.
 
 
 // ── DIMENSIONS EXTRACTED ────────────────────────────────────────────
