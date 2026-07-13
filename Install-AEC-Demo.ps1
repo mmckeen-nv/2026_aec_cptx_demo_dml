@@ -256,7 +256,21 @@ function Restore-PortableAssets {
     $ollamaDestination = Join-Path $env:USERPROFILE '.ollama\models'
     if ($script:InstallerCmdlet.ShouldProcess($ollamaDestination, 'Merge bundled Ollama model store')) {
       New-Item -ItemType Directory -Path $ollamaDestination -Force | Out-Null
-      Get-ChildItem -LiteralPath $ollamaSource -Force | Copy-Item -Destination $ollamaDestination -Recurse -Force
+      $copied = 0
+      $current = 0
+      foreach ($sourceFile in Get-ChildItem -LiteralPath $ollamaSource -File -Recurse -Force) {
+        $relative = $sourceFile.FullName.Substring($ollamaSource.Length).TrimStart('\')
+        $targetFile = Join-Path $ollamaDestination $relative
+        if ((Test-Path -LiteralPath $targetFile -PathType Leaf) -and
+            (Get-Item -LiteralPath $targetFile).Length -eq $sourceFile.Length) {
+          $current++
+          continue
+        }
+        New-Item -ItemType Directory -Path (Split-Path -Parent $targetFile) -Force | Out-Null
+        Copy-Item -LiteralPath $sourceFile.FullName -Destination $targetFile -Force
+        $copied++
+      }
+      Write-Host "Ollama model store: $current current, $copied copied."
     }
   }
 

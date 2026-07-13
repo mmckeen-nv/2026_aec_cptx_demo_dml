@@ -72,6 +72,7 @@ class SetupTests(unittest.TestCase):
         self.assertIn("$wslRepo.Distro, '-u', 'root', '-e', 'bash'", installer)
         self.assertIn("integrations\\daystrom-dml\\source", installer)
         self.assertIn("DML_SOURCE_DIR saved for future sessions", installer)
+        self.assertIn("Ollama model store: $current current, $copied copied", installer)
         self.assertNotIn("C:\\Users\\", installer)
 
         for relative in (
