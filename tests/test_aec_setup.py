@@ -65,6 +65,10 @@ class SetupTests(unittest.TestCase):
         self.assertIn("PortableBundle", installer)
         self.assertIn("OfflineOnly", installer)
         self.assertIn("Sanitized config examples were not copied", installer)
+        self.assertIn("Get-FileSha256", installer)
+        self.assertIn("Assert-PortableManifestAssets", installer)
+        self.assertIn("Portable manifest asset checksum mismatch", installer)
+        self.assertIn('$mountRoot = "/mnt/$drive"', installer)
         self.assertNotIn("C:\\Users\\", installer)
 
     def test_portable_bundle_builder_exports_only_tracked_source(self):

@@ -70,11 +70,26 @@ function Invoke-AecSetup {
   return $LASTEXITCODE
 }
 
+function Get-FileSha256 {
+  param([string]$Path)
+  $stream = [IO.File]::OpenRead($Path)
+  try {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try {
+      return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '')
+    } finally {
+      $sha.Dispose()
+    }
+  } finally {
+    $stream.Dispose()
+  }
+}
+
 function Install-ManagedFile {
   param([string]$Source, [string]$Destination)
   if (-not (Test-Path -LiteralPath $Source)) { throw "Managed source not found: $Source" }
   if (Test-Path -LiteralPath $Destination) {
-    $same = (Get-FileHash -LiteralPath $Source).Hash -eq (Get-FileHash -LiteralPath $Destination).Hash
+    $same = (Get-FileSha256 $Source) -eq (Get-FileSha256 $Destination)
     if ($same) {
       Write-Host "Current: $Destination"
       return
@@ -126,14 +141,73 @@ function Get-WslRepoInfo {
     return [pscustomobject]@{
       Distro = $parts[1]
       Path = '/' + (($parts | Select-Object -Skip 2) -join '/')
+      DriveLetter = $null
+      MountRoot = $null
     }
   }
 
-  $converted = (& wsl.exe -d $RequestedDistro -e wslpath -a $WindowsPath | Select-Object -Last 1).Trim()
+  if ($WindowsPath -match '^(?<drive>[A-Za-z]):(?:\\(?<tail>.*))?$') {
+    $drive = $Matches.drive.ToLowerInvariant()
+    $mountRoot = "/mnt/$drive"
+    $tail = if ($Matches.tail) { '/' + ($Matches.tail -replace '\\', '/') } else { '' }
+    return [pscustomobject]@{
+      Distro = $RequestedDistro
+      Path = $mountRoot + $tail
+      DriveLetter = "$($Matches.drive):"
+      MountRoot = $mountRoot
+    }
+  }
+
+  $convertedOutput = @(& wsl.exe -d $RequestedDistro -e wslpath -a $WindowsPath)
+  $converted = if ($convertedOutput) { ($convertedOutput | Select-Object -Last 1).Trim() } else { $null }
   if ($LASTEXITCODE -ne 0 -or -not $converted) {
     throw "Could not map repository path into WSL distro '$RequestedDistro': $WindowsPath"
   }
-  return [pscustomobject]@{ Distro = $RequestedDistro; Path = $converted }
+  return [pscustomobject]@{
+    Distro = $RequestedDistro
+    Path = $converted
+    DriveLetter = $null
+    MountRoot = $null
+  }
+}
+
+function Ensure-WslDriveMounted {
+  param($PathInfo)
+  if (-not $PathInfo.DriveLetter) { return }
+
+  & wsl.exe -d $PathInfo.Distro -e mountpoint -q $PathInfo.MountRoot
+  if ($LASTEXITCODE -ne 0) {
+    Invoke-Checked 'wsl.exe' @('-d', $PathInfo.Distro, '-u', 'root', '-e', 'mkdir', '-p', $PathInfo.MountRoot)
+    Invoke-Checked 'wsl.exe' @('-d', $PathInfo.Distro, '-u', 'root', '-e', 'mount', '-t', 'drvfs', $PathInfo.DriveLetter, $PathInfo.MountRoot)
+  }
+
+  Invoke-Checked 'wsl.exe' @('-d', $PathInfo.Distro, '-e', 'test', '-d', $PathInfo.Path)
+}
+
+function Assert-PortableManifestAssets {
+  param([string]$BundlePath, $ManifestData)
+  $bundleRoot = [IO.Path]::GetFullPath($BundlePath).TrimEnd('\') + '\'
+  foreach ($asset in @($ManifestData.assets)) {
+    $relative = ([string]$asset.path).Replace('/', '\')
+    $assetPath = [IO.Path]::GetFullPath((Join-Path $BundlePath $relative))
+    if (-not $assetPath.StartsWith($bundleRoot, [StringComparison]::OrdinalIgnoreCase)) {
+      throw "Portable manifest asset escapes the bundle directory: $($asset.path)"
+    }
+    if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+      throw "Portable manifest asset is missing: $assetPath"
+    }
+    $item = Get-Item -LiteralPath $assetPath
+    if ($null -ne $asset.bytes -and $item.Length -ne [long]$asset.bytes) {
+      throw "Portable manifest asset size mismatch: $assetPath"
+    }
+    if ($asset.sha256) {
+      $actual = Get-FileSha256 $assetPath
+      if ($actual -ne [string]$asset.sha256) {
+        throw "Portable manifest asset checksum mismatch: $assetPath"
+      }
+    }
+    Write-Host "Verified: $($asset.path)"
+  }
 }
 
 function Restore-PortableAssets {
@@ -143,7 +217,10 @@ function Restore-PortableAssets {
   if (-not (Test-Path -LiteralPath $manifest)) {
     throw "Portable bundle manifest not found: $manifest"
   }
+  $manifestData = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+  Assert-PortableManifestAssets $BundlePath $manifestData
   $bundleWsl = Get-WslRepoInfo $BundlePath $WslInfo.Distro
+  if (-not $WhatIfPreference) { Ensure-WslDriveMounted $bundleWsl }
   $dockerArchive = Join-Path $BundlePath 'offline\docker\vllm-openai.tar'
   $hfArchive = Join-Path $BundlePath 'offline\huggingface-cache.tar'
   $ollamaSource = Join-Path $BundlePath 'offline\ollama\models'
@@ -294,6 +371,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\hermes\b
 
 if ($ProvisionVllm -or $StartVllm -or $PortableBundle) {
   $wslRepo = Get-WslRepoInfo $RepoRoot $Distro
+  if (-not $WhatIfPreference) { Ensure-WslDriveMounted $wslRepo }
   Write-Host "WSL repository: $($wslRepo.Distro):$($wslRepo.Path)"
 }
 
