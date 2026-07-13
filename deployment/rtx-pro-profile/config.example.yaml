@@ -18,6 +18,7 @@ memory:
   provider: daystrom_dml
   daystrom_dml:
     retrieval_policy: always
+    preflight_strict: true
     timeout_seconds: 20
     dcn:
       mode: active_read

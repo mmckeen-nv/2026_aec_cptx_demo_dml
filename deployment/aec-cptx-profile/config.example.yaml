@@ -87,6 +87,7 @@ memory:
   provider: daystrom_dml
   daystrom_dml:
     retrieval_policy: always
+    preflight_strict: true
     timeout_seconds: 8
     # Valid DCN modes: active_read, active_learn, observe_only, disabled.
     # The Windows AEC demo uses active_read plus sync_turns for stable retrieval/writeback.

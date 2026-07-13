@@ -86,6 +86,18 @@ function Get-FileSha256 {
   }
 }
 
+function Read-Utf8Text {
+  param([string]$Path)
+  $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+  return [IO.File]::ReadAllText($Path, $utf8)
+}
+
+function Write-Utf8Text {
+  param([string]$Path, [string]$Content)
+  $utf8 = New-Object System.Text.UTF8Encoding($false)
+  [IO.File]::WriteAllText($Path, $Content, $utf8)
+}
+
 function Install-ManagedFile {
   param([string]$Source, [string]$Destination)
   if (-not (Test-Path -LiteralPath $Source)) { throw "Managed source not found: $Source" }
@@ -133,15 +145,55 @@ function Install-ManagedText {
 function Repair-DaystromRetrievalPolicy {
   param([string]$ProfileConfig)
   if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
-  $content = Get-Content -LiteralPath $ProfileConfig -Raw
+  $content = Read-Utf8Text $ProfileConfig
   $pattern = '(?m)^(\s*retrieval_policy:\s*)conditional(\s*(?:#.*)?)$'
   if (-not [regex]::IsMatch($content, $pattern)) { return }
   if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Set Daystrom DML retrieval_policy to always')) {
     $backup = "$ProfileConfig.bak-dml-policy-$(Get-Date -Format 'yyyyMMddHHmmss')"
     Copy-Item -LiteralPath $ProfileConfig -Destination $backup
     $updated = [regex]::Replace($content, $pattern, '${1}always${2}')
-    Set-Content -LiteralPath $ProfileConfig -Value $updated -Encoding UTF8 -NoNewline
+    Write-Utf8Text $ProfileConfig $updated
     Write-Host "Updated Daystrom DML retrieval policy; backup: $backup"
+  }
+}
+
+function Repair-DaystromStrictPreflight {
+  param([string]$ProfileConfig)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  if ($content -match '(?m)^\s+preflight_strict:\s*true\s*$') { return }
+  $pattern = '(?m)^(\s+retrieval_policy:\s*always\s*(?:#.*)?\r?\n)'
+  if (-not [regex]::IsMatch($content, $pattern)) { return }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Require Daystrom provider startup preflight')) {
+    $backup = "$ProfileConfig.bak-dml-strict-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    $updated = [regex]::Replace($content, $pattern, "`${1}    preflight_strict: true`r`n", 1)
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Enabled strict Daystrom startup preflight; backup: $backup"
+  }
+}
+
+function Sync-DaystromProfilePlugin {
+  param([string]$ProfilePath)
+  $source = Join-Path $HermesHome 'plugins\daystrom_dml'
+  $destination = Join-Path $ProfilePath 'plugins\daystrom_dml'
+  if (-not (Test-Path -LiteralPath (Join-Path $source '__init__.py') -PathType Leaf)) {
+    Write-Warning "Shared Daystrom memory plugin is missing: $source"
+    return
+  }
+  $sourceHash = Get-FileSha256 (Join-Path $source '__init__.py')
+  $destinationInit = Join-Path $destination '__init__.py'
+  if ((Test-Path -LiteralPath $destinationInit -PathType Leaf) -and
+      ((Get-FileSha256 $destinationInit) -eq $sourceHash)) {
+    Write-Host "Current: Daystrom profile plugin $destination"
+    return
+  }
+  if ($script:InstallerCmdlet.ShouldProcess($destination, 'Install Daystrom memory provider for named Hermes profile')) {
+    New-Item -ItemType Directory -Path $destination -Force | Out-Null
+    Get-ChildItem -LiteralPath $source -File -Force |
+      Where-Object { $_.Name -notmatch '\.bak' } |
+      Copy-Item -Destination $destination -Force
+    Write-Host "Installed Daystrom profile plugin: $destination"
   }
 }
 
@@ -160,7 +212,7 @@ function Repair-DemoDmlIsolation {
     [string]$CmaLauncher
   )
   if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
-  $content = Get-Content -LiteralPath $ProfileConfig -Raw
+  $content = Read-Utf8Text $ProfileConfig
   $updated = $content
   $updated = [regex]::Replace($updated, '(?m)^(\s*project_id:\s*)project:[^\s#]+', "`${1}project:$ProjectId")
   $updated = [regex]::Replace($updated, '(?m)^(\s*storage_dir:\s*[^\r\n]*?[\\/]stores[\\/])[^\s#]+', "`${1}$DmlStore")
@@ -170,7 +222,7 @@ function Repair-DemoDmlIsolation {
   if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, "Set isolated Daystrom identity project:$ProjectId")) {
     $backup = "$ProfileConfig.bak-$ProjectId-$(Get-Date -Format 'yyyyMMddHHmmss')"
     Copy-Item -LiteralPath $ProfileConfig -Destination $backup
-    Set-Content -LiteralPath $ProfileConfig -Value $updated -Encoding UTF8 -NoNewline
+    Write-Utf8Text $ProfileConfig $updated
     Write-Host "Isolated project:$ProjectId DML/CMA stores; backup: $backup"
   }
 }
@@ -473,6 +525,8 @@ if (-not $SkipProfiles) {
       if (Test-Path -LiteralPath $profilePath) {
         Write-Host "Current: Hermes profile $($profile.Name)"
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
+        Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
+        Sync-DaystromProfilePlugin $profilePath
         if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
         if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }
         if ($profile.Name -eq 'aec-cptx') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-01' 'cliff-house-01-runtime-store' 'cma-cliff-house-01' 'dml_mcp_server_cliff_house.cmd' 'cma_mcp_server_cliff_house.cmd' }
@@ -481,6 +535,8 @@ if (-not $SkipProfiles) {
       if ($PSCmdlet.ShouldProcess($profile.Name, 'Create Hermes profile by cloning default')) {
         Invoke-Checked $hermesExe @('profile', 'create', $profile.Name, '--clone', '--clone-from', 'default', '--no-alias', '--description', $profile.Description)
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
+        Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
+        Sync-DaystromProfilePlugin $profilePath
         if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
         if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }
         if ($profile.Name -eq 'aec-cptx') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-01' 'cliff-house-01-runtime-store' 'cma-cliff-house-01' 'dml_mcp_server_cliff_house.cmd' 'cma_mcp_server_cliff_house.cmd' }

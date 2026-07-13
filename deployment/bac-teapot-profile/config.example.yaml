@@ -70,6 +70,7 @@ memory:
   provider: daystrom_dml
   daystrom_dml:
     retrieval_policy: always
+    preflight_strict: true
     timeout_seconds: 20
     # Valid DCN modes: active_read, active_learn, observe_only, disabled.
     dcn:

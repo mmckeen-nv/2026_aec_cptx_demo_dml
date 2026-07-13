@@ -56,6 +56,7 @@ foreach ($name in @('rhino', 'blender', 'daystrom_dml', 'cma')) {
 
 $policyChecks = @{
   'DML retrieval policy' = '(?m)^\s+retrieval_policy:\s*always\s*$'
+  'DML strict provider preflight' = '(?m)^\s+preflight_strict:\s*true\s*$'
   'DML active-read DCN' = '(?m)^\s+mode:\s*active_read\s*$'
   'DML synchronized turns' = '(?m)^\s+sync_turns:\s*true\s*$'
   'DML VP project identity' = '(?m)^\s+project_id:\s*project:vp-studio-01\s*$'
@@ -116,6 +117,22 @@ if (Test-Path -LiteralPath $dmlPython) {
   Add-Result 'DML/CMA Python imports' ($LASTEXITCODE -eq 0) 'dml_mcp and cma server modules import in the managed DML venv'
 } else {
   Add-Result 'DML/CMA Python imports' $false 'managed DML Python is missing'
+}
+
+$hermesPython = Join-Path $hermesHome 'hermes-agent\venv\Scripts\python.exe'
+$profilePlugin = Join-Path $profileRoot 'plugins\daystrom_dml\__init__.py'
+Add-Result 'Daystrom profile memory plugin' (Test-Path -LiteralPath $profilePlugin -PathType Leaf) $profilePlugin
+if (Test-Path -LiteralPath $hermesPython -PathType Leaf) {
+  $priorHermesHome = $env:HERMES_HOME
+  try {
+    $env:HERMES_HOME = $profileRoot
+    & $hermesPython -c "from plugins.memory import load_memory_provider; p=load_memory_provider('daystrom_dml'); assert p and p.is_available(); d=p.decide_iteration_extension({'user_message':'stop: repeated same error and no progress','recent_text':'looping with the same error','recent_tool_calls':2,'recent_tool_results':2}); assert d.get('decision')=='deny' and d.get('source')=='daystrom_dml' and d.get('reason_codes'); print(p.store_dir, p.dcn_mode)" 2>$null
+    Add-Result 'Daystrom/DCN runtime hook' ($LASTEXITCODE -eq 0) 'named profile loads daystrom_dml and returns an explicit DCN iteration decision'
+  } finally {
+    $env:HERMES_HOME = $priorHermesHome
+  }
+} else {
+  Add-Result 'Daystrom/DCN runtime hook' $false "Hermes profile Python is missing: $hermesPython"
 }
 Add-Result 'DML Ollama dependency' (Test-HttpEndpoint 'http://127.0.0.1:11434/api/version') 'http://127.0.0.1:11434/api/version'
 

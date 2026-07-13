@@ -179,6 +179,10 @@ class SetupTests(unittest.TestCase):
         self.assertIn("$wslRepo.Distro, '-u', 'root', '-e', 'bash'", installer)
         self.assertIn("integrations\\daystrom-dml\\source", installer)
         self.assertIn("DML_SOURCE_DIR saved for future sessions", installer)
+        self.assertIn("Sync-DaystromProfilePlugin", installer)
+        self.assertIn("Repair-DaystromStrictPreflight", installer)
+        self.assertIn("Read-Utf8Text", installer)
+        self.assertIn("Write-Utf8Text", installer)
         self.assertIn("Ollama model store: $current current, $copied copied", installer)
         self.assertIn("Restore-PortableDaystromStores", installer)
         self.assertIn("Preserved existing Daystrom store", installer)
@@ -195,6 +199,19 @@ class SetupTests(unittest.TestCase):
             launcher = (REPO_ROOT / relative).read_text()
             self.assertIn("DML_SOURCE_DIR", launcher)
             self.assertIn("integrations\\daystrom-dml\\source", launcher)
+
+    def test_profiles_require_strict_daystrom_preflight(self):
+        for relative in (
+            "deployment/rtx-pro-profile/config.example.yaml",
+            "deployment/bac-teapot-profile/config.example.yaml",
+            "deployment/aec-cptx-profile/config.example.yaml",
+        ):
+            self.assertIn("preflight_strict: true", (REPO_ROOT / relative).read_text(encoding="utf-8"))
+
+    def test_rtx_preflight_checks_dcn_runtime_hook(self):
+        preflight = (REPO_ROOT / "deployment/rtx-pro-profile/Test-RTX-Pro-Preflight.ps1").read_text(encoding="utf-8")
+        self.assertIn("Daystrom/DCN runtime hook", preflight)
+        self.assertIn("load_memory_provider('daystrom_dml')", preflight)
 
     def test_portable_bundle_builder_exports_only_tracked_source(self):
         builder = (REPO_ROOT / "New-AEC-PortableBundle.ps1").read_text()
