@@ -1,0 +1,50 @@
+# Sanitized local-model excerpt for the rtx_pro Hermes profile.
+# Keep credentials and live runtime state in the installed profile only.
+model:
+  provider: custom:vllm_local
+  default: nvidia/Qwen3.6-35B-A3B-NVFP4
+  base_url: http://localhost:8000/v1
+  api_key: ${AEC_DEMO_MODEL_API_KEY}
+
+auxiliary:
+  vision:
+    provider: custom:vllm_vision
+    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    base_url: http://localhost:8001/v1
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  provider: daystrom_dml
+  daystrom_dml:
+    retrieval_policy: always
+    timeout_seconds: 20
+    dcn:
+      mode: active_read
+    project_id: project:vp-studio-01
+    sync_turns: true
+
+plugins:
+  enabled:
+    - daystrom_dml
+  disabled: []
+
+# Installed paths are machine-specific. The installer/preflight must resolve
+# these rather than copying this sanitized example over a live profile.
+mcp_servers:
+  blender:
+    command: cmd
+    args: [/c, uvx, blender-mcp]
+    env:
+      BLENDER_HOST: localhost
+      BLENDER_PORT: "9876"
+      DISABLE_TELEMETRY: "true"
+  rhino:
+    command: C:/Users/USER/AppData/Roaming/McNeel/Rhinoceros/packages/8.0/Rhino-MCP-Platform/VERSION/router/win-x64/rhino-mcp-router.exe
+    args: [--default-version, "8"]
+  daystrom_dml:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/dml_mcp_server_vp_studio.cmd]
+  cma:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/cma_mcp_server_vp_studio.cmd]

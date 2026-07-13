@@ -9,6 +9,15 @@ The active project is `cliff_house_02`, a three-storey modernist cliff house.
 
 ## Start here
 
+On Windows, use the root bootstrapper for a guided installation:
+
+```powershell
+.\Install-AEC-Demo.cmd -InstallDependencies
+```
+
+It also supports connected USB-drive and pre-seeded offline installs. See
+[`docs/portable_install.md`](docs/portable_install.md).
+
 Run the preflight before following manual installation instructions:
 
 ```bash

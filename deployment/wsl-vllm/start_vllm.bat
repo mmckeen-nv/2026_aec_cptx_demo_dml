@@ -1,5 +1,6 @@
 @echo off
 setlocal
+set "NO_PAUSE=%~1"
 echo ============================================================
 echo  Starting vLLM models in WSL2 for BAC_Teapot demo
 echo    chat:   vllm-qwen36          (nvidia/Qwen3.6-35B-A3B-NVFP4)   -> :8000  GPU0
@@ -14,7 +15,17 @@ if errorlevel 1 (
     echo If you see "address already in use" on port 8000 or 8001,
     echo a stray native/native process may be holding the port. Check with:
     echo   wsl -e bash -lc "ss -tlnp | grep -E ':(8000^|8001)'"
-    pause
+    if /I not "%NO_PAUSE%"=="--no-pause" pause
+    exit /b 1
+)
+
+rem A running container can retain its configured port binding while losing
+rem its actual bridge attachment. Repair that state before health checks.
+wsl -e bash -lc "set -e; for c in vllm-qwen36 vllm-nemotron-vision; do if ! docker inspect -f '{{json .NetworkSettings.Networks}}' \"$c\" | grep -q bridge; then echo Repairing detached Docker network for $c...; docker network connect bridge \"$c\"; docker restart \"$c\" >/dev/null; fi; done"
+if errorlevel 1 (
+    echo.
+    echo ERROR: Failed to verify or repair Docker bridge networking.
+    if /I not "%NO_PAUSE%"=="--no-pause" pause
     exit /b 1
 )
 
@@ -41,12 +52,14 @@ if %tries% GEQ 48 (
     echo   curl http://localhost:8001/v1/models
     echo   wsl -e bash -lc "docker logs --tail 50 vllm-qwen36"
     echo   wsl -e bash -lc "docker logs --tail 50 vllm-nemotron-vision"
-    pause
+    if /I not "%NO_PAUSE%"=="--no-pause" pause
     exit /b 1
 )
 
 echo   [%tries%/48] chat(8000)=%chat_status% vision(8001)=%vis_status% - still loading...
-timeout /t 5 /nobreak >nul
+rem ping provides a roughly five-second delay and works even when this batch
+rem is invoked noninteractively by a PowerShell profile launcher.
+%SystemRoot%\System32\ping.exe -n 6 127.0.0.1 >nul
 goto waitloop
 
 :ready
@@ -57,4 +70,4 @@ echo    chat:   http://localhost:8000/v1
 echo    vision: http://localhost:8001/v1
 echo  You can now launch the BAC_Teapot Hermes profile.
 echo ============================================================
-pause
+if /I not "%NO_PAUSE%"=="--no-pause" pause
