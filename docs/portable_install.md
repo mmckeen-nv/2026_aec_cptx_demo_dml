@@ -85,6 +85,9 @@ If Daystrom DML is already installed under the standard Hermes integration
 directory, the installer and managed launchers validate its `pyproject.toml`
 and set `DML_SOURCE_DIR` to that source checkout automatically. The DML store
 remains the separate path declared by the Daystrom integration configuration.
+For managed demo profiles, an older `retrieval_policy: conditional` value is
+backed up and migrated to the required `always` policy; no other live profile
+configuration is replaced.
 
 ## Security and repeatability
 

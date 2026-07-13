@@ -130,6 +130,21 @@ function Install-ManagedText {
   }
 }
 
+function Repair-DaystromRetrievalPolicy {
+  param([string]$ProfileConfig)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Get-Content -LiteralPath $ProfileConfig -Raw
+  $pattern = '(?m)^(\s*retrieval_policy:\s*)conditional(\s*(?:#.*)?)$'
+  if (-not [regex]::IsMatch($content, $pattern)) { return }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Set Daystrom DML retrieval_policy to always')) {
+    $backup = "$ProfileConfig.bak-dml-policy-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    $updated = [regex]::Replace($content, $pattern, '${1}always${2}')
+    Set-Content -LiteralPath $ProfileConfig -Value $updated -Encoding UTF8 -NoNewline
+    Write-Host "Updated Daystrom DML retrieval policy; backup: $backup"
+  }
+}
+
 function Get-WslRepoInfo {
   param([string]$WindowsPath, [string]$RequestedDistro)
   if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
@@ -372,13 +387,15 @@ if (-not $SkipProfiles) {
       $profilePath = Join-Path $HermesHome ("profiles\" + $profile.Name)
       if (Test-Path -LiteralPath $profilePath) {
         Write-Host "Current: Hermes profile $($profile.Name)"
+        Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
         continue
       }
       if ($PSCmdlet.ShouldProcess($profile.Name, 'Create Hermes profile by cloning default')) {
         Invoke-Checked $hermesExe @('profile', 'create', $profile.Name, '--clone', '--clone-from', 'default', '--no-alias', '--description', $profile.Description)
+        Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
       }
     }
-    Write-Host 'Sanitized config examples were not copied over live config.yaml files.'
+    Write-Host 'Sanitized config examples were not copied over live config.yaml files; only the required DML retrieval policy is migrated.'
   }
 }
 

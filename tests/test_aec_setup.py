@@ -65,6 +65,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("PortableBundle", installer)
         self.assertIn("OfflineOnly", installer)
         self.assertIn("Sanitized config examples were not copied", installer)
+        self.assertIn("Repair-DaystromRetrievalPolicy", installer)
+        self.assertIn("Set Daystrom DML retrieval_policy to always", installer)
         self.assertIn("Get-FileSha256", installer)
         self.assertIn("Assert-PortableManifestAssets", installer)
         self.assertIn("Portable manifest asset checksum mismatch", installer)
