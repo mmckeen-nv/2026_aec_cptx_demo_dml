@@ -28,9 +28,11 @@ Gate:
 
 Import only the approved `.3dm`. Compare source and destination counts by classification; do not accept an empty or partial import. Preserve Rhino names, layer paths, material intent, phase, system, and assumption-status metadata.
 
-Before the handoff, read the repository-root
-`system_prompts/07_phase_export_blender.md`, `skills/import_with_metadata.py`, and
-`skills/validate_blender_scene.py`. Query DML for `project:vp-studio-01`,
+Before the handoff, read `07_phase_export_blender.md`, then the repository-root
+`../../system_prompts/07_phase_export_blender.md`,
+`../../skills/import_with_metadata.py`, and
+`../../skills/validate_blender_scene.py`. The current working directory is this
+demo directory; do not look for a demo-local `skills/` directory. Query DML for `project:vp-studio-01`,
 `phase:rhino-to-blender`, the intended format, prior failures, unit conversion,
 axis conversion, object counts, and bounding-box validation. Augment the exact
 handoff plan through CMA.
@@ -38,7 +40,8 @@ handoff plan through CMA.
 Use the original direct `.3dm` path. In Rhino, generate render meshes for every
 managed Brep and save a new handoff file with User Text and render meshes included.
 In Blender, first audit that file with `rhino3dm`, then execute the checked-in
-metadata importer through Blender MCP. OBJ and FBX are prohibited for this phase,
+metadata importer with `mcp_blender_execute_blender_code(code=...)`. There is no
+tool named `run`; never call it. OBJ and FBX are prohibited for this phase,
 including checked-in or improvised writers, because they discard the metadata
 contract.
 

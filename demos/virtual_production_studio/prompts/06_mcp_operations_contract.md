@@ -16,7 +16,13 @@ Use the configured application MCP servers as stateful application bridges. Insp
 ## Blender
 
 - Use the configured Blender MCP bridge on `127.0.0.1:9876`; do not launch a second Blender bridge when it is ready.
-- Inspect the current scene before mutation. Execute the checked-in `skills/import_with_metadata.py` for Rhino handoff and `skills/validate_blender_scene.py` for the acceptance gate.
+- Inspect with `mcp_blender_get_scene_info` before mutation. Execute Blender
+  Python only with `mcp_blender_execute_blender_code` and its `code` argument.
+  Never emit a tool call named `run`; that tool does not exist.
+- The working directory is `demos/virtual_production_studio`. Read the checked-in
+  `../../skills/import_with_metadata.py` for Rhino handoff and
+  `../../skills/validate_blender_scene.py` for the acceptance gate. There is no
+  demo-local `skills/` directory.
 - Do not substitute an improvised importer or advance to ComfyUI until object counts, metadata, units, and bounds pass.
 
 ## Daystrom DML and CMA

@@ -75,6 +75,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Do not edit Hermes MCP configuration", contract)
         self.assertIn("06_mcp_operations_contract.md", contract)
         self.assertIn("The agent must design and generate the Rhino geometry itself", contract)
+        self.assertIn("Never call a generic tool named", contract)
+        self.assertIn("../../skills/import_with_metadata.py", contract)
         self.assertNotIn("build_rhino_massing.py", contract)
 
     def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
@@ -126,6 +128,10 @@ class SetupTests(unittest.TestCase):
         self.assertIn("system_prompts/07_phase_export_blender.md", contract)
         self.assertIn("IncludeRenderMeshes=true", contract)
         self.assertIn("OBJ and FBX are prohibited", workflow)
+        handoff = (demo / "prompts" / "07_phase_export_blender.md").read_text()
+        self.assertIn("mcp_blender_execute_blender_code", handoff)
+        self.assertIn("No tool named `run` exists", handoff)
+        self.assertIn("../../skills/import_with_metadata.py", handoff)
         self.assertNotIn("ToFloatArray", importer)
         self.assertNotIn("ToIntArray", importer)
         self.assertIn("unit_scale_to_meters", importer)

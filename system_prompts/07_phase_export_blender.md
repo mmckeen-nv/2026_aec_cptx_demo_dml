@@ -200,8 +200,13 @@ Confirm the snapshot file exists and is non-zero size before continuing.
 
 ### Step 5 — Import into Blender via import_with_metadata.py
 
-Switch to Blender. Run `skills/import_with_metadata.py` via BlenderMCP,
-pointing it at the snapshot path from Step 4.
+Switch to Blender. Use the exact registered tool
+`mcp_blender_execute_blender_code` with its required `code` argument. There is no
+generic `run` tool; never emit a tool call named `run`. Load the repository-root
+`skills/import_with_metadata.py` into a namespace with `__file__` set to its
+absolute path, then call `import_3dm(snapshot_path, root_name="VP_STUDIO_RHINO")`.
+When Hermes starts in a demo directory, repository-root `skills/` is `../../skills/`.
+Do not search for `[demo]/skills/import_with_metadata.py`.
 
 This script:
 - Uses the `rhino3dm` Python library to read the `.3dm` directly (no FBX/OBJ)
@@ -236,7 +241,9 @@ This must be run before any transform work.
 
 ### Step 7 — Run validate_blender_scene.py
 
-Run `skills/validate_blender_scene.py` via BlenderMCP.
+Use `mcp_blender_execute_blender_code(code=...)` to load repository-root
+`skills/validate_blender_scene.py` into a namespace with `__file__` set, then call
+its `validate()` function. Do not call a generic `run` tool.
 This script checks:
 - Every mesh has the `material` custom property set
 - No objects at world origin (un-imported stubs)

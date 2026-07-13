@@ -49,6 +49,13 @@ class VpRhinoAgenticContractTests(unittest.TestCase):
         self.assertIn("supersedes: build_rhino_massing.py", policy)
         self.assertIn("target 98 objects", policy)
 
+    def test_blender_handoff_policy_names_real_tool_and_paths(self):
+        policy = (DEMO / "knowledge" / "dml" / "blender_handoff_tool_contract_current_20260713.md").read_text(encoding="utf-8")
+        self.assertIn("status: CURRENT_POLICY", policy)
+        self.assertIn("mcp_blender_execute_blender_code", policy)
+        self.assertIn("../../skills/import_with_metadata.py", policy)
+        self.assertIn("no generic `run` tool", policy)
+
 
 if __name__ == "__main__":
     unittest.main()

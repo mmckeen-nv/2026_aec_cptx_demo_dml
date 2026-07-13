@@ -50,10 +50,19 @@ Before doing project work, read these files completely:
 - `prompts/04_comfyui_stylization_contract.md`
 - `prompts/05_dml_learning_contract.md`
 - `prompts/06_mcp_operations_contract.md`
+- `prompts/07_phase_export_blender.md`
 - `../../system_prompts/07_phase_export_blender.md`
 - `../../skills/import_with_metadata.py`
 - `../../skills/validate_blender_scene.py`
 - `assets/asset_manifest.yaml`
+
+Hermes starts with this demo directory as its working directory. The repository
+root is exactly `../..` relative to it. Shared scripts therefore live at
+`../../skills/import_with_metadata.py` and
+`../../skills/validate_blender_scene.py`; this demo has no `skills/` directory.
+Do not retry a missing demo-local path. The agent must use exact registered tool
+names. For Blender Python, call `mcp_blender_execute_blender_code` with its
+required `code` argument. Never call a generic tool named `run`; it does not exist.
 
 ## Daystrom agentic path
 
