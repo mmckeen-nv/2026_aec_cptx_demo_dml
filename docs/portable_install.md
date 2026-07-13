@@ -81,6 +81,11 @@ snapshots into WSL's Hugging Face cache, optionally merges bundled Ollama model
 files, creates missing profiles, installs launchers, and verifies the selected
 tier. `-OfflineOnly` rejects switches that inherently require the network.
 
+If Daystrom DML is already installed under the standard Hermes integration
+directory, the installer and managed launchers validate its `pyproject.toml`
+and set `DML_SOURCE_DIR` to that source checkout automatically. The DML store
+remains the separate path declared by the Daystrom integration configuration.
+
 ## Security and repeatability
 
 - Live `config.yaml`, `.env`, API keys, DML stores, and sessions are never

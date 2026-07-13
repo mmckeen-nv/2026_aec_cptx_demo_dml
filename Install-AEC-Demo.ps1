@@ -15,6 +15,7 @@ param(
   [switch]$Yes,
   [string]$Distro = 'Ubuntu',
   [string]$HermesHome = (Join-Path $env:LOCALAPPDATA 'hermes'),
+  [string]$DmlSourceDirectory,
   [string]$LauncherDirectory = [Environment]::GetFolderPath('Desktop')
 )
 
@@ -288,6 +289,28 @@ if ($savedRoot -ne $RepoRoot) {
 } else {
   $env:AEC_DEMO_ROOT = $RepoRoot
   Write-Host 'AEC_DEMO_ROOT is already current.'
+}
+
+if (-not $DmlSourceDirectory) {
+  $installedDml = Join-Path $HermesHome 'integrations\daystrom-dml\source'
+  if (Test-Path -LiteralPath (Join-Path $installedDml 'pyproject.toml') -PathType Leaf) {
+    $DmlSourceDirectory = $installedDml
+  }
+}
+if ($DmlSourceDirectory) {
+  $DmlSourceDirectory = [IO.Path]::GetFullPath($DmlSourceDirectory)
+  if (-not (Test-Path -LiteralPath (Join-Path $DmlSourceDirectory 'pyproject.toml') -PathType Leaf)) {
+    throw "DML source is not a valid checkout (pyproject.toml missing): $DmlSourceDirectory"
+  }
+  $savedDml = [Environment]::GetEnvironmentVariable('DML_SOURCE_DIR', 'User')
+  if ($savedDml -ne $DmlSourceDirectory) {
+    if ($PSCmdlet.ShouldProcess('User environment', "Set DML_SOURCE_DIR=$DmlSourceDirectory")) {
+      [Environment]::SetEnvironmentVariable('DML_SOURCE_DIR', $DmlSourceDirectory, 'User')
+      Write-Host 'DML_SOURCE_DIR saved for future sessions.'
+    }
+  }
+  $env:DML_SOURCE_DIR = $DmlSourceDirectory
+  Write-Host "Daystrom DML source: $DmlSourceDirectory"
 }
 
 $python = Get-PythonCommand

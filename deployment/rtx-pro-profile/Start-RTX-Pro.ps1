@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $env:HERMES_HOME = Join-Path $env:LOCALAPPDATA 'hermes'
 $env:HERMES_PROFILE = 'rtx_pro'
+$dmlSource = Join-Path $env:HERMES_HOME 'integrations\daystrom-dml\source'
+if (Test-Path (Join-Path $dmlSource 'pyproject.toml')) { $env:DML_SOURCE_DIR = $dmlSource }
 $hermesScripts = Join-Path $env:HERMES_HOME 'hermes-agent\venv\Scripts'
 $env:Path = $hermesScripts + ';' + (Join-Path $env:HERMES_HOME 'bin') + ';' + $env:Path
 

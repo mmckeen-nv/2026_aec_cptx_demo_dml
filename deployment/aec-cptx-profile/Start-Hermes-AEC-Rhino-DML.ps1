@@ -1,5 +1,7 @@
 ﻿$ErrorActionPreference='Stop'
 $hermesHome = Join-Path $env:LOCALAPPDATA 'hermes'
+$dmlSource = Join-Path $hermesHome 'integrations\daystrom-dml\source'
+if (Test-Path (Join-Path $dmlSource 'pyproject.toml')) { $env:DML_SOURCE_DIR = $dmlSource }
 $hermesScripts = Join-Path $hermesHome 'hermes-agent\venv\Scripts'
 $env:Path = $hermesScripts + ';' + (Join-Path $hermesHome 'bin') + ';' + $env:Path
 # Launch only the Rhino side of the AEC demo. Blender/OBS are deliberately omitted for DML-efficient phase scoping.

@@ -70,7 +70,18 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Portable manifest asset checksum mismatch", installer)
         self.assertIn('$mountRoot = "/mnt/$drive"', installer)
         self.assertIn("$wslRepo.Distro, '-u', 'root', '-e', 'bash'", installer)
+        self.assertIn("integrations\\daystrom-dml\\source", installer)
+        self.assertIn("DML_SOURCE_DIR saved for future sessions", installer)
         self.assertNotIn("C:\\Users\\", installer)
+
+        for relative in (
+            "deployment/bac-teapot-profile/Start-BAC_Teapot.ps1",
+            "deployment/rtx-pro-profile/Start-RTX-Pro.ps1",
+            "deployment/aec-cptx-profile/Start-Hermes-AEC-Rhino-DML.ps1",
+        ):
+            launcher = (REPO_ROOT / relative).read_text()
+            self.assertIn("DML_SOURCE_DIR", launcher)
+            self.assertIn("integrations\\daystrom-dml\\source", launcher)
 
     def test_portable_bundle_builder_exports_only_tracked_source(self):
         builder = (REPO_ROOT / "New-AEC-PortableBundle.ps1").read_text()
