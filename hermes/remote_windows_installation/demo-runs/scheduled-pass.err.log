@@ -1,3 +1,0 @@
-MCP server 'blender' keepalive failed, triggering reconnect: 
-MCP tool blender/execute_blender_code call failed: MCP call timed out after 180.0s (configured timeout: 180.0s)
-^C

@@ -1,4 +1,0 @@
-cma
-daystrom_dml
-dml_mcp
-scripts
