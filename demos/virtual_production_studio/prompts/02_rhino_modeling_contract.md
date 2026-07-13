@@ -11,7 +11,9 @@ envelopes; make and document the actual spatial decisions needed to satisfy them
 
 Use only registered `mcp_rhino_*` tools for architectural modeling. Begin with
 `mcp_rhino_list_slots`, attach to the existing ready Rhino 8 slot, inspect the
-active document, and establish units/tolerances. Author the Python or C# for each
+active document, and establish units/tolerances. A fresh-build run requires zero
+objects tagged `project=vp-studio-01`; if any exist, stop and request a new blank
+document rather than reusing or deleting them. Author the Python or C# for each
 bounded modeling operation yourself and send it directly to
 `mcp_rhino_run_python` or `mcp_rhino_run_csharp`.
 

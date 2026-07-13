@@ -21,6 +21,7 @@ class VpRhinoAgenticContractTests(unittest.TestCase):
             "Author the Python or C#",
             "one coherent element group",
             "no more than 20 objects",
+            "zero objects tagged `project=vp-studio-01`",
             "Do not use `exec(open(...))`",
             "no fixed count is a",
             "call `mcp_rhino_save_doc` exactly once",

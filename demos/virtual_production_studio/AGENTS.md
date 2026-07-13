@@ -30,6 +30,11 @@ timestamped path. If validation fails, do not save and do not advance.
 
 The Windows launcher starts Rhino's MCP listener on `127.0.0.1:10500` before Hermes. At phase 0, `mcp_rhino_list_slots` must return a ready slot before any modeling call. If it does not, stop and report the preflight failure. Do not edit Hermes MCP configuration, install another Rhino integration, repeatedly spawn slots, or fall back to shell/Blender geometry.
 
+For a fresh-build run, query the active document before modeling and require zero
+objects tagged `project=vp-studio-01`. Existing project geometry is not evidence of
+agent work. If any is present, stop and ask the operator to open a new blank Rhino
+document; do not reuse or silently delete it.
+
 Before doing project work, read these files completely:
 
 - `prompts/00_workflow_and_dml.md`
