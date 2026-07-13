@@ -66,6 +66,11 @@ function Ensure-WslDriveMounted {
   Invoke-Checked 'wsl.exe' @('-d', $PathInfo.Distro, '-e', 'test', '-d', $PathInfo.Path)
 }
 
+function Get-WslUncPath {
+  param([string]$RequestedDistro, [string]$LinuxPath)
+  return "\\wsl.localhost\$RequestedDistro\" + $LinuxPath.TrimStart('/').Replace('/', '\')
+}
+
 function Get-TrackedFiles {
   param([string]$Repository)
   $trimmed = $Repository.TrimStart([char]92)
@@ -164,11 +169,33 @@ if ($IncludeVllmRuntime) {
     Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'test', '-d', $cachePath)
   }
 
-  if ($PSCmdlet.ShouldProcess($dockerArchive, 'Export vLLM Docker image')) {
-    Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'docker', 'save', '-o', "$($bundleWsl.Path)/offline/docker/vllm-openai.tar", 'vllm/vllm-openai:latest')
+  $stageRoot = "/tmp/aec-portable-$([guid]::NewGuid().ToString('N'))"
+  $stageDocker = "$stageRoot/vllm-openai.tar"
+  $stageHf = "$stageRoot/huggingface-cache.tar"
+  if (-not $WhatIfPreference) {
+    Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'mkdir', '-p', $stageRoot)
   }
-  if ($PSCmdlet.ShouldProcess($hfArchive, 'Archive Hugging Face model cache')) {
-    Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'tar', '-cf', "$($bundleWsl.Path)/offline/huggingface-cache.tar", '-C', '/root/.cache/huggingface', '.')
+  try {
+    if ($PSCmdlet.ShouldProcess($dockerArchive, 'Export vLLM Docker image')) {
+      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'docker', 'save', '-o', $stageDocker, 'vllm/vllm-openai:latest')
+      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'test', '-s', $stageDocker)
+      Copy-Item -LiteralPath (Get-WslUncPath $bundleWsl.Distro $stageDocker) -Destination $dockerArchive -Force
+      if (-not (Test-Path -LiteralPath $dockerArchive) -or (Get-Item -LiteralPath $dockerArchive).Length -eq 0) {
+        throw "Docker archive copy failed: $dockerArchive"
+      }
+    }
+    if ($PSCmdlet.ShouldProcess($hfArchive, 'Archive Hugging Face model cache')) {
+      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'tar', '-cf', $stageHf, '-C', '/root/.cache/huggingface', '.')
+      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'test', '-s', $stageHf)
+      Copy-Item -LiteralPath (Get-WslUncPath $bundleWsl.Distro $stageHf) -Destination $hfArchive -Force
+      if (-not (Test-Path -LiteralPath $hfArchive) -or (Get-Item -LiteralPath $hfArchive).Length -eq 0) {
+        throw "Hugging Face cache archive copy failed: $hfArchive"
+      }
+    }
+  } finally {
+    if (-not $WhatIfPreference -and $stageRoot -match '^/tmp/aec-portable-[0-9a-f]{32}$') {
+      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'rm', '-rf', $stageRoot)
+    }
   }
   $assets += $dockerArchive, $hfArchive
 }

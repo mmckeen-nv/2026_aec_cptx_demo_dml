@@ -76,6 +76,11 @@ class SetupTests(unittest.TestCase):
         self.assertIn("FAT32", builder)
         self.assertIn("Assert-ModelEndpoint 8000", builder)
         self.assertIn("Assert-ModelEndpoint 8001", builder)
+        self.assertIn("/tmp/aec-portable-", builder)
+        self.assertIn("Get-WslUncPath", builder)
+        self.assertIn("Docker archive copy failed", builder)
+        self.assertIn("Hugging Face cache archive copy failed", builder)
+        self.assertIn('$mountRoot = "/mnt/$drive"', builder)
 
     def test_model_scripts_allow_first_download_then_use_offline_cache(self):
         for name in ("run-vllm-qwen36.sh", "run-vllm-nemotron-vision.sh"):
