@@ -6,6 +6,7 @@ param(
   [string]$Distro = 'Ubuntu',
   [switch]$IncludeVllmRuntime,
   [switch]$IncludeOllamaModels,
+  [switch]$ReuseExistingAssets,
   [switch]$SkipChecksums
 )
 
@@ -17,6 +18,21 @@ function Invoke-Checked {
   param([string]$FilePath, [string[]]$ArgumentList)
   & $FilePath @ArgumentList
   if ($LASTEXITCODE -ne 0) { throw "$FilePath exited with code $LASTEXITCODE" }
+}
+
+function Get-FileSha256 {
+  param([string]$Path)
+  $stream = [IO.File]::OpenRead($Path)
+  try {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try {
+      return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '')
+    } finally {
+      $sha.Dispose()
+    }
+  } finally {
+    $stream.Dispose()
+  }
 }
 
 function Get-WslPathInfo {
@@ -151,10 +167,6 @@ if ($PSCmdlet.ShouldProcess($Destination, 'Copy tracked portable repository file
 
 $assets = @()
 if ($IncludeVllmRuntime) {
-  Assert-ModelEndpoint 8000 'nvidia/Qwen3.6-35B-A3B-NVFP4'
-  Assert-ModelEndpoint 8001 'nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4'
-  $bundleWsl = Get-WslPathInfo $Destination $Distro
-  if (-not $WhatIfPreference) { Ensure-WslDriveMounted $bundleWsl }
   $dockerDir = Join-Path $Destination 'offline\docker'
   if ($PSCmdlet.ShouldProcess($dockerDir, 'Create portable runtime directory')) {
     New-Item -ItemType Directory -Path $dockerDir -Force | Out-Null
@@ -162,51 +174,72 @@ if ($IncludeVllmRuntime) {
   $dockerArchive = Join-Path $dockerDir 'vllm-openai.tar'
   $hfArchive = Join-Path $Destination 'offline\huggingface-cache.tar'
 
-  Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'docker', 'image', 'inspect', '--format', '{{.Id}}', 'vllm/vllm-openai:latest')
-  foreach ($cachePath in @(
-      '/root/.cache/huggingface/hub/models--nvidia--Qwen3.6-35B-A3B-NVFP4/snapshots',
-      '/root/.cache/huggingface/hub/models--nvidia--Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4/snapshots')) {
-    Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'test', '-d', $cachePath)
-  }
+  if ($ReuseExistingAssets) {
+    foreach ($archive in @($dockerArchive, $hfArchive)) {
+      if (-not (Test-Path -LiteralPath $archive -PathType Leaf) -or (Get-Item -LiteralPath $archive).Length -eq 0) {
+        throw "Cannot reuse missing or empty runtime archive: $archive"
+      }
+    }
+    Write-Host 'Reusing existing vLLM runtime archives.'
+  } else {
+    Assert-ModelEndpoint 8000 'nvidia/Qwen3.6-35B-A3B-NVFP4'
+    Assert-ModelEndpoint 8001 'nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4'
+    $bundleWsl = Get-WslPathInfo $Destination $Distro
+    if (-not $WhatIfPreference) { Ensure-WslDriveMounted $bundleWsl }
 
-  $stageRoot = "/tmp/aec-portable-$([guid]::NewGuid().ToString('N'))"
-  $stageDocker = "$stageRoot/vllm-openai.tar"
-  $stageHf = "$stageRoot/huggingface-cache.tar"
-  if (-not $WhatIfPreference) {
-    Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'mkdir', '-p', $stageRoot)
-  }
-  try {
-    if ($PSCmdlet.ShouldProcess($dockerArchive, 'Export vLLM Docker image')) {
-      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'docker', 'save', '-o', $stageDocker, 'vllm/vllm-openai:latest')
-      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'test', '-s', $stageDocker)
-      Copy-Item -LiteralPath (Get-WslUncPath $bundleWsl.Distro $stageDocker) -Destination $dockerArchive -Force
-      if (-not (Test-Path -LiteralPath $dockerArchive) -or (Get-Item -LiteralPath $dockerArchive).Length -eq 0) {
-        throw "Docker archive copy failed: $dockerArchive"
-      }
+    Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'docker', 'image', 'inspect', '--format', '{{.Id}}', 'vllm/vllm-openai:latest')
+    foreach ($cachePath in @(
+        '/root/.cache/huggingface/hub/models--nvidia--Qwen3.6-35B-A3B-NVFP4/snapshots',
+        '/root/.cache/huggingface/hub/models--nvidia--Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4/snapshots')) {
+      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'test', '-d', $cachePath)
     }
-    if ($PSCmdlet.ShouldProcess($hfArchive, 'Archive Hugging Face model cache')) {
-      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'tar', '-cf', $stageHf, '-C', '/root/.cache/huggingface', '.')
-      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'test', '-s', $stageHf)
-      Copy-Item -LiteralPath (Get-WslUncPath $bundleWsl.Distro $stageHf) -Destination $hfArchive -Force
-      if (-not (Test-Path -LiteralPath $hfArchive) -or (Get-Item -LiteralPath $hfArchive).Length -eq 0) {
-        throw "Hugging Face cache archive copy failed: $hfArchive"
-      }
+
+    $stageRoot = "/tmp/aec-portable-$([guid]::NewGuid().ToString('N'))"
+    $stageDocker = "$stageRoot/vllm-openai.tar"
+    $stageHf = "$stageRoot/huggingface-cache.tar"
+    if (-not $WhatIfPreference) {
+      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'mkdir', '-p', $stageRoot)
     }
-  } finally {
-    if (-not $WhatIfPreference -and $stageRoot -match '^/tmp/aec-portable-[0-9a-f]{32}$') {
-      Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'rm', '-rf', $stageRoot)
+    try {
+      if ($PSCmdlet.ShouldProcess($dockerArchive, 'Export vLLM Docker image')) {
+        Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'docker', 'save', '-o', $stageDocker, 'vllm/vllm-openai:latest')
+        Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-e', 'test', '-s', $stageDocker)
+        Copy-Item -LiteralPath (Get-WslUncPath $bundleWsl.Distro $stageDocker) -Destination $dockerArchive -Force
+        if (-not (Test-Path -LiteralPath $dockerArchive) -or (Get-Item -LiteralPath $dockerArchive).Length -eq 0) {
+          throw "Docker archive copy failed: $dockerArchive"
+        }
+      }
+      if ($PSCmdlet.ShouldProcess($hfArchive, 'Archive Hugging Face model cache')) {
+        Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'tar', '-cf', $stageHf, '-C', '/root/.cache/huggingface', '.')
+        Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'test', '-s', $stageHf)
+        Copy-Item -LiteralPath (Get-WslUncPath $bundleWsl.Distro $stageHf) -Destination $hfArchive -Force
+        if (-not (Test-Path -LiteralPath $hfArchive) -or (Get-Item -LiteralPath $hfArchive).Length -eq 0) {
+          throw "Hugging Face cache archive copy failed: $hfArchive"
+        }
+      }
+    } finally {
+      if (-not $WhatIfPreference -and $stageRoot -match '^/tmp/aec-portable-[0-9a-f]{32}$') {
+        Invoke-Checked 'wsl.exe' @('-d', $bundleWsl.Distro, '-u', 'root', '-e', 'rm', '-rf', $stageRoot)
+      }
     }
   }
   $assets += $dockerArchive, $hfArchive
 }
 
 if ($IncludeOllamaModels) {
-  $ollamaSource = Join-Path $env:USERPROFILE '.ollama\models'
   $ollamaDestination = Join-Path $Destination 'offline\ollama\models'
-  if (-not (Test-Path -LiteralPath $ollamaSource)) { throw "Ollama model store not found: $ollamaSource" }
-  if ($PSCmdlet.ShouldProcess($ollamaDestination, 'Copy Ollama model store')) {
-    New-Item -ItemType Directory -Path $ollamaDestination -Force | Out-Null
-    Get-ChildItem -LiteralPath $ollamaSource -Force | Copy-Item -Destination $ollamaDestination -Recurse -Force
+  if ($ReuseExistingAssets) {
+    if (-not (Test-Path -LiteralPath $ollamaDestination -PathType Container)) {
+      throw "Cannot reuse missing Ollama model store: $ollamaDestination"
+    }
+    Write-Host 'Reusing existing Ollama model store.'
+  } else {
+    $ollamaSource = Join-Path $env:USERPROFILE '.ollama\models'
+    if (-not (Test-Path -LiteralPath $ollamaSource)) { throw "Ollama model store not found: $ollamaSource" }
+    if ($PSCmdlet.ShouldProcess($ollamaDestination, 'Copy Ollama model store')) {
+      New-Item -ItemType Directory -Path $ollamaDestination -Force | Out-Null
+      Get-ChildItem -LiteralPath $ollamaSource -Force | Copy-Item -Destination $ollamaDestination -Recurse -Force
+    }
   }
 }
 
@@ -216,7 +249,7 @@ foreach ($asset in $assets) {
   if (-not (Test-Path -LiteralPath $asset)) { continue }
   $item = Get-Item -LiteralPath $asset
   $hash = $null
-  if (-not $SkipChecksums) { $hash = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash }
+  if (-not $SkipChecksums) { $hash = Get-FileSha256 $asset }
   $assetInfo += [ordered]@{
     path = $asset.Substring($Destination.Length).TrimStart('\') -replace '\\', '/'
     bytes = $item.Length

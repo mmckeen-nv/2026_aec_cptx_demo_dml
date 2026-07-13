@@ -85,6 +85,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Docker archive copy failed", builder)
         self.assertIn("Hugging Face cache archive copy failed", builder)
         self.assertIn('$mountRoot = "/mnt/$drive"', builder)
+        self.assertIn("ReuseExistingAssets", builder)
+        self.assertIn("Cannot reuse missing or empty runtime archive", builder)
 
     def test_model_scripts_allow_first_download_then_use_offline_cache(self):
         for name in ("run-vllm-qwen36.sh", "run-vllm-nemotron-vision.sh"):

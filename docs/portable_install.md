@@ -43,6 +43,20 @@ Hugging Face model caches total about 43 GB. Use a drive with at least 64 GiB
 free; 128 GB or larger is recommended when repository and Ollama assets are
 included. FAT32 is not supported because individual archives exceed 4 GB.
 
+To refresh tracked installer files and the manifest after a source-only
+update without exporting the large payload again, reuse the existing assets:
+
+```powershell
+.\New-AEC-PortableBundle.ps1 `
+  -Destination E:\AEC-CPTX `
+  -IncludeVllmRuntime `
+  -IncludeOllamaModels `
+  -ReuseExistingAssets
+```
+
+The builder requires the existing archives and Ollama store to be present and
+rehashes the runtime archives before writing the refreshed manifest.
+
 ## Disconnected installation
 
 The target must already have:
@@ -61,7 +75,8 @@ With prerequisites present, run from the prepared drive:
 E:\AEC-CPTX\Install-AEC-Demo.cmd -OfflineOnly -StartVllm
 ```
 
-The installer loads the bundled Docker image when absent, restores both model
+The installer verifies each manifest size and SHA-256 checksum, loads the
+bundled Docker image when absent, restores both model
 snapshots into WSL's Hugging Face cache, optionally merges bundled Ollama model
 files, creates missing profiles, installs launchers, and verifies the selected
 tier. `-OfflineOnly` rejects switches that inherently require the network.
