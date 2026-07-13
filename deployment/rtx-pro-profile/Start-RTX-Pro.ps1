@@ -12,7 +12,12 @@ function Test-LocalModel($port) {
 }
 
 if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
-  $vllmStart = Join-Path $PSScriptRoot '..\wsl-vllm\start_vllm.bat'
+  $vllmStart = $null
+  if ($env:AEC_DEMO_ROOT) {
+    $installedCandidate = Join-Path $env:AEC_DEMO_ROOT 'deployment\wsl-vllm\start_vllm.bat'
+    if (Test-Path $installedCandidate) { $vllmStart = $installedCandidate }
+  }
+  if (-not $vllmStart) { $vllmStart = Join-Path $PSScriptRoot '..\wsl-vllm\start_vllm.bat' }
   if (-not (Test-Path $vllmStart)) { throw "vLLM launcher not found at $vllmStart" }
   Write-Host 'Local model backend is not ready. Starting/checking vLLM containers...'
   & $vllmStart --no-pause

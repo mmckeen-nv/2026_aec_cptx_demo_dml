@@ -34,6 +34,15 @@ IMAGE=vllm/vllm-openai:latest
 MODEL=nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
 PORT=8001
 GPU_INDEX=1
+CACHE_ROOT=/root/.cache/huggingface
+MODEL_CACHE=${CACHE_ROOT}/hub/models--nvidia--Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+OFFLINE_ENV=()
+if [ -d "${MODEL_CACHE}/snapshots" ]; then
+    echo "[run-vllm-nemotron-vision] Cached model snapshot found; enabling Hugging Face offline mode."
+    OFFLINE_ENV=(-e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1)
+else
+    echo "[run-vllm-nemotron-vision] No cached snapshot found; first start requires internet access."
+fi
 
 if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
     if [ "$RECREATE" = "1" ]; then
@@ -56,6 +65,7 @@ docker run -d --name "$NAME" \
   -v /root/.cache/huggingface:/root/.cache/huggingface \
   -e CUDA_VISIBLE_DEVICES=${GPU_INDEX} \
   -e NVIDIA_VISIBLE_DEVICES=${GPU_INDEX} \
+  "${OFFLINE_ENV[@]}" \
   "$IMAGE" \
   "$MODEL" \
   --host 0.0.0.0 --port ${PORT} \

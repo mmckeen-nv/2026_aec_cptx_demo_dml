@@ -10,7 +10,9 @@
 # Run inside the target WSL2 distro:
 #   bash run-vllm-qwen36.sh
 #
-# IMPORTANT: HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1 are set deliberately.
+# IMPORTANT: HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1 are set when a complete
+# local model snapshot is present. A fresh online installation leaves them
+# unset so Hugging Face can download the model on first start.
 # vLLM normally re-fetches HF image-processor/config metadata from
 # huggingface.co on every single startup, even when the weights are already
 # fully cached locally. On this machine's WSL2 networking, that outbound
@@ -37,6 +39,15 @@ NAME=vllm-qwen36
 IMAGE=vllm/vllm-openai:latest
 MODEL=nvidia/Qwen3.6-35B-A3B-NVFP4
 PORT=8000
+CACHE_ROOT=/root/.cache/huggingface
+MODEL_CACHE=${CACHE_ROOT}/hub/models--nvidia--Qwen3.6-35B-A3B-NVFP4
+OFFLINE_ENV=()
+if [ -d "${MODEL_CACHE}/snapshots" ]; then
+    echo "[run-vllm-qwen36] Cached model snapshot found; enabling Hugging Face offline mode."
+    OFFLINE_ENV=(-e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1)
+else
+    echo "[run-vllm-qwen36] No cached snapshot found; first start requires internet access."
+fi
 
 if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
     if [ "$RECREATE" = "1" ]; then
@@ -57,8 +68,7 @@ docker run -d --name "$NAME" \
   --ipc=private \
   -p ${PORT}:${PORT} \
   -v /root/.cache/huggingface:/root/.cache/huggingface \
-  -e HF_HUB_OFFLINE=1 \
-  -e TRANSFORMERS_OFFLINE=1 \
+  "${OFFLINE_ENV[@]}" \
   "$IMAGE" \
   "$MODEL" \
   --host 0.0.0.0 --port ${PORT} \

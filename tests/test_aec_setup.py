@@ -58,6 +58,32 @@ class SetupTests(unittest.TestCase):
         self.assertIn("start_vllm.bat", launcher)
         self.assertIn("--no-pause", launcher)
 
+    def test_windows_installer_is_safe_and_portable(self):
+        installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
+        self.assertIn("SupportsShouldProcess = $true", installer)
+        self.assertIn("AEC_DEMO_ROOT", installer)
+        self.assertIn("PortableBundle", installer)
+        self.assertIn("OfflineOnly", installer)
+        self.assertIn("Sanitized config examples were not copied", installer)
+        self.assertNotIn("C:\\Users\\", installer)
+
+    def test_portable_bundle_builder_exports_only_tracked_source(self):
+        builder = (REPO_ROOT / "New-AEC-PortableBundle.ps1").read_text()
+        self.assertIn("git -C $info.Path ls-files", builder)
+        self.assertIn("docker', 'save'", builder)
+        self.assertIn("huggingface-cache.tar", builder)
+        self.assertIn("portable-bundle.json", builder)
+        self.assertIn("FAT32", builder)
+        self.assertIn("Assert-ModelEndpoint 8000", builder)
+        self.assertIn("Assert-ModelEndpoint 8001", builder)
+
+    def test_model_scripts_allow_first_download_then_use_offline_cache(self):
+        for name in ("run-vllm-qwen36.sh", "run-vllm-nemotron-vision.sh"):
+            script = (REPO_ROOT / "deployment" / "wsl-vllm" / name).read_text()
+            self.assertIn("OFFLINE_ENV=()", script)
+            self.assertIn("No cached snapshot found; first start requires internet access", script)
+            self.assertIn('"${OFFLINE_ENV[@]}"', script)
+
 
 if __name__ == "__main__":
     unittest.main()
