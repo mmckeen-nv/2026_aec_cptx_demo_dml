@@ -38,6 +38,19 @@ CACHE_ROOT=/root/.cache/huggingface
 MODEL_CACHE=${CACHE_ROOT}/hub/models--nvidia--Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
 OFFLINE_ENV=()
 if [ -d "${MODEL_CACHE}/snapshots" ]; then
+    # Transformers resolves trusted remote-code symlinks to hashed blobs in
+    # offline mode, then looks for relative Python imports beside that blob by
+    # filename. Add aliases to the existing blobs without duplicating data.
+    for module in "${MODEL_CACHE}"/snapshots/*/*.py; do
+        [ -e "${module}" ] || continue
+        resolved=$(readlink -f "${module}")
+        case "${resolved}" in
+            "${MODEL_CACHE}/blobs/"*)
+                alias="${MODEL_CACHE}/blobs/$(basename "${module}")"
+                [ -e "${alias}" ] || ln -s "$(basename "${resolved}")" "${alias}"
+                ;;
+        esac
+    done
     echo "[run-vllm-nemotron-vision] Cached model snapshot found; enabling Hugging Face offline mode."
     OFFLINE_ENV=(-e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1)
 else
@@ -74,6 +87,10 @@ docker run -d --name "$NAME" \
   --gpu-memory-utilization 0.85 \
   --max-model-len 65536
 
-echo "[run-vllm-nemotron-vision] Container created. First run downloads weights from HF (large, can take a while)."
+if [ ${#OFFLINE_ENV[@]} -gt 0 ]; then
+    echo "[run-vllm-nemotron-vision] Container created from the local Hugging Face cache."
+else
+    echo "[run-vllm-nemotron-vision] Container created. First run downloads weights from HF (large, can take a while)."
+fi
 echo "[run-vllm-nemotron-vision] Poll http://localhost:${PORT}/v1/models until it returns 200, or:"
 echo "[run-vllm-nemotron-vision]   docker logs -f ${NAME}"

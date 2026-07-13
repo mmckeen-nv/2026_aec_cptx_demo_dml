@@ -95,6 +95,8 @@ class SetupTests(unittest.TestCase):
             self.assertIn("OFFLINE_ENV=()", script)
             self.assertIn("No cached snapshot found; first start requires internet access", script)
             self.assertIn('"${OFFLINE_ENV[@]}"', script)
+            self.assertIn('alias="${MODEL_CACHE}/blobs/$(basename "${module}")"', script)
+            self.assertIn("Container created from the local Hugging Face cache", script)
 
 
 if __name__ == "__main__":
