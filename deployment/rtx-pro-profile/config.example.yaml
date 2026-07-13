@@ -1,0 +1,28 @@
+# Sanitized local-model excerpt for the rtx_pro Hermes profile.
+# Keep credentials and live runtime state in the installed profile only.
+model:
+  provider: custom:vllm_local
+  default: nvidia/Qwen3.6-35B-A3B-NVFP4
+  base_url: http://localhost:8000/v1
+  api_key: ${AEC_DEMO_MODEL_API_KEY}
+
+auxiliary:
+  vision:
+    provider: custom:vllm_vision
+    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    base_url: http://localhost:8001/v1
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  provider: daystrom_dml
+  daystrom_dml:
+    retrieval_policy: always
+    timeout_seconds: 20
+    dcn:
+      mode: active_read
+
+plugins:
+  enabled:
+    - daystrom_dml
+  disabled: []

@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $env:HERMES_HOME = Join-Path $env:LOCALAPPDATA 'hermes'
+$env:HERMES_PROFILE = 'rtx_pro'
 $hermesScripts = Join-Path $env:HERMES_HOME 'hermes-agent\venv\Scripts'
 $env:Path = $hermesScripts + ';' + (Join-Path $env:HERMES_HOME 'bin') + ';' + $env:Path
 
@@ -18,19 +19,22 @@ if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
   if ($LASTEXITCODE -ne 0) { throw "Unable to start the local model backend (exit code $LASTEXITCODE)." }
 }
 
-Set-Location $env:USERPROFILE
+$projectRoot = $env:AEC_DEMO_ROOT
+if (-not $projectRoot) { $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path }
+Set-Location $projectRoot
+
 Write-Host ''
 Write-Host '============================================================'
-Write-Host ' BAC_Teapot - Hermes Profile'
-Write-Host ' Profile: bac_teapot'
-Write-Host ' Model: nvidia/Qwen3.6-35B-A3B-NVFP4 (local vLLM, Docker/WSL2)'
-Write-Host ' Vision: Nemotron-3-Nano-Omni-30B-A3B (local vLLM, Docker/WSL2)'
-Write-Host ' Endpoint: http://localhost:8000/v1 (chat), :8001 (vision)'
+Write-Host ' RTX Pro - Virtual Production Studio Hermes'
+Write-Host ' Profile: rtx_pro'
+Write-Host ' Chat: nvidia/Qwen3.6-35B-A3B-NVFP4 (:8000)'
+Write-Host ' Vision: Nemotron-3-Nano-Omni-30B-A3B (:8001)'
 Write-Host '============================================================'
 Write-Host ''
+
 $hermesExe = Join-Path $hermesScripts 'hermes.exe'
 if (-not (Test-Path $hermesExe)) { throw "Hermes not found at $hermesExe" }
-& $hermesExe -p bac_teapot chat
+& $hermesExe -p rtx_pro chat
 $code = $LASTEXITCODE
 Write-Host ''
 Write-Host "Hermes exited with code $code. Press Enter to close."

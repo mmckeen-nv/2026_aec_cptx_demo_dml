@@ -189,6 +189,14 @@ comment block at the top of `run-vllm-nemotron-vision.sh`.
   changing a `docker run` flag (model, port, GPU pinning, env vars) — use
   `--recreate` on the run scripts for that.
 
+- **Configured port present but container detached from Docker bridge.** A
+  container can remain `Up` while `.NetworkSettings.Networks` is empty. In
+  that state the model listens inside the container, but Windows receives a
+  connection error because the configured published port is not effective.
+  `start_vllm.bat` reconnects the container to `bridge` and restarts it so
+  Docker reapplies the port. It also accepts `--no-pause` for profile
+  launchers and uses an stdin-independent delay for noninteractive polling.
+
 ## Verification checklist after any change here
 
 1. `bash status-vllm.sh` (or `check_vllm.bat` from Windows) — both
