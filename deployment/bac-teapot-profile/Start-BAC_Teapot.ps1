@@ -1,8 +1,32 @@
 $ErrorActionPreference = 'Stop'
 $env:HERMES_HOME = Join-Path $env:LOCALAPPDATA 'hermes'
+$dmlSource = Join-Path $env:HERMES_HOME 'integrations\daystrom-dml\source'
+if (Test-Path (Join-Path $dmlSource 'pyproject.toml')) { $env:DML_SOURCE_DIR = $dmlSource }
 $hermesScripts = Join-Path $env:HERMES_HOME 'hermes-agent\venv\Scripts'
 $env:Path = $hermesScripts + ';' + (Join-Path $env:HERMES_HOME 'bin') + ';' + $env:Path
-Set-Location $env:USERPROFILE
+
+function Test-LocalModel($port) {
+  try {
+    $response = Invoke-WebRequest -Uri "http://127.0.0.1:$port/v1/models" -TimeoutSec 3 -UseBasicParsing
+    return ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300)
+  } catch { return $false }
+}
+
+if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
+  $vllmStart = $null
+  if ($env:AEC_DEMO_ROOT) {
+    $installedCandidate = Join-Path $env:AEC_DEMO_ROOT 'deployment\wsl-vllm\start_vllm.bat'
+    if (Test-Path $installedCandidate) { $vllmStart = $installedCandidate }
+  }
+  if (-not $vllmStart) { $vllmStart = Join-Path $PSScriptRoot '..\wsl-vllm\start_vllm.bat' }
+  if (-not (Test-Path $vllmStart)) { throw "vLLM launcher not found at $vllmStart" }
+  Write-Host 'Local model backend is not ready. Starting/checking vLLM containers...'
+  & $vllmStart --no-pause
+  if ($LASTEXITCODE -ne 0) { throw "Unable to start the local model backend (exit code $LASTEXITCODE)." }
+}
+
+if (-not $env:AEC_DEMO_ROOT) { throw 'Set AEC_DEMO_ROOT to the local repository path.' }
+Set-Location (Join-Path $env:AEC_DEMO_ROOT 'demos\teapot')
 Write-Host ''
 Write-Host '============================================================'
 Write-Host ' BAC_Teapot - Hermes Profile'

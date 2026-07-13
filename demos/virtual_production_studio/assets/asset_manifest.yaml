@@ -1,0 +1,166 @@
+schema_version: 1
+reviewed_on: 2026-07-13
+policy:
+  preferred_licenses: [CC0-1.0, CC-BY-4.0]
+  prohibited_restrictions: [NonCommercial, NoDerivatives, ShareAlike, editorial-only, NoAI, unclear-license]
+  verify_source_page_before_download: true
+  blender_only: true
+  attribution_file: assets/ATTRIBUTIONS.md
+
+assets:
+  - key: camera_cinema_body_re1monsen
+    role: hero cinema camera body
+    source: sketchfab
+    asset_id: e1fec87c8ae0487f964d20de2559aa62
+    title: Cinema Camera
+    creator: re1monsen
+    url: https://sketchfab.com/3d-models/cinema-camera-e1fec87c8ae0487f964d20de2559aa62
+    license: CC-BY-4.0
+    triangles: 35900
+    noai_flag_seen: false
+    priority: high
+    status: shortlisted
+
+  - key: camera_tripod_silver_key
+    role: cinema camera with tripod
+    source: sketchfab
+    asset_id: 1268b1dafe1c4aafb25e0d6be044da0b
+    title: cinema camera with simple tripod
+    creator: SILVER KEY
+    url: https://sketchfab.com/3d-models/cinema-camera-with-simple-tripod-1268b1dafe1c4aafb25e0d6be044da0b
+    license: CC-BY-4.0
+    triangles: 15400
+    noai_flag_seen: false
+    priority: high
+    status: shortlisted
+
+  - key: chair_director_creativejenna
+    role: director and production seating
+    source: sketchfab
+    asset_id: d664c3ed7e1d48f5a0c0ad7f6581477b
+    title: Director's Chair
+    creator: creativejenna
+    url: https://sketchfab.com/3d-models/directors-chair-d664c3ed7e1d48f5a0c0ad7f6581477b
+    license: CC-BY-4.0
+    triangles: 28700
+    noai_flag_seen: false
+    priority: high
+    status: shortlisted
+
+  - key: grip_c_stand_kilianpohl
+    role: grip and lighting stand
+    source: sketchfab
+    asset_id: a532607fea0d40908302201beff1ad48
+    title: C-Stand
+    creator: KilianPohl
+    url: https://sketchfab.com/3d-models/c-stand-a532607fea0d40908302201beff1ad48
+    license: CC-BY-4.0
+    triangles: 42800
+    noai_flag_seen: false
+    priority: high
+    status: shortlisted
+
+  - key: light_led_soft_panel_roy
+    role: practical LED production light
+    source: sketchfab
+    asset_id: 482c075e82f64cfdaa55e45fde9af8f2
+    title: LED Soft Light Panel
+    creator: ROY
+    url: https://sketchfab.com/3d-models/led-soft-light-panel-482c075e82f64cfdaa55e45fde9af8f2
+    license: CC-BY-4.0
+    triangles: 49400
+    noai_flag_seen: false
+    priority: high
+    status: shortlisted
+
+  - key: control_server_rack_anais
+    role: media-server room rack
+    source: sketchfab
+    asset_id: 1348f8c5313f4059b9a2b5b3f37c81f3
+    title: Server Rack
+    creator: Anais3Dcraft
+    url: https://sketchfab.com/3d-models/server-rack-1348f8c5313f4059b9a2b5b3f37c81f3
+    license: CC-BY-4.0
+    triangles: 1100
+    noai_flag_seen: false
+    priority: high
+    status: shortlisted
+
+  - key: control_monitor_datsketch
+    role: repeated control-room monitor
+    source: sketchfab
+    asset_id: 6a7b0147890242418a49f6db26657ab4
+    title: Office Monitor / Workstation Monitor
+    creator: DatSketch
+    url: https://sketchfab.com/3d-models/office-monitor-workstation-monitor-6a7b0147890242418a49f6db26657ab4
+    license: CC-BY-4.0
+    triangles: 181
+    noai_flag_seen: false
+    priority: high
+    status: shortlisted
+
+  - key: roadcase_thomas_kole
+    role: stage and loading-area road case
+    source: sketchfab
+    asset_id: 4ef9402141f0406bbb8981bc0f56b2e5
+    title: PBR Roadcase
+    creator: Thomas Kole
+    url: https://sketchfab.com/3d-models/pbr-roadcase-4ef9402141f0406bbb8981bc0f56b2e5
+    license: CC-BY-4.0
+    triangles: 668
+    noai_flag_seen: false
+    priority: medium
+    status: shortlisted
+
+  - key: cables_modular_simon_laisne
+    role: controlled cable dressing
+    source: sketchfab
+    asset_id: 86fd2a4c57144bf083882564a63870f7
+    title: Modular cables 1m
+    creator: Simon Laisne
+    url: https://sketchfab.com/3d-models/modular-cables-1m-86fd2a4c57144bf083882564a63870f7
+    license: CC-BY-4.0
+    triangles: 9100
+    noai_flag_seen: false
+    priority: medium
+    status: shortlisted
+
+  - key: chair_modern_arm_polyhaven
+    role: green room and client lounge chair
+    source: polyhaven
+    asset_id: modern_arm_chair_01
+    title: Modern Arm Chair 01
+    creator: Vibrant Nordic
+    url: https://polyhaven.com/a/modern_arm_chair_01
+    license: CC0-1.0
+    triangles: 9000
+    noai_flag_seen: false
+    priority: medium
+    status: shortlisted
+
+  - key: chair_crew_monobloc_polyhaven
+    role: inexpensive stackable crew seating
+    source: polyhaven
+    asset_id: plastic_monobloc_chair_01
+    title: Plastic Monobloc Chair 01
+    creator: Kuutti Siitonen
+    url: https://polyhaven.com/a/plastic_monobloc_chair_01
+    license: CC0-1.0
+    triangles: 3000
+    noai_flag_seen: false
+    priority: low
+    status: shortlisted
+
+  - key: dressing_office_notepads_polyhaven
+    role: control-room and production-office dressing
+    source: polyhaven
+    asset_id: office_notepads
+    title: Office Notepads
+    creator: Ulan Cabanilla
+    url: https://polyhaven.com/a/office_notepads
+    license: CC0-1.0
+    triangles: 666
+    noai_flag_seen: false
+    priority: low
+    status: shortlisted
+

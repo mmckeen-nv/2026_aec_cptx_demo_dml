@@ -10,6 +10,7 @@ from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "aec_setup.py"
+REPO_ROOT = MODULE_PATH.parents[1]
 SPEC = importlib.util.spec_from_file_location("aec_setup", MODULE_PATH)
 aec_setup = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
@@ -38,6 +39,31 @@ class SetupTests(unittest.TestCase):
         with mock.patch("platform.system", return_value="Windows"):
             self.assertIn("BlenderFoundation.Blender", aec_setup.install_command("blender"))
             self.assertIn("astral-sh.uv", aec_setup.install_command("uvx"))
+
+    def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
+        demos = {
+            "virtual_production_studio": "project:vp-studio-01",
+            "cliff_house": "project:cliff-house-01",
+            "teapot": "project:teapot-01",
+        }
+        for demo, project_id in demos.items():
+            contract = (REPO_ROOT / "demos" / demo / "AGENTS.md").read_text()
+            self.assertIn(project_id, contract)
+            self.assertIn("mcp_daystrom_dml", contract)
+            self.assertIn("mcp_cma_augment", contract)
+            self.assertIn("mcp_cma_reinforce", contract)
+
+    def test_installer_carries_and_preserves_daystrom_state(self):
+        installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
+        builder = (REPO_ROOT / "New-AEC-PortableBundle.ps1").read_text()
+        self.assertIn("Restore-PortableDaystromStores", installer)
+        self.assertIn("Preserved existing Daystrom store", installer)
+        self.assertIn("Seed-DemoDmlKnowledge", installer)
+        self.assertIn("SkipDmlStores", builder)
+        self.assertIn("offline\\daystrom\\stores", builder)
+        self.assertIn("includes_daystrom_stores", builder)
+        self.assertIn("Project DML/CMA state is bundled by default", builder)
+        self.assertIn("Close all Hermes demo sessions", builder)
 
 
 if __name__ == "__main__":
