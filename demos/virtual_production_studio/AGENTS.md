@@ -108,11 +108,14 @@ slots, close the document, or replace a healthy listener. Blender uses
 
 If Rhino or Blender MCP registration/connection fails, stop the application
 phase and report the exact preflight blocker. Do not use terminal/config commands
-to repair Hermes from inside the run, do not launch another Rhino process, and
-never invoke `RunPythonScript`, `EditPythonScript`, or open a `.py` file in
-Rhino. Python and C# source must be passed only as the direct `script=` argument
-of the registered MCP tools so no editor or file chooser can appear.
-Do not launch Blender, enable or patch add-ons, write bootstrap scripts, inspect
+to repair Hermes from inside the run or launch another Rhino process. Never invoke
+`RunPythonScript` or `EditPythonScript` through Rhino UI. For substantial bounded
+geometry batches, write generated Python under `work/generated_scripts/`, then
+load and execute it from the direct `script=`/`code=` argument of the registered
+Rhino or Blender MCP tool. This avoids giant inline tool calls without opening an
+editor or file chooser. Keep viewport-capture code inline so the controller can
+classify it as read-only evidence.
+Do not launch Blender, enable or patch add-ons, write add-on bootstrap scripts, inspect
 ports through browser fallback, or alter application installations from inside a
 demo run. Application recovery is a host-side preflight responsibility.
 

@@ -41,6 +41,11 @@ _MUTATION_RE = re.compile(
 _RHINO_CAPTURE_RE = re.compile(r"CaptureToBitmap|CaptureToFile", re.IGNORECASE)
 _LOCAL_PNG_RE = re.compile(r"(?P<path>[A-Za-z]:[\\/][^\"'\r\n]+?\.png)", re.IGNORECASE)
 _COMFY_EXECUTION_RE = re.compile(r"(?:127\.0\.0\.1:8188|localhost:8188|/prompt\b|ComfyUI)", re.IGNORECASE)
+_EXTERNAL_SCRIPT_RE = re.compile(
+    r"(?:exec|compile)\s*\([^\r\n]{0,500}(?:open\s*\(|\.py\b)|"
+    r"open\s*\([^\r\n]{0,500}\.py\b[^\r\n]{0,500}(?:exec|compile)",
+    re.IGNORECASE,
+)
 _RHINO_UI_RECOVERY_RE = re.compile(
     r"(?:rhino(?:\.exe)?[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
     r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino)",
@@ -149,7 +154,10 @@ def _script(args: Dict[str, Any], tool: str) -> str:
 
 
 def _is_mutation(tool: str, args: Dict[str, Any]) -> bool:
-    return tool in _MUTATION_TOOLS and bool(_MUTATION_RE.search(_script(args, tool)))
+    script = _script(args, tool)
+    return tool in _MUTATION_TOOLS and bool(
+        _MUTATION_RE.search(script) or _EXTERNAL_SCRIPT_RE.search(script)
+    )
 
 
 def _is_rhino_capture(tool: str, args: Dict[str, Any]) -> bool:
@@ -221,7 +229,10 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "spawn, close, or replace it. Use script= for both Rhino Python and C# tools. The safety "
         "shim does not impose mutation quotas, memory quotas, or phase-transition quotas. If an "
         "application MCP cannot connect, report that blocker immediately. Never repair Hermes "
-        "configuration from inside the demo and never launch Rhino's Python editor or a script file. "
+        "configuration from inside the demo and never launch Rhino's Python editor or a script through "
+        "Rhino UI/shell commands. You may write bounded generated Python under work/generated_scripts/ "
+        "and load it through the registered Rhino or Blender MCP execution tool; this is preferred for "
+        "substantial geometry batches. Keep viewport capture inline. "
         "At every major Rhino phase boundary, capture fresh object-list and viewport evidence after "
         "the latest geometry change. Rhino MCP 0.1.5 nests viewport bytes instead of returning a "
         "usable URL: save ActiveView.CaptureToBitmap(System.Drawing.Size(960,540)) to an absolute "
@@ -354,11 +365,11 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
 
     if tool in {"terminal", "execute_code", "patch", "write_file"}:
         payload = json.dumps(args, ensure_ascii=False, default=str)
-        if _RHINO_UI_RECOVERY_RE.search(payload):
+        if tool in {"terminal", "execute_code"} and _RHINO_UI_RECOVERY_RE.search(payload):
             return _block(kwargs, "do not launch Rhino or Python scripts through shell/UI recovery; use the registered Rhino MCP or report it unavailable")
         if _HERMES_CONFIG_MUTATION_RE.search(payload):
             return _block(kwargs, "the running demo may not modify Hermes configuration; report the MCP preflight blocker for host-side repair")
-        if _BLENDER_RECOVERY_RE.search(payload):
+        if tool in {"terminal", "execute_code"} and _BLENDER_RECOVERY_RE.search(payload):
             return _block(kwargs, "do not launch, configure, patch, or repair Blender/add-ons from inside the demo; report the Blender MCP preflight blocker")
         if _COMFY_EXECUTION_RE.search(payload) and not _blender_visual_validation_ready(state):
             return _block(

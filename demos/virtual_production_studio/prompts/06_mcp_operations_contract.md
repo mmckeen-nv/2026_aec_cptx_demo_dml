@@ -25,6 +25,12 @@ Use the configured application MCP servers as stateful application bridges. Insp
   `Rhino.DocObjects.Layer` and `ParentLayerId`. Never assign layer index `-1`.
 - Inspect `payload.error` and stdout after every script. A transport-level MCP
   success can still contain a Rhino script error or create zero objects.
+- For a substantial bounded modeling batch, write a generated `.py` file under
+  `work/generated_scripts/`, then use `mcp_rhino_run_python(script=...)` to
+  `open`, `compile`, and `exec` it inside the MCP-owned Rhino document context.
+  Do not use Rhino UI commands, a Python editor, or a shell to run it. The
+  controller treats this MCP execution as a geometry mutation. Keep small probes
+  and viewport capture inline.
 - Never call `mcp_rhino_run_command`. Even apparently harmless macros can wait
   for interactive input and deadlock the MCP request. Use dedicated camera,
   zoom, selection, open, and save tools or direct bounded Python/C#.
@@ -63,6 +69,9 @@ Use the configured application MCP servers as stateful application bridges. Insp
 - Inspect with `mcp_blender_get_scene_info` before mutation. Execute Blender
   Python only with `mcp_blender_execute_blender_code` and its `code` argument.
   Never emit a tool call named `run`; that tool does not exist.
+- Substantial Blender batches may likewise be written under
+  `work/generated_scripts/` and loaded by `mcp_blender_execute_blender_code`.
+  Do not launch Blender or the script from a shell.
 - The working directory is `demos/virtual_production_studio`. Read the checked-in
   `../../skills/import_with_metadata.py` for Rhino handoff and
   `../../skills/validate_blender_scene.py` for the acceptance gate. There is no

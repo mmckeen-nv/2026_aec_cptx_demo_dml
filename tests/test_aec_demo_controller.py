@@ -206,6 +206,28 @@ class AecDemoControllerTests(unittest.TestCase):
         )
         self.assertIn("may not modify Hermes configuration", blocked["message"])
 
+    def test_generated_application_scripts_can_be_written_but_not_shell_launched(self):
+        generated = {
+            "path": "work/generated_scripts/build_stage.py",
+            "content": "import Rhino\ndoc.Objects.AddBrep(stage)",
+        }
+        self.assertIsNone(self.pre("write_file", generated))
+        blocked = self.pre(
+            "terminal",
+            {"command": 'Rhino.exe /runscript="_-RunPythonScript work/generated_scripts/build_stage.py"'},
+        )
+        self.assertIn("shell/UI recovery", blocked["message"])
+
+    def test_external_rhino_script_execution_is_counted_as_mutation(self):
+        args = {
+            "script": "path=r'C:/demo/work/generated_scripts/build_stage.py'; exec(compile(open(path).read(), path, 'exec'))"
+        }
+        self.assertIsNone(self.pre("mcp_rhino_run_python", args))
+        self.post("mcp_rhino_run_python", args)
+        state = controller._STATES["test-task"]
+        self.assertEqual(1, state["mutations"])
+        self.assertFalse(state["viewport_since_mutation"])
+
     def test_normal_terminal_inspection_remains_available(self):
         self.assertIsNone(self.pre("terminal", {"command": "git status --short"}))
 
