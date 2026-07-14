@@ -41,4 +41,3 @@ hard_gates:
   save_only_after_final_rhino_validation: true
   blender_requires_validated_rhino_save: true
   comfyui_requires_validated_blender_scene: true
-

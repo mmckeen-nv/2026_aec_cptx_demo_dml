@@ -1,4 +1,3 @@
 name: aec_demo_controller
 description: Runtime phase gates for the agent-authored AEC demonstration workflows.
 version: 0.1.0
-
