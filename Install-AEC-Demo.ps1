@@ -256,6 +256,13 @@ function Repair-DemoApplicationMcps {
   })
   $repairedSerializedArgs = $normalized -ne $content
   $content = $normalized
+  # MCP stdio validation also requires every env value to be a string. YAML
+  # otherwise converts these common Blender values to int/bool before Hermes
+  # can start the server.
+  $typedEnv = [regex]::Replace($content, '(?m)^(\s+BLENDER_PORT:\s*)(?:[''\"])?9876(?:[''\"])?\s*$', "`${1}'9876'")
+  $typedEnv = [regex]::Replace($typedEnv, '(?m)^(\s+DISABLE_TELEMETRY:\s*)(?:[''\"])?true(?:[''\"])?\s*$', "`${1}'true'")
+  $repairedEnvTypes = $typedEnv -ne $content
+  $content = $typedEnv
   $blocks = [System.Collections.Generic.List[string]]::new()
   if ($content -notmatch '(?m)^  rhino:\s*$') {
     $router = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform') `
@@ -269,7 +276,7 @@ function Repair-DemoApplicationMcps {
   if ($content -notmatch '(?m)^  blender:\s*$') {
     $blocks.Add("  blender:`n    command: cmd`n    args:`n    - /c`n    - uvx`n    - blender-mcp`n    connect_timeout: 30`n    env:`n      BLENDER_HOST: localhost`n      BLENDER_PORT: '9876'`n      DISABLE_TELEMETRY: 'true'`n    timeout: 180")
   }
-  if ($blocks.Count -eq 0 -and -not $repairedSerializedArgs) { return }
+  if ($blocks.Count -eq 0 -and -not $repairedSerializedArgs -and -not $repairedEnvTypes) { return }
   $updated = $content
   if ($blocks.Count -gt 0) {
     $insert = ($blocks -join "`n") + "`n"

@@ -250,6 +250,7 @@ class SetupTests(unittest.TestCase):
 
     def test_windows_installer_is_safe_and_portable(self):
         installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
+        rtx_preflight = (REPO_ROOT / "deployment" / "rtx-pro-profile" / "Test-RTX-Pro-Preflight.ps1").read_text()
         self.assertIn("SupportsShouldProcess = $true", installer)
         self.assertIn("AEC_DEMO_ROOT", installer)
         self.assertIn("PortableBundle", installer)
@@ -258,6 +259,9 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Repair-DaystromRetrievalPolicy", installer)
         self.assertIn("Repair-DemoApplicationMcps", installer)
         self.assertIn("Add missing Rhino/Blender MCP registrations", installer)
+        self.assertIn("BLENDER_PORT", installer)
+        self.assertIn("DISABLE_TELEMETRY", installer)
+        self.assertIn("Blender MCP environment values are strings", rtx_preflight)
         self.assertIn("Set Daystrom DML retrieval_policy to always", installer)
         self.assertIn("Get-FileSha256", installer)
         self.assertIn("Assert-PortableManifestAssets", installer)

@@ -63,6 +63,11 @@ foreach ($name in @('rhino', 'blender', 'daystrom_dml', 'cma')) {
 }
 $serializedMcpArgs = $configText -match '(?m)^\s+args:\s+[''\"]\['
 Add-Result 'MCP arguments use YAML lists' (-not $serializedMcpArgs) $(if ($serializedMcpArgs) { 'one or more MCP args values are serialized JSON strings; rerun installer repair before Hermes' } else { 'MCP args are typed lists' })
+$blenderConfigMatch = [regex]::Match($configText, '(?ms)^  blender:\s*\r?\n(?<body>.*?)(?=^  \S|\z)')
+$blenderConfigBody = if ($blenderConfigMatch.Success) { $blenderConfigMatch.Groups['body'].Value } else { '' }
+$blenderStringEnv = ($blenderConfigBody -match '(?m)^\s+BLENDER_PORT:\s*[''\"]9876[''\"]\s*$') -and
+  ($blenderConfigBody -match '(?m)^\s+DISABLE_TELEMETRY:\s*[''\"]true[''\"]\s*$')
+Add-Result 'Blender MCP environment values are strings' $blenderStringEnv $(if ($blenderStringEnv) { 'BLENDER_PORT and DISABLE_TELEMETRY are quoted strings' } else { 'quote Blender MCP env values; YAML int/bool values are rejected by Hermes' })
 
 $policyChecks = @{
   'DML retrieval policy' = '(?m)^\s+retrieval_policy:\s*always\s*$'
