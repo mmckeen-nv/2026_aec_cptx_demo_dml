@@ -59,6 +59,29 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Rhino MCP direct-router config", preflight)
         self.assertIn("ProfileName = 'rtx_pro'", preflight)
         self.assertIn("DmlStoreName = 'vp-studio-01-runtime-store'", preflight)
+        self.assertIn("RhinoTemplatePath", preflight)
+
+    def test_vp_studio_uses_datum_template_without_interactive_new(self):
+        contract = (REPO_ROOT / "demos" / "virtual_production_studio" / "AGENTS.md").read_text()
+        launcher = (REPO_ROOT / "deployment" / "rtx-pro-profile" / "Start-RTX-Pro.ps1").read_text()
+        generator = (REPO_ROOT / "tools" / "create_vp_studio_template.py").read_text()
+        template = (
+            REPO_ROOT
+            / "demos"
+            / "virtual_production_studio"
+            / "source"
+            / "vp_studio_01_template.3dm"
+        )
+        self.assertTrue(template.is_file())
+        self.assertIn("mcp_rhino_open_doc", contract)
+        self.assertIn("never invoke `_New`", contract)
+        self.assertIn("vp_studio_01_base_model.3dm", contract)
+        self.assertIn("vp_studio_01_template.3dm", launcher)
+        self.assertIn("-RhinoTemplatePath $rhinoTemplate", launcher)
+        self.assertIn("UnitSystem.Inches", generator)
+        self.assertNotIn("AddBrep", generator)
+        self.assertNotIn("AddMesh", generator)
+        self.assertNotIn("AddExtrusion", generator)
 
     def test_all_launchers_run_profile_scoped_preflight_without_killing_apps(self):
         launchers = {

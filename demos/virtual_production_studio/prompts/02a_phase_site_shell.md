@@ -22,7 +22,10 @@ building. Label any departure from the baseline as a planning assumption.
 ## Execution steps
 
 1. Query DML and augment the proposed site/shell strategy through CMA.
-2. Inspect Rhino and set inches, origin, and tolerances.
+2. Open `source/vp_studio_01_template.3dm` through `mcp_rhino_open_doc` if it is
+   not already active. Inspect and confirm inches, 0.01-inch tolerance, origin,
+   locked reference layers, and zero solid/mesh design geometry. Never call
+   `_New` or any interactive template command.
 3. Author one bounded MCP script for lot/property and access reference geometry.
 4. Inspect plan dimensions and placement.
 5. Author a separate bounded MCP script for building shell and clear stage/floor.

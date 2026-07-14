@@ -30,13 +30,15 @@ $projectRoot = $env:AEC_DEMO_ROOT
 if (-not $projectRoot) { $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path }
 $studioRoot = Join-Path $projectRoot 'demos\virtual_production_studio'
 if (-not (Test-Path -LiteralPath $studioRoot -PathType Container)) { throw "Virtual production project not found at $studioRoot" }
+$rhinoTemplate = Join-Path $studioRoot 'source\vp_studio_01_template.3dm'
+if (-not (Test-Path -LiteralPath $rhinoTemplate -PathType Leaf)) { throw "VP Studio Rhino template not found at $rhinoTemplate" }
 
 $preflight = Join-Path $PSScriptRoot 'Test-RTX-Pro-Preflight.ps1'
 if (-not (Test-Path -LiteralPath $preflight)) {
   $preflight = Join-Path $projectRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1'
 }
 if (-not (Test-Path -LiteralPath $preflight)) { throw "RTX Pro preflight not found at $preflight" }
-& $preflight -StartServices -SkipComfyUI
+& $preflight -StartServices -SkipComfyUI -RhinoTemplatePath $rhinoTemplate
 if ($LASTEXITCODE -ne 0) { throw "RTX Pro preflight failed (exit code $LASTEXITCODE)." }
 
 Set-Location $studioRoot

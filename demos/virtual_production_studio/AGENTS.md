@@ -30,10 +30,24 @@ timestamped path. If validation fails, do not save and do not advance.
 
 The Windows launcher starts Rhino's MCP listener on `127.0.0.1:10500` before Hermes. At phase 0, `mcp_rhino_list_slots` must return a ready slot before any modeling call. If it does not, stop and report the preflight failure. Do not edit Hermes MCP configuration, install another Rhino integration, repeatedly spawn slots, or fall back to shell/Blender geometry.
 
-For a fresh-build run, query the active document before modeling and require zero
-objects tagged `project=vp-studio-01`. Existing project geometry is not evidence of
-agent work. If any is present, stop and ask the operator to open a new blank Rhino
-document; do not reuse or silently delete it.
+The required starting document is
+`source/vp_studio_01_template.3dm`. Open that exact file with
+`mcp_rhino_open_doc`; never invoke `_New`, `_NewSmall`, `New`, or an interactive
+template chooser. Those commands open Rhino's modal **Open Template File** dialog
+on machines without a default template and block every later MCP call. Never use
+`vp_studio_01_base_model.3dm` as the starting document: it is a completed meter-
+based reference artifact, not evidence of agent-authored work. The datum template
+is inches-based and contains only 16 locked reference curves/text dots on four
+`VP00_TEMPLATE_*` layers. It contains zero Breps, Extrusions, or Meshes. Do not
+delete, move, unlock, or export its reference objects.
+
+For a fresh-build run, inspect the opened datum template before modeling. Require
+`UnitSystem.Inches`, absolute tolerance `0.01`, the four locked
+`VP00_TEMPLATE_*` layers, exactly the expected reference-only objects, and zero
+Breps, Extrusions, Meshes, or objects with `export_to_blender=true`. Existing
+design geometry is not evidence of agent work. If it is present, stop and ask the
+operator to reopen the checked-in datum template; do not call `_New`, reuse the
+geometry, silently delete it, close the document, or spawn another Rhino slot.
 
 Before doing project work, read these files completely:
 

@@ -9,7 +9,8 @@ param(
   [string]$CmaStoreName = 'cma-vp-studio-01',
   [string]$DmlLauncherName = 'dml_mcp_server_vp_studio.cmd',
   [string]$CmaLauncherName = 'cma_mcp_server_vp_studio.cmd',
-  [string]$DisplayName = 'RTX Pro virtual-production'
+  [string]$DisplayName = 'RTX Pro virtual-production',
+  [string]$RhinoTemplatePath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -85,6 +86,9 @@ $rhinoRouter = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages
 $rhinoExe = 'C:\Program Files\Rhino 8\System\Rhino.exe'
 Add-Result 'Rhino MCP router executable' ([bool]$rhinoRouter -and (Test-Path -LiteralPath $rhinoRouter -PathType Leaf)) $(if ($rhinoRouter) { $rhinoRouter } else { 'official McNeel Rhino MCP router was not found' })
 Add-Result 'Rhino 8 executable' (Test-Path -LiteralPath $rhinoExe -PathType Leaf) $rhinoExe
+if ($RhinoTemplatePath) {
+  Add-Result 'Rhino starting template' (Test-Path -LiteralPath $RhinoTemplatePath -PathType Leaf) $RhinoTemplatePath
+}
 $rhinoConfigMatch = [regex]::Match($configText, '(?ms)^  rhino:\s*\r?\n(?<body>.*?)(?=^  \S|\z)')
 $rhinoConfigBody = if ($rhinoConfigMatch.Success) { $rhinoConfigMatch.Groups['body'].Value } else { '' }
 $directRhinoConfig = ($rhinoConfigBody -match '(?m)^    command:\s+.*rhino-mcp-router\.exe\s*$') -and
@@ -96,7 +100,10 @@ if ($StartServices -and -not (Test-TcpPort $rhinoMcpPort) -and (Test-Path -Liter
   $priorAutostartPort = $env:RHINO_MCP_AUTOSTART_PORT
   try {
     $env:RHINO_MCP_AUTOSTART_PORT = [string]$rhinoMcpPort
-    Start-Process -FilePath $rhinoExe -ArgumentList '/nosplash', '/runscript="_MCPSpawn"'
+    $rhinoArgs = @('/nosplash')
+    if ($RhinoTemplatePath) { $rhinoArgs += $RhinoTemplatePath }
+    $rhinoArgs += '/runscript="_MCPSpawn"'
+    Start-Process -FilePath $rhinoExe -ArgumentList $rhinoArgs
   } finally {
     $env:RHINO_MCP_AUTOSTART_PORT = $priorAutostartPort
   }

@@ -6,6 +6,13 @@ Run `deployment/rtx-pro-profile/Test-RTX-Pro-Preflight.ps1`. Required checks mus
 
 The required Rhino application bridge is `127.0.0.1:10500`. Confirm `mcp_rhino_list_slots` returns a ready slot. One failed check ends phase 0: do not repair profile configuration from inside the agent, install a substitute MCP, loop on `spawn_slot`, or proceed to Blender.
 
+Open `source/vp_studio_01_template.3dm` with `mcp_rhino_open_doc` and inspect it
+before modeling. It must be inches-based, contain four locked
+`VP00_TEMPLATE_*` layers and reference curves/text only, and contain no Breps,
+Extrusions, Meshes, or exportable design geometry. Never invoke `_New`,
+`_NewSmall`, `New`, or Rhino's interactive template chooser. Never substitute
+the completed meter-based `vp_studio_01_base_model.3dm` reference artifact.
+
 Use the tools that Hermes actually exposes. Rhino and Blender are MCP applications; ComfyUI is a local REST application in this installation.
 
 ## Phase 1: Rhino design model

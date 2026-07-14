@@ -6,6 +6,10 @@ Use the configured application MCP servers as stateful application bridges. Insp
 
 - The configured Rhino router and the existing Rhino 8 slot on `127.0.0.1:10500` are authoritative.
 - Call `mcp_rhino_list_slots`, attach to the ready slot, and never spawn a replacement while that slot is healthy.
+- Start from `source/vp_studio_01_template.3dm`, opened only through
+  `mcp_rhino_open_doc`. Never call `_New`, `_NewSmall`, `New`, close the datum
+  document, or trigger Rhino's interactive **Open Template File** dialog. Never
+  open the completed `vp_studio_01_base_model.3dm` reference artifact.
 - Author bounded Python or C# directly for one coherent element group at a time
   and send it through `mcp_rhino_run_python` or `mcp_rhino_run_csharp`. Inspect
   after every mutation. Do not execute a disk geometry script, JSON object plan,
