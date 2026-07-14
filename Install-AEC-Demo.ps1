@@ -238,6 +238,24 @@ function Repair-DemoApplicationMcps {
     Write-Warning "Cannot add application MCPs because mcp_servers is absent: $ProfileConfig"
     return
   }
+  # Hermes requires args to be a YAML sequence. `hermes config set` can
+  # accidentally serialize a JSON array as one scalar string, which prevents
+  # every affected MCP from starting even though the text looks list-like.
+  $serializedArgsPattern = '(?m)^(?<indent>[ \t]+)args:\s*''(?<json>\[.*\])''\s*$'
+  $normalized = [regex]::Replace($content, $serializedArgsPattern, [System.Text.RegularExpressions.MatchEvaluator]{
+    param($match)
+    try { $values = @($match.Groups['json'].Value | ConvertFrom-Json -ErrorAction Stop) } catch { return $match.Value }
+    $indent = $match.Groups['indent'].Value
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add("${indent}args:")
+    foreach ($value in $values) {
+      $escaped = ([string]$value).Replace("'", "''")
+      $lines.Add("${indent}- '$escaped'")
+    }
+    return ($lines -join "`n")
+  })
+  $repairedSerializedArgs = $normalized -ne $content
+  $content = $normalized
   $blocks = [System.Collections.Generic.List[string]]::new()
   if ($content -notmatch '(?m)^  rhino:\s*$') {
     $router = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform') `
@@ -251,14 +269,17 @@ function Repair-DemoApplicationMcps {
   if ($content -notmatch '(?m)^  blender:\s*$') {
     $blocks.Add("  blender:`n    command: cmd`n    args:`n    - /c`n    - uvx`n    - blender-mcp`n    connect_timeout: 30`n    env:`n      BLENDER_HOST: localhost`n      BLENDER_PORT: '9876'`n      DISABLE_TELEMETRY: 'true'`n    timeout: 180")
   }
-  if ($blocks.Count -eq 0) { return }
-  $insert = ($blocks -join "`n") + "`n"
-  $updated = [regex]::Replace($content, '(?m)^mcp_servers:\s*$', "mcp_servers:`n$insert", 1)
-  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Add missing Rhino/Blender MCP registrations')) {
+  if ($blocks.Count -eq 0 -and -not $repairedSerializedArgs) { return }
+  $updated = $content
+  if ($blocks.Count -gt 0) {
+    $insert = ($blocks -join "`n") + "`n"
+    $updated = [regex]::Replace($content, '(?m)^mcp_servers:\s*$', "mcp_servers:`n$insert", 1)
+  }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Add missing Rhino/Blender MCP registrations and repair MCP argument types')) {
     $backup = "$ProfileConfig.bak-app-mcp-$(Get-Date -Format 'yyyyMMddHHmmss')"
     Copy-Item -LiteralPath $ProfileConfig -Destination $backup
     Write-Utf8Text $ProfileConfig $updated
-    Write-Host "Added missing application MCP registrations; backup: $backup"
+    Write-Host "Repaired application MCP registrations; backup: $backup"
   }
 }
 

@@ -36,7 +36,18 @@ _MUTATION_RE = re.compile(
     re.IGNORECASE,
 )
 _FORBIDDEN_COMMAND_RE = re.compile(
-    r"(?:^|[_\s-])(?:NewSmall|New|SaveAs|Save|Export)(?:$|[_\s-])", re.IGNORECASE
+    r"(?:^|[_\s-])(?:NewSmall|New|SaveAs|Save|Export|RunPythonScript|EditPythonScript|PythonScript)(?:$|[_\s-])",
+    re.IGNORECASE,
+)
+_RHINO_UI_RECOVERY_RE = re.compile(
+    r"(?:rhino(?:\.exe)?[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
+    r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino)",
+    re.IGNORECASE,
+)
+_HERMES_CONFIG_MUTATION_RE = re.compile(
+    r"(?:hermes\s+config\s+(?:set|remove|unset)|"
+    r"(?:AppData[\\/]Local[\\/]hermes|\.hermes)[\\/].*config\.ya?ml)",
+    re.IGNORECASE,
 )
 
 
@@ -129,7 +140,9 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "studio brief as the project-specific design input. Author bounded Rhino geometry and "
         "inspect at meaningful design checkpoints. The launcher owns the ready Rhino slot; do not "
         "spawn, close, or replace it. Use script= for both Rhino Python and C# tools. The safety "
-        "shim does not impose mutation quotas, memory quotas, or phase-transition quotas."
+        "shim does not impose mutation quotas, memory quotas, or phase-transition quotas. If an "
+        "application MCP cannot connect, report that blocker immediately. Never repair Hermes "
+        "configuration from inside the demo and never launch Rhino's Python editor or a script file."
     )
     return {"context": context}
 
@@ -150,7 +163,14 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if tool == "mcp_rhino_run_command":
         command = str(args.get("command") or args.get("macro") or "")
         if _FORBIDDEN_COMMAND_RE.search(command):
-            return _block(kwargs, "interactive New/Save/Export commands are prohibited; use the datum template, save_doc, and direct 3DM handoff")
+            return _block(kwargs, "interactive New/Save/Export/Python-editor commands are prohibited; use the datum template, direct MCP script arguments, save_doc, and direct 3DM handoff")
+
+    if tool in {"terminal", "execute_code", "patch", "write_file"}:
+        payload = json.dumps(args, ensure_ascii=False, default=str)
+        if _RHINO_UI_RECOVERY_RE.search(payload):
+            return _block(kwargs, "do not launch Rhino or Python scripts through shell/UI recovery; use the registered Rhino MCP or report it unavailable")
+        if _HERMES_CONFIG_MUTATION_RE.search(payload):
+            return _block(kwargs, "the running demo may not modify Hermes configuration; report the MCP preflight blocker for host-side repair")
 
     if tool == "mcp_rhino_open_doc":
         path = str(args.get("path") or args.get("file_path") or "").replace("\\", "/").lower()

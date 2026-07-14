@@ -75,9 +75,21 @@ class AecDemoControllerTests(unittest.TestCase):
         self.assertIn("prohibited", self.pre("mcp_rhino_close_doc", {})["message"])
 
     def test_interactive_new_save_and_export_are_blocked(self):
-        for command in ("_New", "_SaveAs", "_Export"):
+        for command in ("_New", "_SaveAs", "_Export", '_-RunPythonScript "C:/demo/build.py"', "_EditPythonScript"):
             blocked = self.pre("mcp_rhino_run_command", {"command": command})
-            self.assertIn("interactive New/Save/Export", blocked["message"])
+            self.assertIn("interactive New/Save/Export/Python-editor", blocked["message"])
+
+    def test_shell_rhino_python_and_live_config_repair_are_blocked(self):
+        blocked = self.pre("terminal", {"command": 'Rhino.exe /runscript="_-RunPythonScript C:/demo/build.py"'})
+        self.assertIn("shell/UI recovery", blocked["message"])
+        blocked = self.pre(
+            "terminal",
+            {"command": "hermes config set mcp_servers.rhino.args '[--default-version, 8]'"},
+        )
+        self.assertIn("may not modify Hermes configuration", blocked["message"])
+
+    def test_normal_terminal_inspection_remains_available(self):
+        self.assertIsNone(self.pre("terminal", {"command": "git status --short"}))
 
     def test_controller_is_inert_outside_target_demo(self):
         with mock.patch.dict(os.environ, {"AEC_DEMO_ID": "cliff-house-01"}, clear=False):

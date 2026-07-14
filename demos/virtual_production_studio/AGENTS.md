@@ -74,6 +74,13 @@ The launcher owns the ready Rhino listener at `127.0.0.1:10500`. Confirm it with
 slots, close the document, or replace a healthy listener. Blender uses
 `127.0.0.1:9876`.
 
+If Rhino or Blender MCP registration/connection fails, stop the application
+phase and report the exact preflight blocker. Do not use terminal/config commands
+to repair Hermes from inside the run, do not launch another Rhino process, and
+never invoke `RunPythonScript`, `EditPythonScript`, or open a `.py` file in
+Rhino. Python and C# source must be passed only as the direct `script=` argument
+of the registered MCP tools so no editor or file chooser can appear.
+
 Use exact registered tool names. Blender Python is
 `mcp_blender_execute_blender_code(code=...)`. Never call a generic tool named
 `run`; it does not exist.

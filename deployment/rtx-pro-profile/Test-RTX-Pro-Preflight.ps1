@@ -61,6 +61,8 @@ foreach ($name in @('rhino', 'blender', 'daystrom_dml', 'cma')) {
   $registered = $configText -match "(?m)^  $([regex]::Escape($name)):\s*$"
   Add-Result "MCP registration: $name" $registered $(if ($registered) { "configured in $ProfileName" } else { "missing from $ProfileName config.yaml" })
 }
+$serializedMcpArgs = $configText -match '(?m)^\s+args:\s+[''\"]\['
+Add-Result 'MCP arguments use YAML lists' (-not $serializedMcpArgs) $(if ($serializedMcpArgs) { 'one or more MCP args values are serialized JSON strings; rerun installer repair before Hermes' } else { 'MCP args are typed lists' })
 
 $policyChecks = @{
   'DML retrieval policy' = '(?m)^\s+retrieval_policy:\s*always\s*$'
