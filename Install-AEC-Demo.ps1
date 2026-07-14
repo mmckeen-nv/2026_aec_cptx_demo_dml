@@ -98,6 +98,62 @@ function Write-Utf8Text {
   [IO.File]::WriteAllText($Path, $Content, $utf8)
 }
 
+function Repair-HermesDmlContinuation {
+  param([string]$HermesRoot)
+
+  $compressor = Join-Path $HermesRoot 'hermes-agent\agent\context_compressor.py'
+  if (-not (Test-Path -LiteralPath $compressor -PathType Leaf)) {
+    Write-Warning "Hermes context compressor not found at $compressor; DML continuation repair was skipped."
+    return
+  }
+
+  $source = Read-Utf8Text $compressor
+  $marker = 'Continue from the Daystrom DML checkpoint. First inspect'
+  if ($source.Contains($marker)) {
+    Write-Host "Current: Hermes DML continuation repair"
+    return
+  }
+  if (-not $source.Contains('dml_first_enabled')) {
+    Write-Warning 'This Hermes installation does not include DML-first compaction; install the supported Hermes/Daystrom integration before applying the continuation repair.'
+    return
+  }
+
+  $anchor = "        self.compression_count += 1"
+  $insert = @'
+        # A DML-first tool tail can contain only assistant/tool roles. Several
+        # OpenAI-compatible local endpoints reject that shape with
+        # "No user query found in messages", so provide a bounded continuation.
+        if (
+            getattr(self, "dml_first_enabled", False)
+            and not any(msg.get("role") == "user" for msg in compressed)
+        ):
+            compressed.append({
+                "role": "user",
+                "content": (
+                    "Continue from the Daystrom DML checkpoint. First inspect "
+                    "the current application state and identify the active "
+                    "phase. Do not repeat completed work. Then perform only "
+                    "the next bounded remaining action."
+                ),
+            })
+
+'@
+  $anchorIndex = $source.LastIndexOf($anchor, [StringComparison]::Ordinal)
+  if ($anchorIndex -lt 0) {
+    Write-Warning 'Hermes context compressor layout is not recognized; DML continuation repair was skipped without modifying Hermes.'
+    return
+  }
+
+  if ($script:InstallerCmdlet.ShouldProcess($compressor, 'Repair DML-first post-compaction continuation')) {
+    $backup = "$compressor.bak-dml-continuation-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $compressor -Destination $backup
+    $updated = $source.Insert($anchorIndex, $insert)
+    Write-Utf8Text $compressor $updated
+    Write-Host "Repaired Hermes DML continuation; backup: $backup"
+    Write-Warning 'Restart active Hermes sessions before expecting this core repair to take effect.'
+  }
+}
+
 function Install-ManagedFile {
   param([string]$Source, [string]$Destination)
   if (-not (Test-Path -LiteralPath $Source)) { throw "Managed source not found: $Source" }
@@ -616,6 +672,7 @@ if (Test-Path -LiteralPath $dmlBin -PathType Container) {
 }
 
 $hermesExe = Join-Path $HermesHome 'hermes-agent\venv\Scripts\hermes.exe'
+Repair-HermesDmlContinuation $HermesHome
 if (-not $SkipProfiles) {
   Write-Step 'Ensure Hermes profiles exist without overwriting live profile data'
   if (-not (Test-Path -LiteralPath $hermesExe)) {

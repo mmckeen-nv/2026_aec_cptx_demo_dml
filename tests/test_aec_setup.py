@@ -138,6 +138,9 @@ class SetupTests(unittest.TestCase):
         self.assertIn("protect_last_n: 4", config)
         self.assertIn("dml_first: true", config)
         self.assertIn("dml_first_tail_ratio: 0.02", config)
+        self.assertIn("Repair-HermesDmlContinuation", installer)
+        self.assertIn("Continue from the Daystrom DML checkpoint. First inspect", installer)
+        self.assertIn("No user query found in messages", installer)
 
     def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
         demos = {
