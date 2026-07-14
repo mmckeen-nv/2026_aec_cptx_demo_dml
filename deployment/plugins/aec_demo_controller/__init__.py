@@ -56,7 +56,9 @@ def _active() -> bool:
 
 
 def _session(kwargs: Dict[str, Any]) -> str:
-    return str(kwargs.get("session_id") or kwargs.get("task_id") or "vp-default")
+    # Hermes may replace session_id during context compression and follow-up
+    # turns. task_id is the stable execution identity when it is available.
+    return str(kwargs.get("task_id") or kwargs.get("session_id") or "vp-default")
 
 
 def _fresh() -> Dict[str, Any]:
@@ -120,6 +122,10 @@ def _is_mutation(tool: str, args: Dict[str, Any]) -> bool:
     return tool in _MUTATION_TOOLS and bool(_MUTATION_RE.search(_script(args, tool)))
 
 
+def _visual_validation_ready(state: Dict[str, Any]) -> bool:
+    return bool(state["listed_since_mutation"] and state["viewport_since_mutation"])
+
+
 def on_session_start(**kwargs: Any) -> None:
     if not _active():
         return
@@ -142,7 +148,10 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "spawn, close, or replace it. Use script= for both Rhino Python and C# tools. The safety "
         "shim does not impose mutation quotas, memory quotas, or phase-transition quotas. If an "
         "application MCP cannot connect, report that blocker immediately. Never repair Hermes "
-        "configuration from inside the demo and never launch Rhino's Python editor or a script file."
+        "configuration from inside the demo and never launch Rhino's Python editor or a script file. "
+        "At every major Rhino phase boundary, capture fresh object-list and viewport evidence after "
+        "the latest geometry change and use the configured vision model to identify visible defects. "
+        "Checkpoint saves, CMA success reinforcement, and Blender handoff require that visual pass."
     )
     return {"context": context}
 
@@ -182,6 +191,17 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if tool in _MUTATION_TOOLS:
         if not str(args.get("script") or "").strip():
             return _block(kwargs, f"{tool} requires a non-empty 'script' argument")
+
+    if tool == "mcp_rhino_save_doc" and state["mutations"] and not _visual_validation_ready(state):
+        return _block(kwargs, "a checkpoint or handoff save requires fresh list_objects and viewport/vision evidence after the latest Rhino mutation")
+
+    if tool == "mcp_cma_reinforce" and state["mutations"]:
+        if not _visual_validation_ready(state) or not state["saved"]:
+            return _block(kwargs, "CMA success reinforcement requires fresh Rhino object/vision validation and a successful gated save")
+
+    if tool in {"mcp_blender_execute_blender_code", "mcp_blender_execute_code"} and state["mutations"]:
+        if not _visual_validation_ready(state) or not state["saved"]:
+            return _block(kwargs, "Blender mutation/import requires a visually validated and successfully saved Rhino handoff")
 
     _log("allowed", kwargs, tool_name=tool, signature=sig)
     return None
@@ -227,7 +247,7 @@ def on_post_tool_call(**kwargs: Any) -> None:
             state["viewport_since_mutation"] = True
         elif tool == "mcp_rhino_list_objects":
             state["listed_since_mutation"] = True
-        # A complete validation pair is required to unlock more mutation.
+        # A complete validation pair unlocks phase-boundary save/reinforcement.
         if state["listed_since_mutation"] and state["viewport_since_mutation"]:
             state["mutations_since_inspection"] = 0
     elif tool == "mcp_rhino_save_doc":

@@ -26,9 +26,32 @@ Prohibited shortcuts:
 - Do not move architectural modeling to Blender.
 
 One mutation call handles one coherent element group and should normally create
-no more than 20 objects. Keep helpers local to that call. After the call, inspect
-object names, layers, geometry, dimensions, and a relevant viewport before the
-next group. A successful return without inspection is not a passed step.
+no more than 20 objects. Keep helpers local to that call. Numerical inspection
+may occur between element groups, but visual correction is mandatory at each
+major phase boundary. A successful script return or numerical audit alone is
+not a passed phase.
+
+## Visual correction protocol
+
+At the end of every numbered Rhino phase, after its latest mutation:
+
+1. Call `mcp_rhino_list_objects` and verify the phase's names, layers, metadata,
+   types, counts, and measured bounds.
+2. Compose and capture the phase's required plan, axonometric, interior, or
+   services view with `mcp_rhino_get_viewport_image`. These required captures
+   explicitly authorize viewport camera/zoom composition for review.
+3. Use the configured auxiliary vision model to assess visible massing,
+   proportion and scale, access/circulation, LED curvature, camera sightlines,
+   collisions, disconnected/floating geometry, and missing required elements.
+4. If vision reports a plausible defect, inspect it numerically, revise it in a
+   bounded MCP mutation, then repeat the object-list and affected viewport check.
+5. Record the images and disposition of every issue in the phase evidence.
+
+Do not substitute bounding-box text, object counts, metadata, or a Python audit
+for viewport evidence. No checkpoint save, `SUCCESS_VALIDATED` DML record, CMA
+reinforcement, final Rhino acceptance, or Blender import may occur until this
+post-mutation object-and-vision pair passes. There is no fixed mutation-count
+gate between these phase boundaries.
 
 ## Phase sequence
 

@@ -53,13 +53,29 @@ class AecDemoControllerTests(unittest.TestCase):
         blocked = self.pre("mcp_rhino_run_python", {})
         self.assertIn("non-empty 'script'", blocked["message"])
 
-    def test_mutation_and_application_transitions_are_not_quota_gated(self):
+    def test_mutation_is_not_quota_gated_but_phase_transitions_need_visual_evidence(self):
         for index in range(12):
             args = self.mutation(str(index))
             self.assertIsNone(self.pre("mcp_rhino_run_python", args))
             self.post("mcp_rhino_run_python", args)
-        self.assertIsNone(self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"}))
+        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"})
+        self.assertIn("viewport/vision evidence", blocked["message"])
+        self.post("mcp_rhino_list_objects", {})
+        self.post("mcp_rhino_get_viewport_image", {})
+        save_args = {"path": "C:/demo/work/checkpoint.3dm"}
+        self.assertIsNone(self.pre("mcp_rhino_save_doc", save_args))
+        self.post("mcp_rhino_save_doc", save_args)
         self.assertIsNone(self.pre("mcp_blender_get_scene_info", {}))
+        self.assertIsNone(self.pre("mcp_blender_execute_blender_code", {"code": "print('import')"}))
+        self.assertIsNone(self.pre("mcp_cma_reinforce", {"evidence": "passed"}))
+
+    def test_reinforce_and_blender_import_blocked_before_gated_save(self):
+        args = self.mutation()
+        self.post("mcp_rhino_run_python", args)
+        self.post("mcp_rhino_list_objects", {})
+        self.post("mcp_rhino_get_viewport_image", {})
+        self.assertIn("successful gated save", self.pre("mcp_cma_reinforce", {})["message"])
+        self.assertIn("successfully saved Rhino handoff", self.pre("mcp_blender_execute_blender_code", {"code": "x"})["message"])
 
     def test_python_and_csharp_both_use_script_argument(self):
         for tool in ("mcp_rhino_run_python", "mcp_rhino_run_csharp"):

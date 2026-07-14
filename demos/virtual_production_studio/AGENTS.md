@@ -44,6 +44,21 @@ mutation counts. Save useful timestamped checkpoints with `mcp_rhino_save_doc`;
 never use interactive Save, SaveAs, or Export macros and never trigger modal
 dialogs.
 
+Visual correction is core functionality, not optional presentation. At the end
+of each major Rhino phase (site/shell, stage/LED, rooms/access, rigging/cameras,
+electrical/mechanical, and life-safety/data), re-list the modeled objects and
+capture the phase's required Rhino views with
+`mcp_rhino_get_viewport_image`. Hermes must pass those images to the configured
+auxiliary vision model, identify visible proportion, massing, circulation,
+collision, sightline, and omission defects, revise the geometry when needed,
+and recapture the affected view. The required review views are explicit workflow
+requests, so camera/zoom tools may compose them without altering geometry.
+
+Do not save a checkpoint, declare a Rhino phase complete, reinforce success in
+CMA, or begin Blender import unless both fresh object-list evidence and fresh
+viewport/vision evidence were produced after the latest Rhino mutation. This is
+a phase-boundary gate, not a fixed mutation or token quota.
+
 ## Daystrom memory harness
 
 Daystrom DML is the always-on continuity and learning layer behind the work.

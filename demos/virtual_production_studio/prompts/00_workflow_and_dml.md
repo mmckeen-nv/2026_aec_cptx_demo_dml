@@ -29,6 +29,10 @@ Gate:
 - Required layers, named objects, and User Text exist.
 - Building shell, stage floor, LED volume/support zones, rigging grid, rooms, circulation, electrical rooms, mechanical zones, loading access, camera positions, and safety clearances are present.
 - Object/layer counts and viewport captures are recorded.
+- Each major Rhino phase has post-mutation object-list evidence plus vision-model
+  review of its required viewport captures. Numerical audits alone do not pass.
+- Any visible defect is either corrected and recaptured or explicitly retained
+  with objective evidence and an unresolved-issue status.
 - `.3dm` saved successfully and the artifact path ingested into DML.
 
 ## Phase 2: Rhino-to-Blender handoff
@@ -100,6 +104,10 @@ Gate:
 ## DML phase loop
 
 Every phase follows `query -> augment -> act -> validate -> ingest -> reinforce`.
+For Rhino phases, `validate` includes fresh `list_objects` plus viewport captures
+reviewed by the configured vision model after the latest mutation. CMA must not
+reinforce Rhino success and Blender import must not begin without that evidence
+and the subsequent gated save.
 
 - Query before deciding.
 - Augment before consequential tool use.
