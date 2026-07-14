@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional
 _LOCK = threading.RLock()
 _STATES: Dict[str, Dict[str, Any]] = {}
 _DEMO_ID = "vp-studio-01"
+_CONTEXT_LENGTH = max(1, int(os.environ.get("AEC_DEMO_CONTEXT_LENGTH", "262144")))
 _MUTATION_TOOLS = {"mcp_rhino_run_python", "mcp_rhino_run_csharp"}
 _INSPECTION_TOOLS = {"mcp_rhino_list_objects", "mcp_rhino_get_viewport_image"}
 _MEMORY_TOOLS = {
@@ -86,6 +87,15 @@ def _fresh() -> Dict[str, Any]:
         "saved": False,
         "failures": {},
         "calls": 0,
+        "api_calls": 0,
+        "raw_session_id": "",
+        "last_input_tokens": 0,
+        "peak_input_tokens": 0,
+        "compression_rotations": 0,
+        "compaction_retained_tokens": 0,
+        "compaction_retained_pct": 0.0,
+        "compaction_reclaimed_tokens": 0,
+        "pending_rollover": None,
     }
 
 
@@ -179,6 +189,90 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "Checkpoint saves, CMA success reinforcement, and Blender handoff require that visual pass."
     )
     return {"context": context}
+
+
+def on_pre_api_request(**kwargs: Any) -> None:
+    """Measure context pressure and detect compression-driven session rotation."""
+    if not _active():
+        return
+    state = _state(kwargs)
+    raw_session = str(kwargs.get("session_id") or "")
+    approx_tokens = max(0, int(kwargs.get("approx_input_tokens") or 0))
+    prior_session = str(state.get("raw_session_id") or "")
+    if prior_session and raw_session and raw_session != prior_session:
+        before_tokens = max(
+            int(state.get("last_input_tokens") or 0),
+            int(state.get("peak_input_tokens") or 0),
+        )
+        state["compression_rotations"] += 1
+        state["pending_rollover"] = {
+            "from_session": prior_session,
+            "to_session": raw_session,
+            "before_tokens": before_tokens,
+        }
+        state["peak_input_tokens"] = 0
+    if raw_session:
+        state["raw_session_id"] = raw_session
+    state["api_calls"] += 1
+    state["peak_input_tokens"] = max(int(state["peak_input_tokens"]), approx_tokens)
+    _log(
+        "context_pre_api",
+        kwargs,
+        raw_session_id=raw_session,
+        api_call_count=kwargs.get("api_call_count"),
+        approx_input_tokens=approx_tokens,
+        context_length=_CONTEXT_LENGTH,
+        context_pct=round(100.0 * approx_tokens / _CONTEXT_LENGTH, 2),
+        message_count=kwargs.get("message_count"),
+    )
+
+
+def on_post_api_request(**kwargs: Any) -> None:
+    """Record actual provider usage and quantify compaction effectiveness."""
+    if not _active():
+        return
+    state = _state(kwargs)
+    usage = kwargs.get("usage") if isinstance(kwargs.get("usage"), dict) else {}
+    input_tokens = max(
+        0,
+        int(usage.get("input_tokens") or usage.get("prompt_tokens") or 0),
+    )
+    if input_tokens:
+        state["last_input_tokens"] = input_tokens
+        state["peak_input_tokens"] = max(int(state["peak_input_tokens"]), input_tokens)
+    pending = state.get("pending_rollover")
+    if isinstance(pending, dict) and input_tokens:
+        before = max(0, int(pending.get("before_tokens") or 0))
+        reclaimed = max(0, before - input_tokens)
+        savings_pct = round(100.0 * reclaimed / before, 2) if before else 0.0
+        retained_pct = round(100.0 * input_tokens / _CONTEXT_LENGTH, 2)
+        state["compaction_retained_tokens"] = input_tokens
+        state["compaction_retained_pct"] = retained_pct
+        state["compaction_reclaimed_tokens"] = reclaimed
+        state["pending_rollover"] = None
+        _log(
+            "context_rollover",
+            kwargs,
+            from_session=pending.get("from_session"),
+            to_session=pending.get("to_session"),
+            before_tokens=before,
+            retained_tokens=input_tokens,
+            reclaimed_tokens=reclaimed,
+            savings_pct=savings_pct,
+            retained_pct_of_window=retained_pct,
+            ineffective=bool(before and (input_tokens >= before * 0.8 or retained_pct >= 50.0)),
+            compression_rotations=state["compression_rotations"],
+        )
+    _log(
+        "context_usage",
+        kwargs,
+        raw_session_id=kwargs.get("session_id"),
+        input_tokens=input_tokens,
+        output_tokens=usage.get("output_tokens") or usage.get("completion_tokens") or 0,
+        context_length=_CONTEXT_LENGTH,
+        context_pct=round(100.0 * input_tokens / _CONTEXT_LENGTH, 2),
+        compression_rotations=state["compression_rotations"],
+    )
 
 
 def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
@@ -303,5 +397,7 @@ def register(ctx: Any) -> None:
     ctx.register_hook("on_session_start", on_session_start)
     ctx.register_hook("on_session_reset", on_session_reset)
     ctx.register_hook("pre_llm_call", on_pre_llm_call)
+    ctx.register_hook("pre_api_request", on_pre_api_request)
+    ctx.register_hook("post_api_request", on_post_api_request)
     ctx.register_hook("pre_tool_call", on_pre_tool_call)
     ctx.register_hook("post_tool_call", on_post_tool_call)

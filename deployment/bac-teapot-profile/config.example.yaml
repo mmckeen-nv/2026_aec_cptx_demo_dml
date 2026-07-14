@@ -27,10 +27,12 @@ agent:
 compression:
   enabled: true
   threshold: 0.5
-  target_ratio: 0.2
-  protect_last_n: 20
+  target_ratio: 0.15
+  protect_last_n: 4
+  protect_first_n: 0
+  dml_first: true
+  dml_first_tail_ratio: 0.02
   hygiene_hard_message_limit: 400
-  protect_first_n: 3
   abort_on_summary_failure: false
 
 # Auxiliary LLM tasks pinned per-task, same pattern as the aec-cptx profile.

@@ -135,7 +135,9 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Enable-HermesProfilePlugin", installer)
         self.assertIn("aec_demo_controller", config)
         self.assertIn("threshold: 0.65", config)
-        self.assertIn("protect_last_n: 6", config)
+        self.assertIn("protect_last_n: 4", config)
+        self.assertIn("dml_first: true", config)
+        self.assertIn("dml_first_tail_ratio: 0.02", config)
 
     def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
         demos = {

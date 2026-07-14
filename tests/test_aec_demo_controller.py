@@ -142,6 +142,19 @@ class AecDemoControllerTests(unittest.TestCase):
     def test_normal_terminal_inspection_remains_available(self):
         self.assertIsNone(self.pre("terminal", {"command": "git status --short"}))
 
+    def test_context_rollover_metrics_measure_compaction_savings(self):
+        first = {**self.kw, "session_id": "raw-1", "approx_input_tokens": 150000, "message_count": 200}
+        controller.on_pre_api_request(**first)
+        controller.on_post_api_request(**first, usage={"input_tokens": 150000, "output_tokens": 100})
+        second = {**self.kw, "session_id": "raw-2", "approx_input_tokens": 30000, "message_count": 8}
+        controller.on_pre_api_request(**second)
+        controller.on_post_api_request(**second, usage={"input_tokens": 30000, "output_tokens": 50})
+        state = controller._STATES["test-task"]
+        self.assertEqual(1, state["compression_rotations"])
+        self.assertEqual(30000, state["compaction_retained_tokens"])
+        self.assertEqual(120000, state["compaction_reclaimed_tokens"])
+        self.assertLess(state["compaction_retained_pct"], 12)
+
     def test_controller_is_inert_outside_target_demo(self):
         with mock.patch.dict(os.environ, {"AEC_DEMO_ID": "cliff-house-01"}, clear=False):
             self.assertIsNone(self.pre("mcp_rhino_spawn_slot", {}))

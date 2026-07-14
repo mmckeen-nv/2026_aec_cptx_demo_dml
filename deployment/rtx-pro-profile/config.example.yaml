@@ -37,9 +37,14 @@ plugins:
 compression:
   enabled: true
   threshold: 0.65
-  target_ratio: 0.25
-  protect_last_n: 6
-  protect_first_n: 3
+  target_ratio: 0.15
+  protect_last_n: 4
+  protect_first_n: 0
+  # Daystrom writes a compact continuity checkpoint before Hermes rotates its
+  # internal session id. The compressor then drops the transcript bulk and
+  # rehydrates from DML without stopping Rhino, Blender, MCP, or Hermes.
+  dml_first: true
+  dml_first_tail_ratio: 0.02
   hygiene_hard_message_limit: 400
 
 # Installed paths are machine-specific. The installer/preflight must resolve

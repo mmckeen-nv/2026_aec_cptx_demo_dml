@@ -25,11 +25,13 @@ compression:
   # 2026-06-11: lowered from 0.95 after aux-provider verification so
   # compression triggers before the custom endpoint/model gets too close to
   # its practical 200K context ceiling.
-  threshold: 0.85
-  target_ratio: 0.85
-  protect_last_n: 10
+  threshold: 0.65
+  target_ratio: 0.15
+  protect_last_n: 4
   hygiene_hard_message_limit: 400
-  protect_first_n: 3
+  protect_first_n: 0
+  dml_first: true
+  dml_first_tail_ratio: 0.02
   abort_on_summary_failure: false
   codex_gpt55_autoraise: true
   preserve_first_n_turns: 0
