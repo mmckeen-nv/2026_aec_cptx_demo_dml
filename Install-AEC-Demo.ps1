@@ -202,6 +202,38 @@ function Repair-RTXProDmlIsolation {
   Repair-DemoDmlIsolation $ProfileConfig 'vp-studio-01' 'vp-studio-01-runtime-store' 'cma-vp-studio-01' 'dml_mcp_server_vp_studio.cmd' 'cma_mcp_server_vp_studio.cmd'
 }
 
+function Repair-DemoApplicationMcps {
+  param([string]$ProfileConfig)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  if ($content -notmatch '(?m)^mcp_servers:\s*$') {
+    Write-Warning "Cannot add application MCPs because mcp_servers is absent: $ProfileConfig"
+    return
+  }
+  $blocks = [System.Collections.Generic.List[string]]::new()
+  if ($content -notmatch '(?m)^  rhino:\s*$') {
+    $router = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform') `
+      -Filter rhino-mcp-router.exe -File -Recurse -ErrorAction SilentlyContinue |
+      Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+    if ($router) {
+      $routerYaml = $router.Replace('\', '/')
+      $blocks.Add("  rhino:`n    command: $routerYaml`n    args:`n    - --default-version`n    - '8'`n    connect_timeout: 75`n    timeout: 180")
+    }
+  }
+  if ($content -notmatch '(?m)^  blender:\s*$') {
+    $blocks.Add("  blender:`n    command: cmd`n    args:`n    - /c`n    - uvx`n    - blender-mcp`n    connect_timeout: 30`n    env:`n      BLENDER_HOST: localhost`n      BLENDER_PORT: '9876'`n      DISABLE_TELEMETRY: 'true'`n    timeout: 180")
+  }
+  if ($blocks.Count -eq 0) { return }
+  $insert = ($blocks -join "`n") + "`n"
+  $updated = [regex]::Replace($content, '(?m)^mcp_servers:\s*$', "mcp_servers:`n$insert", 1)
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Add missing Rhino/Blender MCP registrations')) {
+    $backup = "$ProfileConfig.bak-app-mcp-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Added missing application MCP registrations; backup: $backup"
+  }
+}
+
 function Repair-DemoDmlIsolation {
   param(
     [string]$ProfileConfig,
@@ -527,6 +559,7 @@ if (-not $SkipProfiles) {
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
+        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml')
         if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
         if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }
         if ($profile.Name -eq 'aec-cptx') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-01' 'cliff-house-01-runtime-store' 'cma-cliff-house-01' 'dml_mcp_server_cliff_house.cmd' 'cma_mcp_server_cliff_house.cmd' }
@@ -537,6 +570,7 @@ if (-not $SkipProfiles) {
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
+        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml')
         if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
         if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }
         if ($profile.Name -eq 'aec-cptx') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-01' 'cliff-house-01-runtime-store' 'cma-cliff-house-01' 'dml_mcp_server_cliff_house.cmd' 'cma_mcp_server_cliff_house.cmd' }

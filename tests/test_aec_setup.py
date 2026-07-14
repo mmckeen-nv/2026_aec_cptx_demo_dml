@@ -51,12 +51,28 @@ class SetupTests(unittest.TestCase):
         preflight = (REPO_ROOT / "deployment" / "rtx-pro-profile" / "Test-RTX-Pro-Preflight.ps1").read_text()
         for server in ("rhino", "blender", "daystrom_dml", "cma"):
             self.assertIn(server, preflight)
-        self.assertIn("project:vp-studio-01", preflight)
+        self.assertIn("ProjectId = 'vp-studio-01'", preflight)
         self.assertIn("vp-studio-01-runtime-store", preflight)
         self.assertIn("cma_mcp_server_vp_studio.cmd", preflight)
         self.assertIn("RHINO_MCP_AUTOSTART_PORT", preflight)
         self.assertIn("Wait-TcpPort $rhinoMcpPort", preflight)
         self.assertIn("Rhino MCP direct-router config", preflight)
+        self.assertIn("ProfileName = 'rtx_pro'", preflight)
+        self.assertIn("DmlStoreName = 'vp-studio-01-runtime-store'", preflight)
+
+    def test_all_launchers_run_profile_scoped_preflight_without_killing_apps(self):
+        launchers = {
+            "aec-cptx-profile/Start-Hermes-AEC-Rhino-DML.ps1": ("aec-cptx", "cliff-house-01"),
+            "bac-teapot-profile/Start-BAC_Teapot.ps1": ("bac_teapot", "teapot-01"),
+            "rtx-pro-profile/Start-RTX-Pro.ps1": ("rtx_pro", "Test-RTX-Pro-Preflight.ps1"),
+        }
+        deployment = REPO_ROOT / "deployment"
+        for relative, required in launchers.items():
+            text = (deployment / relative).read_text()
+            self.assertIn(required[0], text)
+            self.assertIn(required[1], text)
+            self.assertIn("preflight", text.lower())
+            self.assertNotIn("Stop-Process", text)
 
     def test_vp_studio_contract_enforces_pipeline_and_agentic_dml(self):
         contract = (REPO_ROOT / "demos" / "virtual_production_studio" / "AGENTS.md").read_text()
@@ -91,12 +107,24 @@ class SetupTests(unittest.TestCase):
             self.assertIn("mcp_daystrom_dml", contract)
             self.assertIn("mcp_cma_augment", contract)
             self.assertIn("mcp_cma_reinforce", contract)
+            self.assertIn("mcp_blender_execute_blender_code", contract)
+            self.assertIn("screenshot", contract.lower())
+            self.assertIn("../../skills/import_with_metadata.py", contract)
         operations = (
             REPO_ROOT / "demos" / "virtual_production_studio" / "prompts" / "06_mcp_operations_contract.md"
         ).read_text()
         self.assertIn("127.0.0.1:10500", operations)
         self.assertIn("127.0.0.1:9876", operations)
         self.assertIn("cancel the pending interactive command", operations)
+
+    def test_teapot_reference_builder_enforces_visual_acceptance_geometry(self):
+        builder = (REPO_ROOT / "demos" / "teapot" / "build_teapot_demo.py").read_text()
+        self.assertIn("forward_axis='NEGATIVE_Y', up_axis='Z'", builder)
+        self.assertIn("teapot.location.z -= min_z", builder)
+        self.assertIn("point_at(cam", builder)
+        self.assertIn("TeapotKey", builder)
+        self.assertIn("BLENDER_EEVEE", builder)
+        self.assertIn("resolve_demo_path", builder)
 
     def test_vp_dml_contract_learns_successes_and_failures(self):
         contract = (
@@ -188,6 +216,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("OfflineOnly", installer)
         self.assertIn("Sanitized config examples were not copied", installer)
         self.assertIn("Repair-DaystromRetrievalPolicy", installer)
+        self.assertIn("Repair-DemoApplicationMcps", installer)
+        self.assertIn("Add missing Rhino/Blender MCP registrations", installer)
         self.assertIn("Set Daystrom DML retrieval_policy to always", installer)
         self.assertIn("Get-FileSha256", installer)
         self.assertIn("Assert-PortableManifestAssets", installer)

@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $env:HERMES_HOME = Join-Path $env:LOCALAPPDATA 'hermes'
+$env:HERMES_PROFILE = 'bac_teapot'
 $dmlSource = Join-Path $env:HERMES_HOME 'integrations\daystrom-dml\source'
 if (Test-Path (Join-Path $dmlSource 'pyproject.toml')) { $env:DML_SOURCE_DIR = $dmlSource }
 $hermesScripts = Join-Path $env:HERMES_HOME 'hermes-agent\venv\Scripts'
@@ -26,7 +27,16 @@ if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
 }
 
 if (-not $env:AEC_DEMO_ROOT) { throw 'Set AEC_DEMO_ROOT to the local repository path.' }
-Set-Location (Join-Path $env:AEC_DEMO_ROOT 'demos\teapot')
+$projectRoot = $env:AEC_DEMO_ROOT
+$demoRoot = Join-Path $projectRoot 'demos\teapot'
+$preflight = Join-Path $env:HERMES_HOME 'bin\Test-RTX-Pro-Preflight.ps1'
+if (-not (Test-Path $preflight)) { $preflight = Join-Path $projectRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1' }
+& $preflight -StartServices -SkipComfyUI -ProfileName 'bac_teapot' -ProjectId 'teapot-01' `
+  -DmlStoreName 'teapot-01-runtime-store' -CmaStoreName 'cma-teapot-01' `
+  -DmlLauncherName 'dml_mcp_server_teapot.cmd' -CmaLauncherName 'cma_mcp_server_teapot.cmd' `
+  -DisplayName 'BAC Teapot'
+if ($LASTEXITCODE -ne 0) { throw "BAC Teapot preflight failed (exit code $LASTEXITCODE)." }
+Set-Location $demoRoot
 Write-Host ''
 Write-Host '============================================================'
 Write-Host ' BAC_Teapot - Hermes Profile'

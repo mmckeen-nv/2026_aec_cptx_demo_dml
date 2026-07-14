@@ -2,12 +2,19 @@
 param(
   [switch]$StartServices,
   [switch]$SkipComfyUI,
-  [int]$WaitSeconds = 30
+  [int]$WaitSeconds = 30,
+  [string]$ProfileName = 'rtx_pro',
+  [string]$ProjectId = 'vp-studio-01',
+  [string]$DmlStoreName = 'vp-studio-01-runtime-store',
+  [string]$CmaStoreName = 'cma-vp-studio-01',
+  [string]$DmlLauncherName = 'dml_mcp_server_vp_studio.cmd',
+  [string]$CmaLauncherName = 'cma_mcp_server_vp_studio.cmd',
+  [string]$DisplayName = 'RTX Pro virtual-production'
 )
 
 $ErrorActionPreference = 'Stop'
 $hermesHome = Join-Path $env:LOCALAPPDATA 'hermes'
-$profileRoot = Join-Path $hermesHome 'profiles\rtx_pro'
+$profileRoot = Join-Path $hermesHome ("profiles\" + $ProfileName)
 $profileConfig = Join-Path $profileRoot 'config.yaml'
 $results = [System.Collections.Generic.List[object]]::new()
 
@@ -47,11 +54,11 @@ function Test-HttpEndpoint {
 }
 
 $configText = if (Test-Path -LiteralPath $profileConfig) { Get-Content -LiteralPath $profileConfig -Raw } else { '' }
-Add-Result 'RTX Pro profile config' ($configText.Length -gt 0) $profileConfig
+Add-Result "$DisplayName profile config" ($configText.Length -gt 0) $profileConfig
 
 foreach ($name in @('rhino', 'blender', 'daystrom_dml', 'cma')) {
   $registered = $configText -match "(?m)^  $([regex]::Escape($name)):\s*$"
-  Add-Result "MCP registration: $name" $registered $(if ($registered) { 'configured in rtx_pro' } else { 'missing from rtx_pro config.yaml' })
+  Add-Result "MCP registration: $name" $registered $(if ($registered) { "configured in $ProfileName" } else { "missing from $ProfileName config.yaml" })
 }
 
 $policyChecks = @{
@@ -59,10 +66,10 @@ $policyChecks = @{
   'DML strict provider preflight' = '(?m)^\s+preflight_strict:\s*true\s*$'
   'DML active-read DCN' = '(?m)^\s+mode:\s*active_read\s*$'
   'DML synchronized turns' = '(?m)^\s+sync_turns:\s*true\s*$'
-  'DML VP project identity' = '(?m)^\s+project_id:\s*project:vp-studio-01\s*$'
-  'DML VP-isolated store' = '(?m)^\s+storage_dir:\s*.*stores/vp-studio-01-runtime-store\s*$'
-  'DML VP-isolated MCP launcher' = '(?m)^\s+-\s+.*dml_mcp_server_vp_studio\.cmd\s*$'
-  'CMA VP-isolated MCP launcher' = '(?m)^\s+-\s+.*cma_mcp_server_vp_studio\.cmd\s*$'
+  'DML project identity' = "(?m)^\s+project_id:\s*project:$([regex]::Escape($ProjectId))\s*$"
+  'DML isolated store' = "(?m)^\s+storage_dir:\s*.*stores/$([regex]::Escape($DmlStoreName))\s*$"
+  'DML isolated MCP launcher' = "(?m)^\s+-\s+.*$([regex]::Escape($DmlLauncherName))\s*$"
+  'CMA isolated MCP launcher' = "(?m)^\s+-\s+.*$([regex]::Escape($CmaLauncherName))\s*$"
 }
 foreach ($entry in $policyChecks.GetEnumerator()) {
   $ok = $configText -match $entry.Value
@@ -72,11 +79,18 @@ foreach ($entry in $policyChecks.GetEnumerator()) {
 Add-Result 'Local chat model API' (Test-HttpEndpoint 'http://127.0.0.1:8000/v1/models') 'http://127.0.0.1:8000/v1/models'
 Add-Result 'Local vision model API' (Test-HttpEndpoint 'http://127.0.0.1:8001/v1/models') 'http://127.0.0.1:8001/v1/models'
 
-$rhinoRouter = 'C:\Users\test\AppData\Roaming\McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform\0.1.5\router\win-x64\rhino-mcp-router.exe'
+$rhinoRouter = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform') `
+  -Filter rhino-mcp-router.exe -File -Recurse -ErrorAction SilentlyContinue |
+  Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
 $rhinoExe = 'C:\Program Files\Rhino 8\System\Rhino.exe'
-Add-Result 'Rhino MCP router executable' (Test-Path -LiteralPath $rhinoRouter -PathType Leaf) $rhinoRouter
+Add-Result 'Rhino MCP router executable' ([bool]$rhinoRouter -and (Test-Path -LiteralPath $rhinoRouter -PathType Leaf)) $(if ($rhinoRouter) { $rhinoRouter } else { 'official McNeel Rhino MCP router was not found' })
 Add-Result 'Rhino 8 executable' (Test-Path -LiteralPath $rhinoExe -PathType Leaf) $rhinoExe
-Add-Result 'Rhino MCP direct-router config' ($configText -match '(?ms)^  rhino:\s+command:\s+.*rhino-mcp-router\.exe\s+args:\s+-\s+--default-version\s+-\s+[\x27\x22]?8') 'rtx_pro launches the official McNeel router directly'
+$rhinoConfigMatch = [regex]::Match($configText, '(?ms)^  rhino:\s*\r?\n(?<body>.*?)(?=^  \S|\z)')
+$rhinoConfigBody = if ($rhinoConfigMatch.Success) { $rhinoConfigMatch.Groups['body'].Value } else { '' }
+$directRhinoConfig = ($rhinoConfigBody -match '(?m)^    command:\s+.*rhino-mcp-router\.exe\s*$') -and
+  ($rhinoConfigBody -match '(?m)^\s+-\s+--default-version\s*$') -and
+  ($rhinoConfigBody -match '(?m)^\s+-\s+[\x27\x22]?8[\x27\x22]?\s*$')
+Add-Result 'Rhino MCP direct-router config' $directRhinoConfig "$ProfileName launches the official McNeel router directly"
 $rhinoMcpPort = 10500
 if ($StartServices -and -not (Test-TcpPort $rhinoMcpPort) -and (Test-Path -LiteralPath $rhinoExe)) {
   $priorAutostartPort = $env:RHINO_MCP_AUTOSTART_PORT
@@ -104,11 +118,11 @@ Add-Result 'Blender MCP application bridge' $blenderBridge $(if ($blenderBridge)
 
 $dmlRoot = Join-Path $hermesHome 'integrations\daystrom-dml'
 $dmlPython = Join-Path $dmlRoot '.venv-dml\Scripts\python.exe'
-$dmlServer = Join-Path $dmlRoot 'bin\dml_mcp_server_vp_studio.cmd'
-$cmaServer = Join-Path $dmlRoot 'bin\cma_mcp_server_vp_studio.cmd'
+$dmlServer = Join-Path $dmlRoot ("bin\" + $DmlLauncherName)
+$cmaServer = Join-Path $dmlRoot ("bin\" + $CmaLauncherName)
 $dmlConfig = Join-Path $dmlRoot 'config\aec-cptx-portable.yaml'
-$dmlStore = Join-Path $dmlRoot 'stores\vp-studio-01-runtime-store'
-$cmaStore = Join-Path $dmlRoot 'stores\cma-vp-studio-01'
+$dmlStore = Join-Path $dmlRoot ("stores\" + $DmlStoreName)
+$cmaStore = Join-Path $dmlRoot ("stores\" + $CmaStoreName)
 foreach ($item in @($dmlPython, $dmlServer, $cmaServer, $dmlConfig, $dmlStore, $cmaStore)) {
   Add-Result "DML asset: $(Split-Path -Leaf $item)" (Test-Path -LiteralPath $item) $item
 }
@@ -149,8 +163,8 @@ if (-not $SkipComfyUI) {
 }
 
 Write-Host ''
-Write-Host 'RTX Pro virtual-production preflight'
-Write-Host '===================================='
+Write-Host "$DisplayName preflight"
+Write-Host ('=' * ($DisplayName.Length + 10))
 foreach ($result in $results) {
   $marker = if ($result.Passed) { '[PASS]' } elseif ($result.Required) { '[FAIL]' } else { '[WARN]' }
   $color = if ($result.Passed) { 'Green' } elseif ($result.Required) { 'Red' } else { 'Yellow' }
@@ -163,5 +177,5 @@ if ($failed.Count -gt 0) {
   exit 1
 }
 
-Write-Host 'Required RTX Pro MCP and DML checks passed.' -ForegroundColor Green
+Write-Host "Required $DisplayName MCP and DML checks passed." -ForegroundColor Green
 exit 0
