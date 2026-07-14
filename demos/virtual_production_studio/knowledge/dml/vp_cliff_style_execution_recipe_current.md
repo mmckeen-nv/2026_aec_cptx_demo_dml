@@ -21,7 +21,9 @@ For Rhino, use the existing launcher-owned slot and the datum template. Author
 bounded coherent geometry directly with `mcp_rhino_run_python(script=...)` or
 `mcp_rhino_run_csharp(script=...)`. Continue naturally through several related
 operations, then inspect objects and viewport at a meaningful design checkpoint.
-Save timestamped checkpoints with `mcp_rhino_save_doc` when useful.
+Save exactly once after the four-phase physical-layout audit passes. Do not model
+electrical, HVAC, data, or fire-protection systems; write only the compact
+estimated-load note required by the brief.
 
 Avoid arbitrary mutation quotas, fixed-count DML checkpoints, interactive Rhino
 New/Save/Export commands, duplicate slots, document close/reopen recovery, and

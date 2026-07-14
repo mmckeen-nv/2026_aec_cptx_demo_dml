@@ -1,8 +1,8 @@
 # Rhino Phase 1 — Site and building shell
 ### Agent-authored execution prompt
 
-Before any Rhino call, read `06_mcp_operations_contract.md` and use its exact
-Rhino 8 MCP 0.1.5 ABI and local-file viewport/vision handoff.
+Read `06_mcp_operations_contract.md` once before the session's first Rhino
+mutation. If it was already read in this session, do not load it again.
 
 ## Purpose
 
@@ -33,7 +33,8 @@ building. Label any departure from the baseline as a planning assumption.
 4. Inspect plan dimensions and placement.
 5. Author a separate bounded MCP script for building shell and clear stage/floor.
 6. Inspect plan, exterior axonometric, stage dimensions, names, layers, and metadata.
-7. Record and ingest each attempt; reinforce only the passed result.
+7. Ingest one compact record after the phase passes, or immediately after a real
+   failure/partial mutation. Reinforce only the validated phase result.
 
 ## Post-phase checklist
 

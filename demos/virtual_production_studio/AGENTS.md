@@ -36,7 +36,9 @@ script to replay. Author bounded Python or C# directly in
 `mcp_rhino_run_python(script=...)` or `mcp_rhino_run_csharp(script=...)`. A call
 should create or revise one coherent architectural group, then continue naturally
 through site/shell, stage/LED volume, rooms/access, rigging/cameras,
-electrical/mechanical allowances, and life-safety/data planning.
+and physical production equipment/furniture layout. Do not model electrical,
+mechanical, fire-protection, or data-distribution systems. Their only deliverable
+is the brief's compact estimated-load note.
 
 Use the working Cliff House rhythm: inspect the application, make a meaningful
 bounded change, and inspect again at design checkpoints. Do not impose arbitrary
@@ -46,7 +48,7 @@ dialogs.
 
 Visual correction is core functionality, not optional presentation. At the end
 of each major Rhino phase (site/shell, stage/LED, rooms/access, rigging/cameras,
-electrical/mechanical, and life-safety/data), re-list the modeled objects and
+and physical equipment/furniture), re-list the modeled objects and
 capture the phase's required Rhino views with
 `mcp_rhino_get_viewport_image`. Rhino MCP 0.1.5 nests the image bytes instead
 of returning a usable URL, so Hermes must follow
@@ -137,6 +139,7 @@ Detailed Creative Commons equipment enters only in Blender from
 license metadata. ComfyUI uses approved Blender renders as geometry authority and
 does not replace the modeled design.
 
-Electrical service, rigging, structural, fire/life-safety, accessibility, HVAC,
-and egress values remain `PLANNING_ASSUMPTION` until reviewed by qualified
-professionals and the authority having jurisdiction.
+The estimated electrical load, rigging, structural, fire/life-safety,
+accessibility, HVAC, and egress assumptions remain `PLANNING_ASSUMPTION` until
+reviewed by qualified professionals and the authority having jurisdiction. The
+estimate is documentation only and must not trigger electrical or HVAC geometry.

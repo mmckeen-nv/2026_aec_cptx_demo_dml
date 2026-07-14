@@ -18,7 +18,7 @@ Use the tools that Hermes actually exposes. Rhino and Blender are MCP applicatio
 ## Phase 1: Rhino design model
 
 Rhino owns all architectural and spatial geometry. Follow
-`02_rhino_modeling_contract.md` and its six Cliff-House-style execution prompts.
+`02_rhino_modeling_contract.md` and its four Cliff-House-style execution prompts.
 The agent authors the geometry code directly in bounded MCP calls and validates
 between element groups; it does not execute a complete checked-in builder. Save
 only once to a timestamped working copy after the full Rhino gate passes.
@@ -27,7 +27,13 @@ Gate:
 
 - Correct units and model tolerance.
 - Required layers, named objects, and User Text exist.
-- Building shell, stage floor, LED volume/support zones, rigging grid, rooms, circulation, electrical rooms, mechanical zones, loading access, camera positions, and safety clearances are present.
+- Building shell, stage floor, LED volume/support zones, rigging grid, rooms,
+  circulation, loading access, named camera positions, chairs, workstations,
+  road cases, and major physical equipment zones are present.
+- No electrical-distribution, conduit, panelboard, transformer, UPS, generator,
+  HVAC, ductwork, fire-protection, or data-cabling geometry was created.
+- `work/vp_studio_01_estimated_load.md` records transparent maximum and
+  representative operating-load assumptions without claiming engineering design.
 - Object/layer counts and viewport captures are recorded.
 - Each major Rhino phase has post-mutation object-list evidence plus vision-model
   review of its required viewport captures. Numerical audits alone do not pass.

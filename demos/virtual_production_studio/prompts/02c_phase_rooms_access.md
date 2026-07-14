@@ -1,8 +1,8 @@
 # Rhino Phase 3 — Rooms, circulation, and loading access
 ### Agent-authored execution prompt
 
-Before any Rhino call, read `06_mcp_operations_contract.md` and use its exact
-Rhino 8 MCP 0.1.5 ABI and local-file viewport/vision handoff.
+Read `06_mcp_operations_contract.md` once before the session's first Rhino
+mutation. If it was already read in this session, do not load it again.
 Keep this phase context-bounded: one final object listing, one focused local-PNG
 vision verdict, then ingest the <=1,200-character phase-state record before advancing.
 
@@ -19,9 +19,9 @@ eroding the soundstage clear volume.
 ## Design decisions before modeling
 
 Develop a credible adjacency diagram: control and witness spaces near the volume;
-media/server and electrical spaces near technical distribution; camera prep,
-wardrobe/makeup, green rooms, offices, shop/storage, toilets, and quiet mechanical
-support; separate public, crew, service, and loading paths.
+media/server and control spaces near the volume; camera prep, wardrobe/makeup,
+green rooms, offices, shop/storage, and toilets; separate public, crew, service,
+and loading paths. Do not reserve or model electrical or mechanical rooms.
 
 ## Execution steps
 

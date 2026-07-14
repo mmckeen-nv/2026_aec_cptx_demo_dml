@@ -182,11 +182,14 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "vision_analyze on that local path. Never invent a URL or decode base64 with execute_code. "
         "Ask vision only for required visible elements, named defects, and a short PASS/REVISE "
         "verdict; never request a general image description. Use one final object listing per "
-        "phase and distill it rather than echoing the raw payload. After each validated save, "
-        "ingest a <=1200-character DML phase-state record and begin the next phase with one "
+        "phase and distill it rather than echoing the raw payload. Model only the physical "
+        "building, LED volume, rooms, rigging, cameras, furniture, and production equipment; "
+        "electrical/HVAC/data/fire systems are a load note, never geometry. After each validated "
+        "phase, ingest one <=1200-character DML state record and begin the next phase with one "
         "targeted DML query plus CMA augmentation. A captured image without completed "
         "vision_analyze is not validation. "
-        "Checkpoint saves, CMA success reinforcement, and Blender handoff require that visual pass."
+        "Save Rhino exactly once after the final physical-layout audit. CMA success reinforcement "
+        "requires the visual pass; Blender handoff additionally requires the final gated save."
     )
     return {"context": context}
 
@@ -330,8 +333,8 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         return _block(kwargs, "a checkpoint or handoff save requires fresh list_objects, viewport capture, and completed vision_analyze after the latest Rhino mutation")
 
     if tool == "mcp_cma_reinforce" and state["mutations"]:
-        if not _visual_validation_ready(state) or not state["saved"]:
-            return _block(kwargs, "CMA success reinforcement requires fresh Rhino object/vision validation and a successful gated save")
+        if not _visual_validation_ready(state):
+            return _block(kwargs, "CMA success reinforcement requires fresh Rhino object/vision validation after the latest mutation")
 
     if tool in {"mcp_blender_execute_blender_code", "mcp_blender_execute_code"} and state["mutations"]:
         if not _visual_validation_ready(state) or not state["saved"]:

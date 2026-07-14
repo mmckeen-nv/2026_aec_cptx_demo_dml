@@ -73,7 +73,8 @@ Use the configured application MCP servers as stateful application bridges. Insp
 
 - Use `mcp_daystrom_dml_stats` and a phase-specific `mcp_daystrom_dml_query` before planning.
 - Use `mcp_cma_augment` for the consequential plan after retrieval.
-- Write and ingest a structured attempt record after every consequential success or failure. Confirm the ingest reports at least one file.
+- Write and ingest one compact record after a validated phase success or a real
+  failure/partial mutation. Do not record every ordinary successful geometry call.
 - At every validated phase save, write one compact `work/dml_events/phase_N_state.md`
   record capped at 1,200 characters. Include only phase, accepted decisions,
   objective counts/bounds, local viewport and `.3dm` paths, vision PASS/REVISE,

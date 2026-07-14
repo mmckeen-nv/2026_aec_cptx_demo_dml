@@ -74,14 +74,14 @@ class AecDemoControllerTests(unittest.TestCase):
         self.assertIsNone(self.pre("mcp_blender_execute_blender_code", {"code": "print('import')"}))
         self.assertIsNone(self.pre("mcp_cma_reinforce", {"evidence": "passed"}))
 
-    def test_reinforce_and_blender_import_blocked_before_gated_save(self):
+    def test_reinforce_uses_visual_gate_while_blender_requires_final_save(self):
         args = self.mutation()
         self.post("mcp_rhino_run_python", args)
         self.post("mcp_rhino_list_objects", {})
         self.post("mcp_rhino_get_viewport_image", {})
         vision = {"image_url": "C:/demo/work/viewport.png", "question": "Check the phase"}
         self.post("vision_analyze", vision)
-        self.assertIn("successful gated save", self.pre("mcp_cma_reinforce", {})["message"])
+        self.assertIsNone(self.pre("mcp_cma_reinforce", {}))
         self.assertIn("successfully saved Rhino handoff", self.pre("mcp_blender_execute_blender_code", {"code": "x"})["message"])
 
     def test_python_and_csharp_both_use_script_argument(self):

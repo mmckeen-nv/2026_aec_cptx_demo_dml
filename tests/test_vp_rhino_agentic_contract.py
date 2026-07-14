@@ -34,14 +34,23 @@ class VpRhinoAgenticContractTests(unittest.TestCase):
             "02b_phase_stage_led.md",
             "02c_phase_rooms_access.md",
             "02d_phase_rigging_cameras.md",
-            "02e_phase_electrical_mechanical.md",
-            "02f_phase_life_safety_data.md",
         )
         for filename in expected:
             text = (DEMO / "prompts" / filename).read_text(encoding="utf-8")
             for heading in ("## Purpose", "## Inputs", "## Execution steps", "## Post-phase checklist", "## Review gate"):
                 self.assertIn(heading, text)
             self.assertIn("MCP", text)
+        self.assertFalse((DEMO / "prompts" / "02e_phase_electrical_mechanical.md").exists())
+        self.assertFalse((DEMO / "prompts" / "02f_phase_life_safety_data.md").exists())
+
+    def test_physical_demo_skips_mep_geometry_and_writes_load_note(self):
+        contract = CONTRACT.read_text(encoding="utf-8")
+        brief = (DEMO / "prompts" / "01_standard_vp_studio_brief.md").read_text(encoding="utf-8")
+        self.assertIn("four Cliff-House-style phase prompts", contract)
+        self.assertIn("vp_studio_01_estimated_load.md", contract)
+        self.assertIn("Do not model electrical rooms", brief)
+        self.assertIn("six operator chairs", brief)
+        self.assertIn("12 movable production chairs", brief)
 
     def test_current_dml_policy_supersedes_builder_recipe(self):
         policy = (DEMO / "knowledge" / "dml" / "rhino_agent_authored_workflow_current_20260713.md").read_text(encoding="utf-8")
