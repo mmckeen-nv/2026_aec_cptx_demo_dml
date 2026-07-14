@@ -155,7 +155,8 @@ class SetupTests(unittest.TestCase):
         ).read_text()
         self.assertIn("127.0.0.1:10500", operations)
         self.assertIn("127.0.0.1:9876", operations)
-        self.assertIn("cancel the pending interactive command", operations)
+        self.assertIn("Never call `mcp_rhino_run_command`", operations)
+        self.assertIn("call `vision_analyze`", operations)
 
     def test_teapot_reference_builder_enforces_visual_acceptance_geometry(self):
         builder = (REPO_ROOT / "demos" / "teapot" / "build_teapot_demo.py").read_text()
@@ -262,6 +263,9 @@ class SetupTests(unittest.TestCase):
         self.assertIn("BLENDER_PORT", installer)
         self.assertIn("DISABLE_TELEMETRY", installer)
         self.assertIn("Blender MCP environment values are strings", rtx_preflight)
+        self.assertIn("Demo background review forks disabled", rtx_preflight)
+        self.assertIn("Stale OBS MCP absent", rtx_preflight)
+        self.assertIn("Disable background review forks and stale OBS MCP for RTX Pro", installer)
         self.assertIn("Set Daystrom DML retrieval_policy to always", installer)
         self.assertIn("Get-FileSha256", installer)
         self.assertIn("Assert-PortableManifestAssets", installer)

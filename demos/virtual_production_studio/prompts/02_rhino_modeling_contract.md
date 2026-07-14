@@ -37,15 +37,20 @@ At the end of every numbered Rhino phase, after its latest mutation:
 
 1. Call `mcp_rhino_list_objects` and verify the phase's names, layers, metadata,
    types, counts, and measured bounds.
-2. Compose and capture the phase's required plan, axonometric, interior, or
-   services view with `mcp_rhino_get_viewport_image`. These required captures
-   explicitly authorize viewport camera/zoom composition for review.
-3. Use the configured auxiliary vision model to assess visible massing,
+2. Compose the phase's required plan, axonometric, interior, or services view
+   using dedicated camera/zoom tools, then capture it with
+   `mcp_rhino_get_viewport_image`. Never use `mcp_rhino_run_command`; Rhino
+   command macros can wait for UI input and deadlock MCP.
+3. Call `vision_analyze` with the image URL returned by that capture and a
+   phase-specific question about massing, proportion, scale, circulation, LED
+   geometry, sightlines, collisions, floating geometry, and omissions. A
+   captured viewport without a successful `vision_analyze` is not validation.
+4. Use that vision result to assess visible massing,
    proportion and scale, access/circulation, LED curvature, camera sightlines,
    collisions, disconnected/floating geometry, and missing required elements.
-4. If vision reports a plausible defect, inspect it numerically, revise it in a
+5. If vision reports a plausible defect, inspect it numerically, revise it in a
    bounded MCP mutation, then repeat the object-list and affected viewport check.
-5. Record the images and disposition of every issue in the phase evidence.
+6. Record the images, vision result, and disposition of every issue in the phase evidence.
 
 Do not substitute bounding-box text, object counts, metadata, or a Python audit
 for viewport evidence. No checkpoint save, `SUCCESS_VALIDATED` DML record, CMA

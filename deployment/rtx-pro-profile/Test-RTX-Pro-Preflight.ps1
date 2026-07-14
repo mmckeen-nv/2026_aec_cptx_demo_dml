@@ -68,6 +68,11 @@ $blenderConfigBody = if ($blenderConfigMatch.Success) { $blenderConfigMatch.Grou
 $blenderStringEnv = ($blenderConfigBody -match '(?m)^\s+BLENDER_PORT:\s*[''\"]9876[''\"]\s*$') -and
   ($blenderConfigBody -match '(?m)^\s+DISABLE_TELEMETRY:\s*[''\"]true[''\"]\s*$')
 Add-Result 'Blender MCP environment values are strings' $blenderStringEnv $(if ($blenderStringEnv) { 'BLENDER_PORT and DISABLE_TELEMETRY are quoted strings' } else { 'quote Blender MCP env values; YAML int/bool values are rejected by Hermes' })
+$backgroundReviewDisabled = ($configText -match '(?m)^  nudge_interval:\s*0\s*$') -and
+  ($configText -match '(?m)^  creation_nudge_interval:\s*0\s*$')
+Add-Result 'Demo background review forks disabled' $backgroundReviewDisabled $(if ($backgroundReviewDisabled) { 'Daystrom synchronized turns remain active without post-turn skill-review forks' } else { 'set memory.nudge_interval and skills.creation_nudge_interval to 0 for demo reliability' })
+$obsAbsent = $configText -notmatch '(?m)^  obs:\s*$'
+Add-Result 'Stale OBS MCP absent' $obsAbsent $(if ($obsAbsent) { 'no inherited PowerShell stdio noise' } else { 'remove the stale WSL OBS MCP block from RTX Pro' })
 
 $policyChecks = @{
   'DML retrieval policy' = '(?m)^\s+retrieval_policy:\s*always\s*$'

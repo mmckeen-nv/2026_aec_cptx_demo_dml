@@ -228,6 +228,24 @@ function Enable-HermesProfilePlugin {
 function Repair-RTXProDmlIsolation {
   param([string]$ProfileConfig)
   Repair-DemoDmlIsolation $ProfileConfig 'vp-studio-01' 'vp-studio-01-runtime-store' 'cma-vp-studio-01' 'dml_mcp_server_vp_studio.cmd' 'cma_mcp_server_vp_studio.cmd'
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  $updated = $content
+  # The demo uses Daystrom synchronized turns; Hermes' separate background
+  # memory/skill review forks only consume iterations and have repeatedly
+  # generated invalid skill writes during live demos.
+  $updated = [regex]::Replace($updated, '(?m)^(  nudge_interval:\s*)\d+\s*$', '${1}0')
+  $updated = [regex]::Replace($updated, '(?m)^(  creation_nudge_interval:\s*)\d+\s*$', '${1}0')
+  # RTX Pro does not use the inherited, stale WSL OBS wrapper. Its PowerShell
+  # banner corrupts MCP stdio and floods startup with JSON-RPC errors.
+  $updated = [regex]::Replace($updated, '(?ms)^  obs:\s*\r?\n.*?(?=^  \S|\z)', '')
+  if ($updated -eq $content) { return }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Disable background review forks and stale OBS MCP for RTX Pro')) {
+    $backup = "$ProfileConfig.bak-rtx-demo-runtime-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Hardened RTX Pro demo runtime; backup: $backup"
+  }
 }
 
 function Repair-DemoApplicationMcps {

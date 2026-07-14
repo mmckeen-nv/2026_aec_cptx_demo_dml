@@ -35,13 +35,15 @@ _MUTATION_RE = re.compile(
     r"SetUserString|SetUserText|CommitChanges|Layers\s*\.\s*Add)",
     re.IGNORECASE,
 )
-_FORBIDDEN_COMMAND_RE = re.compile(
-    r"(?:^|[_\s-])(?:NewSmall|New|SaveAs|Save|Export|RunPythonScript|EditPythonScript|PythonScript)(?:$|[_\s-])",
-    re.IGNORECASE,
-)
 _RHINO_UI_RECOVERY_RE = re.compile(
     r"(?:rhino(?:\.exe)?[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
     r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino)",
+    re.IGNORECASE,
+)
+_BLENDER_RECOVERY_RE = re.compile(
+    r"(?:blender(?:\.exe)?|blender[_-]?mcp|blendermcp|scripts[\\/]addons|"
+    r"bpy\.ops\.preferences\.addon|bpy\.utils\.register_module|"
+    r"start_blender|enable_mcp|taskkill[^\r\n]*blender)",
     re.IGNORECASE,
 )
 _HERMES_CONFIG_MUTATION_RE = re.compile(
@@ -58,7 +60,12 @@ def _active() -> bool:
 def _session(kwargs: Dict[str, Any]) -> str:
     # Hermes may replace session_id during context compression and follow-up
     # turns. task_id is the stable execution identity when it is available.
-    return str(kwargs.get("task_id") or kwargs.get("session_id") or "vp-default")
+    return str(
+        os.environ.get("AEC_DEMO_RUN_ID")
+        or kwargs.get("task_id")
+        or kwargs.get("session_id")
+        or "vp-default"
+    )
 
 
 def _fresh() -> Dict[str, Any]:
@@ -74,6 +81,7 @@ def _fresh() -> Dict[str, Any]:
         "viewports": 0,
         "listed_since_mutation": False,
         "viewport_since_mutation": False,
+        "vision_since_viewport": False,
         "ingested_since_memory": False,
         "saved": False,
         "failures": {},
@@ -123,19 +131,27 @@ def _is_mutation(tool: str, args: Dict[str, Any]) -> bool:
 
 
 def _visual_validation_ready(state: Dict[str, Any]) -> bool:
-    return bool(state["listed_since_mutation"] and state["viewport_since_mutation"])
+    return bool(
+        state["listed_since_mutation"]
+        and state["viewport_since_mutation"]
+        and state["vision_since_viewport"]
+    )
 
 
 def on_session_start(**kwargs: Any) -> None:
     if not _active():
         return
     with _LOCK:
-        _STATES[_session(kwargs)] = _fresh()
+        _STATES.setdefault(_session(kwargs), _fresh())
     _log("session_start", kwargs)
 
 
 def on_session_reset(**kwargs: Any) -> None:
-    on_session_start(**kwargs)
+    if not _active():
+        return
+    with _LOCK:
+        _STATES[_session(kwargs)] = _fresh()
+    _log("session_reset", kwargs)
 
 
 def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
@@ -150,7 +166,8 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "application MCP cannot connect, report that blocker immediately. Never repair Hermes "
         "configuration from inside the demo and never launch Rhino's Python editor or a script file. "
         "At every major Rhino phase boundary, capture fresh object-list and viewport evidence after "
-        "the latest geometry change and use the configured vision model to identify visible defects. "
+        "the latest geometry change, then call vision_analyze on the returned image URL to identify "
+        "visible defects. A captured image without completed vision_analyze is not validation. "
         "Checkpoint saves, CMA success reinforcement, and Blender handoff require that visual pass."
     )
     return {"context": context}
@@ -170,9 +187,10 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         return _block(kwargs, f"{tool} is prohibited in this workflow; preserve the healthy launcher-owned Rhino slot")
 
     if tool == "mcp_rhino_run_command":
-        command = str(args.get("command") or args.get("macro") or "")
-        if _FORBIDDEN_COMMAND_RE.search(command):
-            return _block(kwargs, "interactive New/Save/Export/Python-editor commands are prohibited; use the datum template, direct MCP script arguments, save_doc, and direct 3DM handoff")
+        return _block(kwargs, "Rhino command macros are prohibited because they can wait for interactive input; use dedicated camera/selection tools or direct MCP Python/C#")
+
+    if tool.startswith("browser_"):
+        return _block(kwargs, "browser fallback is prohibited during the core Rhino-Blender-ComfyUI run; report the missing application MCP")
 
     if tool in {"terminal", "execute_code", "patch", "write_file"}:
         payload = json.dumps(args, ensure_ascii=False, default=str)
@@ -180,6 +198,8 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             return _block(kwargs, "do not launch Rhino or Python scripts through shell/UI recovery; use the registered Rhino MCP or report it unavailable")
         if _HERMES_CONFIG_MUTATION_RE.search(payload):
             return _block(kwargs, "the running demo may not modify Hermes configuration; report the MCP preflight blocker for host-side repair")
+        if _BLENDER_RECOVERY_RE.search(payload):
+            return _block(kwargs, "do not launch, configure, patch, or repair Blender/add-ons from inside the demo; report the Blender MCP preflight blocker")
 
     if tool == "mcp_rhino_open_doc":
         path = str(args.get("path") or args.get("file_path") or "").replace("\\", "/").lower()
@@ -192,8 +212,14 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         if not str(args.get("script") or "").strip():
             return _block(kwargs, f"{tool} requires a non-empty 'script' argument")
 
+    if tool == "vision_analyze":
+        if not str(args.get("image_url") or "").strip() or not str(args.get("question") or "").strip():
+            return _block(kwargs, "vision_analyze requires the captured viewport image_url and a specific defect-review question")
+        if not state["viewport_since_mutation"]:
+            return _block(kwargs, "capture a fresh Rhino viewport after the latest mutation before vision analysis")
+
     if tool == "mcp_rhino_save_doc" and state["mutations"] and not _visual_validation_ready(state):
-        return _block(kwargs, "a checkpoint or handoff save requires fresh list_objects and viewport/vision evidence after the latest Rhino mutation")
+        return _block(kwargs, "a checkpoint or handoff save requires fresh list_objects, viewport capture, and completed vision_analyze after the latest Rhino mutation")
 
     if tool == "mcp_cma_reinforce" and state["mutations"]:
         if not _visual_validation_ready(state) or not state["saved"]:
@@ -239,17 +265,21 @@ def on_post_tool_call(**kwargs: Any) -> None:
         state["mutations_since_memory"] += 1
         state["listed_since_mutation"] = False
         state["viewport_since_mutation"] = False
+        state["vision_since_viewport"] = False
         state["saved"] = False
     elif tool in _INSPECTION_TOOLS:
         state["inspections"] += 1
         if tool == "mcp_rhino_get_viewport_image":
             state["viewports"] += 1
             state["viewport_since_mutation"] = True
+            state["vision_since_viewport"] = False
         elif tool == "mcp_rhino_list_objects":
             state["listed_since_mutation"] = True
-        # A complete validation pair unlocks phase-boundary save/reinforcement.
+        # Object and viewport evidence still require a subsequent vision call.
         if state["listed_since_mutation"] and state["viewport_since_mutation"]:
             state["mutations_since_inspection"] = 0
+    elif tool == "vision_analyze" and state["viewport_since_mutation"]:
+        state["vision_since_viewport"] = True
     elif tool == "mcp_rhino_save_doc":
         state["saved"] = True
     _log("tool_ok", kwargs, tool_name=tool, signature=sig, state=state.copy())

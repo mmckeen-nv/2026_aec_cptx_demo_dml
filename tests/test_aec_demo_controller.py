@@ -59,9 +59,14 @@ class AecDemoControllerTests(unittest.TestCase):
             self.assertIsNone(self.pre("mcp_rhino_run_python", args))
             self.post("mcp_rhino_run_python", args)
         blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"})
-        self.assertIn("viewport/vision evidence", blocked["message"])
+        self.assertIn("completed vision_analyze", blocked["message"])
         self.post("mcp_rhino_list_objects", {})
         self.post("mcp_rhino_get_viewport_image", {})
+        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"})
+        self.assertIn("completed vision_analyze", blocked["message"])
+        vision = {"image_url": "C:/demo/work/viewport.png", "question": "Check massing and collisions"}
+        self.assertIsNone(self.pre("vision_analyze", vision))
+        self.post("vision_analyze", vision)
         save_args = {"path": "C:/demo/work/checkpoint.3dm"}
         self.assertIsNone(self.pre("mcp_rhino_save_doc", save_args))
         self.post("mcp_rhino_save_doc", save_args)
@@ -74,6 +79,8 @@ class AecDemoControllerTests(unittest.TestCase):
         self.post("mcp_rhino_run_python", args)
         self.post("mcp_rhino_list_objects", {})
         self.post("mcp_rhino_get_viewport_image", {})
+        vision = {"image_url": "C:/demo/work/viewport.png", "question": "Check the phase"}
+        self.post("vision_analyze", vision)
         self.assertIn("successful gated save", self.pre("mcp_cma_reinforce", {})["message"])
         self.assertIn("successfully saved Rhino handoff", self.pre("mcp_blender_execute_blender_code", {"code": "x"})["message"])
 
@@ -90,10 +97,30 @@ class AecDemoControllerTests(unittest.TestCase):
         self.assertIn("prohibited", self.pre("mcp_rhino_spawn_slot", {})["message"])
         self.assertIn("prohibited", self.pre("mcp_rhino_close_doc", {})["message"])
 
-    def test_interactive_new_save_and_export_are_blocked(self):
-        for command in ("_New", "_SaveAs", "_Export", '_-RunPythonScript "C:/demo/build.py"', "_EditPythonScript"):
+    def test_all_rhino_command_macros_are_blocked(self):
+        for command in ("_New", "_SaveAs", "_Export", "_ZoomExtents", "_SetView _World _Top"):
             blocked = self.pre("mcp_rhino_run_command", {"command": command})
-            self.assertIn("interactive New/Save/Export/Python-editor", blocked["message"])
+            self.assertIn("Rhino command macros are prohibited", blocked["message"])
+
+    def test_viewport_capture_without_vision_is_not_validation(self):
+        args = self.mutation()
+        self.post("mcp_rhino_run_python", args)
+        self.post("mcp_rhino_list_objects", {})
+        self.post("mcp_rhino_get_viewport_image", {})
+        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"})
+        self.assertIn("completed vision_analyze", blocked["message"])
+
+    def test_vision_requires_fresh_viewport_and_complete_arguments(self):
+        self.assertIn("image_url", self.pre("vision_analyze", {})["message"])
+        self.assertIn(
+            "fresh Rhino viewport",
+            self.pre("vision_analyze", {"image_url": "x.png", "question": "inspect"})["message"],
+        )
+
+    def test_browser_and_blender_lifecycle_recovery_are_blocked(self):
+        self.assertIn("browser fallback", self.pre("browser_snapshot", {})["message"])
+        blocked = self.pre("terminal", {"command": 'Blender.exe --python-expr "bpy.ops.blendermcp.start_server()"'})
+        self.assertIn("do not launch, configure, patch, or repair Blender", blocked["message"])
 
     def test_shell_rhino_python_and_live_config_repair_are_blocked(self):
         blocked = self.pre("terminal", {"command": 'Rhino.exe /runscript="_-RunPythonScript C:/demo/build.py"'})

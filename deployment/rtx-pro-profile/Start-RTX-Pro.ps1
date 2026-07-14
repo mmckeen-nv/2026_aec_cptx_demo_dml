@@ -31,6 +31,7 @@ if (-not $projectRoot) { $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '
 $studioRoot = Join-Path $projectRoot 'demos\virtual_production_studio'
 if (-not (Test-Path -LiteralPath $studioRoot -PathType Container)) { throw "Virtual production project not found at $studioRoot" }
 $env:AEC_DEMO_ID = 'vp-studio-01'
+$env:AEC_DEMO_RUN_ID = 'vp-studio-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
 $env:AEC_DEMO_CONTROLLER_LOG_DIR = Join-Path $env:HERMES_HOME 'profiles\rtx_pro\logs'
 $rhinoTemplate = Join-Path $studioRoot 'source\vp_studio_01_template.3dm'
 if (-not (Test-Path -LiteralPath $rhinoTemplate -PathType Leaf)) { throw "VP Studio Rhino template not found at $rhinoTemplate" }

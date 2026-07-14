@@ -49,14 +49,19 @@ of each major Rhino phase (site/shell, stage/LED, rooms/access, rigging/cameras,
 electrical/mechanical, and life-safety/data), re-list the modeled objects and
 capture the phase's required Rhino views with
 `mcp_rhino_get_viewport_image`. Hermes must pass those images to the configured
-auxiliary vision model, identify visible proportion, massing, circulation,
+auxiliary vision model by explicitly calling
+`vision_analyze(image_url=<returned image URL>, question=<phase defect review>)`, identify visible proportion, massing, circulation,
 collision, sightline, and omission defects, revise the geometry when needed,
 and recapture the affected view. The required review views are explicit workflow
 requests, so camera/zoom tools may compose them without altering geometry.
 
+Never use `mcp_rhino_run_command`; command macros can enter an interactive state
+and deadlock the MCP request. Use the dedicated Rhino camera, zoom, selection,
+document, and save tools, or direct bounded Python/C# with complete arguments.
+
 Do not save a checkpoint, declare a Rhino phase complete, reinforce success in
 CMA, or begin Blender import unless both fresh object-list evidence and fresh
-viewport/vision evidence were produced after the latest Rhino mutation. This is
+viewport evidence and a successful `vision_analyze` were produced after the latest Rhino mutation. This is
 a phase-boundary gate, not a fixed mutation or token quota.
 
 ## Daystrom memory harness
@@ -95,6 +100,9 @@ to repair Hermes from inside the run, do not launch another Rhino process, and
 never invoke `RunPythonScript`, `EditPythonScript`, or open a `.py` file in
 Rhino. Python and C# source must be passed only as the direct `script=` argument
 of the registered MCP tools so no editor or file chooser can appear.
+Do not launch Blender, enable or patch add-ons, write bootstrap scripts, inspect
+ports through browser fallback, or alter application installations from inside a
+demo run. Application recovery is a host-side preflight responsibility.
 
 Use exact registered tool names. Blender Python is
 `mcp_blender_execute_blender_code(code=...)`. Never call a generic tool named
