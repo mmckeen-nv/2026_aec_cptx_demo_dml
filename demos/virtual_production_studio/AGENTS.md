@@ -48,9 +48,11 @@ Visual correction is core functionality, not optional presentation. At the end
 of each major Rhino phase (site/shell, stage/LED, rooms/access, rigging/cameras,
 electrical/mechanical, and life-safety/data), re-list the modeled objects and
 capture the phase's required Rhino views with
-`mcp_rhino_get_viewport_image`. Hermes must pass those images to the configured
-auxiliary vision model by explicitly calling
-`vision_analyze(image_url=<returned image URL>, question=<phase defect review>)`, identify visible proportion, massing, circulation,
+`mcp_rhino_get_viewport_image`. Rhino MCP 0.1.5 nests the image bytes instead
+of returning a usable URL, so Hermes must follow
+`prompts/06_mcp_operations_contract.md` to save the active view with Rhino 8
+`CaptureToBitmap`, then explicitly call the configured auxiliary vision model
+with `vision_analyze(image_url=<absolute local PNG>, question=<phase defect review>)`. Identify visible proportion, massing, circulation,
 collision, sightline, and omission defects, revise the geometry when needed,
 and recapture the affected view. The required review views are explicit workflow
 requests, so camera/zoom tools may compose them without altering geometry.

@@ -166,8 +166,11 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "application MCP cannot connect, report that blocker immediately. Never repair Hermes "
         "configuration from inside the demo and never launch Rhino's Python editor or a script file. "
         "At every major Rhino phase boundary, capture fresh object-list and viewport evidence after "
-        "the latest geometry change, then call vision_analyze on the returned image URL to identify "
-        "visible defects. A captured image without completed vision_analyze is not validation. "
+        "the latest geometry change. Rhino MCP 0.1.5 nests viewport bytes instead of returning a "
+        "usable URL: save ActiveView.CaptureToBitmap(System.Drawing.Size(960,540)) to an absolute "
+        "PNG under work/ with a read-only mcp_rhino_run_python(script=...) call, then call "
+        "vision_analyze on that local path. Never invent a URL or decode base64 with execute_code. "
+        "A captured image without completed vision_analyze is not validation. "
         "Checkpoint saves, CMA success reinforcement, and Blender handoff require that visual pass."
     )
     return {"context": context}
@@ -213,10 +216,16 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             return _block(kwargs, f"{tool} requires a non-empty 'script' argument")
 
     if tool == "vision_analyze":
-        if not str(args.get("image_url") or "").strip() or not str(args.get("question") or "").strip():
+        image_source = str(args.get("image_url") or "").strip()
+        if not image_source or not str(args.get("question") or "").strip():
             return _block(kwargs, "vision_analyze requires the captured viewport image_url and a specific defect-review question")
         if not state["viewport_since_mutation"]:
             return _block(kwargs, "capture a fresh Rhino viewport after the latest mutation before vision analysis")
+        if re.match(r"^https?://", image_source, re.IGNORECASE):
+            return _block(
+                kwargs,
+                "Rhino MCP 0.1.5 does not return a usable remote viewport URL; save the active view to work/*.png with ActiveView.CaptureToBitmap in a read-only Rhino Python call, then pass that absolute local path",
+            )
 
     if tool == "mcp_rhino_save_doc" and state["mutations"] and not _visual_validation_ready(state):
         return _block(kwargs, "a checkpoint or handoff save requires fresh list_objects, viewport capture, and completed vision_analyze after the latest Rhino mutation")

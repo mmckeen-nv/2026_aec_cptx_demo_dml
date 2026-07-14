@@ -1,6 +1,9 @@
 # Rhino Phase 3 — Rooms, circulation, and loading access
 ### Agent-authored execution prompt
 
+Before any Rhino call, read `06_mcp_operations_contract.md` and use its exact
+Rhino 8 MCP 0.1.5 ABI and local-file viewport/vision handoff.
+
 ## Purpose
 
 Plan the ancillary bar and operational routes around the accepted stage without

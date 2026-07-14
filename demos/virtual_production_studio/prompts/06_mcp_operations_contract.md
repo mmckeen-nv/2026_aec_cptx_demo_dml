@@ -14,11 +14,37 @@ Use the configured application MCP servers as stateful application bridges. Insp
   and send it through `mcp_rhino_run_python` or `mcp_rhino_run_csharp`. Inspect
   after every mutation. Do not execute a disk geometry script, JSON object plan,
   or complete studio builder. Use `mcp_rhino_save_doc` for the single gated save.
+- Both execution tools require the exact argument name `script`. This
+  installation is Rhino MCP Platform 0.1.5 with Rhino 8 CPython: use
+  `doc = __rhino_doc__`; `doc.Layers.FindByFullPath(path, True)` returns an
+  integer index (`-1` when absent), not a Layer object; and
+  `rhinoscriptsyntax.LayerIndex` plus `rhinoscriptsyntax.ObjectAttributes` do
+  not exist. Use `Rhino.DocObjects.ObjectAttributes`, set its integer
+  `LayerIndex`, `Name`, and User Text, and pass it to the applicable
+  `doc.Objects.Add*` method. Create nested layers parent-first with
+  `Rhino.DocObjects.Layer` and `ParentLayerId`. Never assign layer index `-1`.
+- Inspect `payload.error` and stdout after every script. A transport-level MCP
+  success can still contain a Rhino script error or create zero objects.
 - Never call `mcp_rhino_run_command`. Even apparently harmless macros can wait
   for interactive input and deadlock the MCP request. Use dedicated camera,
   zoom, selection, open, and save tools or direct bounded Python/C#.
-- After each required viewport capture, call `vision_analyze` with the returned
-  image URL and a specific phase-review question. Capture alone is not visual validation.
+- Rhino MCP 0.1.5 returns `get_viewport_image` as nested base64, not a usable
+  URL. Never invent a URL and never copy that base64 into `execute_code`.
+  Continue calling `mcp_rhino_get_viewport_image` for the controller checkpoint
+  and scene metadata, then save the same active view with one read-only Rhino
+  Python call:
+
+  ```python
+  import System
+  view = __rhino_doc__.Views.ActiveView
+  bitmap = view.CaptureToBitmap(System.Drawing.Size(960, 540))
+  image_path = r"C:\absolute\demo\work\rhino_phase_view.png"
+  bitmap.Save(image_path)
+  print(image_path)
+  ```
+
+  You must call `vision_analyze(image_url=image_path, question=...)` with that absolute
+  local path. Capture alone is not visual validation.
 - For Blender handoff, generate render meshes and save a metadata-bearing `.3dm`; do not invent OBJ or FBX export paths.
 
 ## Blender

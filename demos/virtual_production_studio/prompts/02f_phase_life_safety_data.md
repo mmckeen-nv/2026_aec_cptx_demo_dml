@@ -1,6 +1,9 @@
 # Rhino Phase 6 — Life safety, fire access, and production data
 ### Agent-authored execution prompt
 
+Before any Rhino call, read `06_mcp_operations_contract.md` and use its exact
+Rhino 8 MCP 0.1.5 ABI and local-file viewport/vision handoff.
+
 ## Purpose
 
 Complete the conceptual Rhino model with visible egress/fire-access assumptions

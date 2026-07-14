@@ -156,7 +156,9 @@ class SetupTests(unittest.TestCase):
         self.assertIn("127.0.0.1:10500", operations)
         self.assertIn("127.0.0.1:9876", operations)
         self.assertIn("Never call `mcp_rhino_run_command`", operations)
-        self.assertIn("call `vision_analyze`", operations)
+        self.assertIn("vision_analyze(image_url=image_path", operations)
+        self.assertIn("CaptureToBitmap", operations)
+        self.assertIn("nested base64", operations)
 
     def test_teapot_reference_builder_enforces_visual_acceptance_geometry(self):
         builder = (REPO_ROOT / "demos" / "teapot" / "build_teapot_demo.py").read_text()

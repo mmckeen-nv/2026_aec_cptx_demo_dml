@@ -1,6 +1,9 @@
 # Rhino Phase 2 — Stage and LED volume
 ### Agent-authored execution prompt
 
+Before any Rhino call, read `06_mcp_operations_contract.md` and use its exact
+Rhino 8 MCP 0.1.5 ABI and local-file viewport/vision handoff.
+
 ## Purpose
 
 Design the shooting volume inside the accepted shell: curved main LED wall,

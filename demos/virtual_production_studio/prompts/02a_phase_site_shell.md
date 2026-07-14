@@ -1,6 +1,9 @@
 # Rhino Phase 1 — Site and building shell
 ### Agent-authored execution prompt
 
+Before any Rhino call, read `06_mcp_operations_contract.md` and use its exact
+Rhino 8 MCP 0.1.5 ABI and local-file viewport/vision handoff.
+
 ## Purpose
 
 Establish the lot, access logic, building placement, exterior shell, stage floor,

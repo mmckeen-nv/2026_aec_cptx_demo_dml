@@ -17,6 +17,11 @@ document rather than reusing or deleting them. Author the Python or C# for each
 bounded modeling operation yourself and send it directly to
 `mcp_rhino_run_python` or `mcp_rhino_run_csharp`.
 
+Before the first mutation, read the installation-specific Rhino 8 ABI and
+viewport handoff in `06_mcp_operations_contract.md`. Do not use nonexistent
+`rs.LayerIndex` or `rs.ObjectAttributes`, treat `FindByFullPath` as a Layer
+object, or invent a remote URL for Rhino MCP 0.1.5 viewport bytes.
+
 Prohibited shortcuts:
 
 - Do not read or execute a checked-in geometry builder; none is authoritative.
@@ -41,9 +46,11 @@ At the end of every numbered Rhino phase, after its latest mutation:
    using dedicated camera/zoom tools, then capture it with
    `mcp_rhino_get_viewport_image`. Never use `mcp_rhino_run_command`; Rhino
    command macros can wait for UI input and deadlock MCP.
-3. Call `vision_analyze` with the image URL returned by that capture and a
-   phase-specific question about massing, proportion, scale, circulation, LED
-   geometry, sightlines, collisions, floating geometry, and omissions. A
+3. Follow the Rhino MCP 0.1.5 viewport handoff in
+   `06_mcp_operations_contract.md`: save the same active view to a local PNG
+   with the verified read-only `ActiveView.CaptureToBitmap` recipe, then call
+   `vision_analyze` with that absolute path and a phase-specific defect
+   question. Never invent a URL or decode nested base64 with `execute_code`. A
    captured viewport without a successful `vision_analyze` is not validation.
 4. Use that vision result to assess visible massing,
    proportion and scale, access/circulation, LED curvature, camera sightlines,

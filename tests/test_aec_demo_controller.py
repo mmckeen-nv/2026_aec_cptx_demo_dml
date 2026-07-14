@@ -117,6 +117,14 @@ class AecDemoControllerTests(unittest.TestCase):
             self.pre("vision_analyze", {"image_url": "x.png", "question": "inspect"})["message"],
         )
 
+    def test_vision_rejects_invented_remote_rhino_url(self):
+        self.post("mcp_rhino_get_viewport_image", {})
+        blocked = self.pre(
+            "vision_analyze",
+            {"image_url": "https://viewer.example/fake.jpg", "question": "Any defects?"},
+        )
+        self.assertIn("CaptureToBitmap", blocked["message"])
+
     def test_browser_and_blender_lifecycle_recovery_are_blocked(self):
         self.assertIn("browser fallback", self.pre("browser_snapshot", {})["message"])
         blocked = self.pre("terminal", {"command": 'Blender.exe --python-expr "bpy.ops.blendermcp.start_server()"'})
