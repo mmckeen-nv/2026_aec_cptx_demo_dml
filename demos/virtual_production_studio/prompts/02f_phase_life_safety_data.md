@@ -3,6 +3,8 @@
 
 Before any Rhino call, read `06_mcp_operations_contract.md` and use its exact
 Rhino 8 MCP 0.1.5 ABI and local-file viewport/vision handoff.
+Keep this phase context-bounded: one final object listing, one focused local-PNG
+vision verdict, then ingest the <=1,200-character phase-state record before advancing.
 
 ## Purpose
 

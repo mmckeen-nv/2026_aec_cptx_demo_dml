@@ -170,7 +170,12 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "usable URL: save ActiveView.CaptureToBitmap(System.Drawing.Size(960,540)) to an absolute "
         "PNG under work/ with a read-only mcp_rhino_run_python(script=...) call, then call "
         "vision_analyze on that local path. Never invent a URL or decode base64 with execute_code. "
-        "A captured image without completed vision_analyze is not validation. "
+        "Ask vision only for required visible elements, named defects, and a short PASS/REVISE "
+        "verdict; never request a general image description. Use one final object listing per "
+        "phase and distill it rather than echoing the raw payload. After each validated save, "
+        "ingest a <=1200-character DML phase-state record and begin the next phase with one "
+        "targeted DML query plus CMA augmentation. A captured image without completed "
+        "vision_analyze is not validation. "
         "Checkpoint saves, CMA success reinforcement, and Blender handoff require that visual pass."
     )
     return {"context": context}

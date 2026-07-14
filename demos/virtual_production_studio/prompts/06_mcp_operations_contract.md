@@ -44,7 +44,14 @@ Use the configured application MCP servers as stateful application bridges. Insp
   ```
 
   You must call `vision_analyze(image_url=image_path, question=...)` with that absolute
-  local path. Capture alone is not visual validation.
+  local path. Capture alone is not visual validation. Ask only for the phase gate:
+  whether required elements are visible, whether a named clearance/overlap defect is
+  present, and a short PASS/REVISE verdict. Do not request a general description,
+  inventory, tutorial, or restatement of the image.
+- Keep inspection evidence bounded. Call `mcp_rhino_list_objects` once after the
+  final mutation group for a phase, then distill its result into counts, missing
+  required names, invalid/open geometry counts, and bounds. Do not echo, rewrite,
+  or reread the full object payload, and do not repeat it unless geometry changes.
 - For Blender handoff, generate render meshes and save a metadata-bearing `.3dm`; do not invent OBJ or FBX export paths.
 
 ## Blender
@@ -67,6 +74,14 @@ Use the configured application MCP servers as stateful application bridges. Insp
 - Use `mcp_daystrom_dml_stats` and a phase-specific `mcp_daystrom_dml_query` before planning.
 - Use `mcp_cma_augment` for the consequential plan after retrieval.
 - Write and ingest a structured attempt record after every consequential success or failure. Confirm the ingest reports at least one file.
+- At every validated phase save, write one compact `work/dml_events/phase_N_state.md`
+  record capped at 1,200 characters. Include only phase, accepted decisions,
+  objective counts/bounds, local viewport and `.3dm` paths, vision PASS/REVISE,
+  remaining defects, and the next phase. Ingest it immediately and use this record,
+  not raw prior tool output, as the next phase's retrieval context.
+- Start every new phase with one phase-specific DML query and one CMA augmentation.
+  Do not paste retrieved documents back into the conversation; cite their short
+  source names and apply only the relevant decisions.
 - Reinforce only a validated success with `mcp_cma_reinforce`. Failures are DML avoidance knowledge, never CMA reinforcement.
 - A retry is allowed only after retrieving the prior attempt and materially changing the approach.
 

@@ -134,6 +134,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Sync-AecDemoControllerPlugin", installer)
         self.assertIn("Enable-HermesProfilePlugin", installer)
         self.assertIn("aec_demo_controller", config)
+        self.assertIn("threshold: 0.65", config)
+        self.assertIn("protect_last_n: 6", config)
 
     def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
         demos = {
@@ -159,6 +161,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("vision_analyze(image_url=image_path", operations)
         self.assertIn("CaptureToBitmap", operations)
         self.assertIn("nested base64", operations)
+        self.assertIn("capped at 1,200 characters", operations)
+        self.assertIn("Do not request a general description", operations)
 
     def test_teapot_reference_builder_enforces_visual_acceptance_geometry(self):
         builder = (REPO_ROOT / "demos" / "teapot" / "build_teapot_demo.py").read_text()

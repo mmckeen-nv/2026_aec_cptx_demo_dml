@@ -31,6 +31,17 @@ plugins:
     - aec_demo_controller
   disabled: []
 
+# Keep enough recent tool context for correction without protecting entire
+# Rhino object listings and vision analyses. The prior 20-message tail caused
+# compression to preserve ~130K tokens and retrigger after nearly every call.
+compression:
+  enabled: true
+  threshold: 0.65
+  target_ratio: 0.25
+  protect_last_n: 6
+  protect_first_n: 3
+  hygiene_hard_message_limit: 400
+
 # Installed paths are machine-specific. The installer/preflight must resolve
 # these rather than copying this sanitized example over a live profile.
 mcp_servers:
