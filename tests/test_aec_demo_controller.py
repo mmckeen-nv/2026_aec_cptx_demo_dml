@@ -43,50 +43,41 @@ class AecDemoControllerTests(unittest.TestCase):
     def pre(self, tool, args=None):
         return controller.on_pre_tool_call(**self.kw, tool_name=tool, args=args or {})
 
-    def unlock_memory(self):
-        self.post("mcp_daystrom_dml_stats")
-        self.post("mcp_daystrom_dml_query")
-        self.post("mcp_cma_augment")
-
     def mutation(self, suffix=""):
         return {"script": f"doc.Objects.AddBrep(brep{suffix})"}
 
-    def test_mutation_requires_memory_sequence(self):
-        blocked = self.pre("mcp_rhino_run_python", self.mutation())
-        self.assertIn("DML stats", blocked["message"])
-        self.unlock_memory()
+    def test_mutation_does_not_require_memory_ceremony(self):
         self.assertIsNone(self.pre("mcp_rhino_run_python", self.mutation()))
 
     def test_missing_required_script_is_blocked(self):
         blocked = self.pre("mcp_rhino_run_python", {})
         self.assertIn("non-empty 'script'", blocked["message"])
 
-    def test_three_mutations_require_object_and_viewport_inspection(self):
-        self.unlock_memory()
-        for index in range(3):
+    def test_mutation_and_application_transitions_are_not_quota_gated(self):
+        for index in range(12):
             args = self.mutation(str(index))
             self.assertIsNone(self.pre("mcp_rhino_run_python", args))
             self.post("mcp_rhino_run_python", args)
-        self.assertIn("three Rhino mutations", self.pre("mcp_rhino_run_python", self.mutation("x"))["message"])
-        self.post("mcp_rhino_list_objects")
-        self.assertIsNotNone(self.pre("mcp_rhino_run_python", self.mutation("x")))
-        self.post("mcp_rhino_get_viewport_image")
-        self.assertIsNone(self.pre("mcp_rhino_run_python", self.mutation("x")))
+        self.assertIsNone(self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"}))
+        self.assertIsNone(self.pre("mcp_blender_get_scene_info", {}))
 
-    def test_identical_failure_twice_forces_changed_approach(self):
-        args = {"script": "print('probe')"}
-        for _ in range(2):
-            self.post("mcp_rhino_run_python", args, status="error", error_message="boom")
-        blocked = self.pre("mcp_rhino_run_python", args)
-        self.assertIn("failed twice", blocked["message"])
+    def test_python_and_csharp_both_use_script_argument(self):
+        for tool in ("mcp_rhino_run_python", "mcp_rhino_run_csharp"):
+            self.assertIn("non-empty 'script'", self.pre(tool, {})["message"])
+            self.assertIsNone(self.pre(tool, {"script": "print('ok')"}))
 
-    def test_reopen_spawn_and_blender_fallback_are_blocked(self):
+    def test_reopen_and_slot_lifecycle_are_blocked(self):
         path = {"path": "C:/demo/source/vp_studio_01_template.3dm"}
         self.assertIsNone(self.pre("mcp_rhino_open_doc", path))
         self.post("mcp_rhino_open_doc", path)
         self.assertIn("opened only once", self.pre("mcp_rhino_open_doc", path)["message"])
         self.assertIn("prohibited", self.pre("mcp_rhino_spawn_slot", {})["message"])
-        self.assertIn("Blender is locked", self.pre("mcp_blender_get_scene_info", {})["message"])
+        self.assertIn("prohibited", self.pre("mcp_rhino_close_doc", {})["message"])
+
+    def test_interactive_new_save_and_export_are_blocked(self):
+        for command in ("_New", "_SaveAs", "_Export"):
+            blocked = self.pre("mcp_rhino_run_command", {"command": command})
+            self.assertIn("interactive New/Save/Export", blocked["message"])
 
     def test_controller_is_inert_outside_target_demo(self):
         with mock.patch.dict(os.environ, {"AEC_DEMO_ID": "cliff-house-01"}, clear=False):

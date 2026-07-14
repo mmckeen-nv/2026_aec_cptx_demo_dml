@@ -1,4 +1,4 @@
-"""Hard runtime guardrails for the AEC demo agents.
+"""Minimal application-state safety guardrails for the AEC demo agents.
 
 The controller does not create geometry.  It only constrains tool ordering,
 requires inspection and memory checkpoints, and records a durable trajectory.
@@ -102,8 +102,7 @@ def _block(kwargs: Dict[str, Any], message: str) -> Dict[str, str]:
 
 
 def _script(args: Dict[str, Any], tool: str) -> str:
-    key = "script" if tool == "mcp_rhino_run_python" else "code"
-    return str(args.get(key) or "")
+    return str(args.get("script") or "")
 
 
 def _is_mutation(tool: str, args: Dict[str, Any]) -> bool:
@@ -125,16 +124,12 @@ def on_session_reset(**kwargs: Any) -> None:
 def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if not _active():
         return None
-    state = _state(kwargs)
     context = (
-        "AEC VP PHASE CONTROLLER (runtime enforced): the model authors bounded Rhino geometry; "
-        "no monolithic builder exists. Begin with DML stats -> phase query -> CMA augment. "
-        "Use the already-ready Rhino slot, open the datum template at most once, and never spawn "
-        "a replacement slot. Build no more than three coherent Rhino groups before list-objects "
-        "and viewport inspection. Save only after the final validated Rhino gate. Blender remains "
-        "locked until that save succeeds. Current counters: "
-        f"mutations={state['mutations']}, since_inspection={state['mutations_since_inspection']}, "
-        f"since_memory={state['mutations_since_memory']}, saved={state['saved']}."
+        "AEC VP SAFETY SHIM: follow the same agentic phase workflow as Cliff House, using the VP "
+        "studio brief as the project-specific design input. Author bounded Rhino geometry and "
+        "inspect at meaningful design checkpoints. The launcher owns the ready Rhino slot; do not "
+        "spawn, close, or replace it. Use script= for both Rhino Python and C# tools. The safety "
+        "shim does not impose mutation quotas, memory quotas, or phase-transition quotas."
     )
     return {"context": context}
 
@@ -148,8 +143,6 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     state["calls"] += 1
 
     sig = _signature(tool, args)
-    if int(state["failures"].get(sig, 0)) >= 2:
-        return _block(kwargs, "this identical tool call has already failed twice; query DML and use a materially changed approach")
 
     if tool in {"run", "mcp_rhino_spawn_slot", "mcp_rhino_close_slot", "mcp_rhino_close_doc"}:
         return _block(kwargs, f"{tool} is prohibited in this workflow; preserve the healthy launcher-owned Rhino slot")
@@ -167,32 +160,8 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             return _block(kwargs, "the datum template may be opened only once and never reopened after modeling begins")
 
     if tool in _MUTATION_TOOLS:
-        required = "script" if tool == "mcp_rhino_run_python" else "code"
-        if not str(args.get(required) or "").strip():
-            return _block(kwargs, f"{tool} requires a non-empty '{required}' argument")
-
-    if _is_mutation(tool, args):
-        if not (state["stats"] and state["query"] and state["augment"]):
-            return _block(kwargs, "modeling is locked until successful DML stats, phase-specific DML query, and CMA augment calls occur in that order")
-        if state["mutations_since_inspection"] >= 3:
-            return _block(kwargs, "three Rhino mutations occurred without inspection; call list_objects and get_viewport_image before more geometry")
-        if state["mutations_since_memory"] >= 6:
-            return _block(kwargs, "the current subphase budget is exhausted; ingest the attempt evidence, query DML, and call CMA augment before continuing")
-
-    if tool == "mcp_daystrom_dml_query" and state["mutations_since_memory"] >= 6 and not state["ingested_since_memory"]:
-        return _block(kwargs, "ingest the just-completed attempt record before querying memory for the next subphase")
-
-    if tool == "mcp_cma_augment" and not state["query"]:
-        return _block(kwargs, "CMA augment must follow a successful phase-specific DML query")
-
-    if tool == "mcp_rhino_save_doc":
-        if not state["mutations"]:
-            return _block(kwargs, "nothing agent-authored has been modeled")
-        if state["mutations_since_inspection"] or state["inspections"] < 2 or state["viewports"] < 1:
-            return _block(kwargs, "save is a phase gate: require current object inspection plus at least one viewport validation after the last mutation")
-
-    if tool.startswith("mcp_blender_") and not state["saved"]:
-        return _block(kwargs, "Blender is locked until the validated Rhino document is saved through mcp_rhino_save_doc")
+        if not str(args.get("script") or "").strip():
+            return _block(kwargs, f"{tool} requires a non-empty 'script' argument")
 
     _log("allowed", kwargs, tool_name=tool, signature=sig)
     return None
@@ -231,10 +200,6 @@ def on_post_tool_call(**kwargs: Any) -> None:
         state["listed_since_mutation"] = False
         state["viewport_since_mutation"] = False
         state["saved"] = False
-        if state["mutations_since_memory"] >= 6:
-            state["query"] = False
-            state["augment"] = False
-            state["ingested_since_memory"] = False
     elif tool in _INSPECTION_TOOLS:
         state["inspections"] += 1
         if tool == "mcp_rhino_get_viewport_image":
