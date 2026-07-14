@@ -143,6 +143,12 @@ if (Test-Path -LiteralPath $dmlPython) {
 $hermesPython = Join-Path $hermesHome 'hermes-agent\venv\Scripts\python.exe'
 $profilePlugin = Join-Path $profileRoot 'plugins\daystrom_dml\__init__.py'
 Add-Result 'Daystrom profile memory plugin' (Test-Path -LiteralPath $profilePlugin -PathType Leaf) $profilePlugin
+$controllerPlugin = Join-Path $profileRoot 'plugins\aec_demo_controller\__init__.py'
+Add-Result 'AEC phase controller plugin' (Test-Path -LiteralPath $controllerPlugin -PathType Leaf) $controllerPlugin
+$profileConfig = Join-Path $profileRoot 'config.yaml'
+$controllerEnabled = (Test-Path -LiteralPath $profileConfig -PathType Leaf) -and
+  ((Get-Content -LiteralPath $profileConfig -Raw) -match '(?m)^\s*-\s*aec_demo_controller\s*$')
+Add-Result 'AEC phase controller enabled' $controllerEnabled $profileConfig
 if (Test-Path -LiteralPath $hermesPython -PathType Leaf) {
   $priorHermesHome = $env:HERMES_HOME
   try {

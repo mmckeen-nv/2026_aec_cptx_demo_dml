@@ -46,6 +46,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("-p rtx_pro chat", launcher)
         self.assertIn("demos\\virtual_production_studio", launcher)
         self.assertIn("Test-RTX-Pro-Preflight.ps1", launcher)
+        self.assertIn("AEC_DEMO_ID = 'vp-studio-01'", launcher)
+        self.assertIn("AEC_DEMO_PHASE_MANIFEST", launcher)
 
     def test_rtx_preflight_requires_mcp_and_isolated_dml(self):
         preflight = (REPO_ROOT / "deployment" / "rtx-pro-profile" / "Test-RTX-Pro-Preflight.ps1").read_text()
@@ -117,6 +119,22 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Never call a generic tool named", contract)
         self.assertIn("../../skills/import_with_metadata.py", contract)
         self.assertNotIn("build_rhino_massing.py", contract)
+        self.assertIn("phase_manifest.yaml", contract)
+        self.assertIn("aec_demo_controller", contract)
+
+    def test_vp_phase_controller_is_packaged_and_enabled(self):
+        plugin = REPO_ROOT / "deployment" / "plugins" / "aec_demo_controller"
+        controller = (plugin / "__init__.py").read_text()
+        manifest = (REPO_ROOT / "demos" / "virtual_production_studio" / "phase_manifest.yaml").read_text()
+        installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
+        config = (REPO_ROOT / "deployment" / "rtx-pro-profile" / "config.example.yaml").read_text()
+        self.assertTrue((plugin / "plugin.yaml").is_file())
+        self.assertIn('ctx.register_hook("pre_tool_call"', controller)
+        self.assertIn('ctx.register_hook("post_tool_call"', controller)
+        self.assertIn("max_mutations_without_inspection: 3", manifest)
+        self.assertIn("Sync-AecDemoControllerPlugin", installer)
+        self.assertIn("Enable-HermesProfilePlugin", installer)
+        self.assertIn("aec_demo_controller", config)
 
     def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
         demos = {

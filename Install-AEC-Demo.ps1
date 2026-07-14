@@ -197,6 +197,34 @@ function Sync-DaystromProfilePlugin {
   }
 }
 
+function Sync-AecDemoControllerPlugin {
+  param([string]$ProfilePath)
+  $source = Join-Path $RepoRoot 'deployment\plugins\aec_demo_controller'
+  $destination = Join-Path $ProfilePath 'plugins\aec_demo_controller'
+  foreach ($name in @('__init__.py', 'plugin.yaml')) {
+    Install-ManagedFile (Join-Path $source $name) (Join-Path $destination $name)
+  }
+}
+
+function Enable-HermesProfilePlugin {
+  param([string]$ProfileConfig, [string]$PluginName)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  if ($content -match "(?m)^\s*-\s*$([regex]::Escape($PluginName))\s*$") { return }
+  $pattern = '(?m)^(\s*enabled:\s*\r?\n)'
+  if (-not [regex]::IsMatch($content, $pattern)) {
+    Write-Warning "Cannot enable $PluginName because plugins.enabled is absent: $ProfileConfig"
+    return
+  }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, "Enable Hermes plugin $PluginName")) {
+    $backup = "$ProfileConfig.bak-$PluginName-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    $updated = [regex]::Replace($content, $pattern, "`${1}  - $PluginName`r`n", 1)
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Enabled Hermes plugin $PluginName; backup: $backup"
+  }
+}
+
 function Repair-RTXProDmlIsolation {
   param([string]$ProfileConfig)
   Repair-DemoDmlIsolation $ProfileConfig 'vp-studio-01' 'vp-studio-01-runtime-store' 'cma-vp-studio-01' 'dml_mcp_server_vp_studio.cmd' 'cma_mcp_server_vp_studio.cmd'
@@ -559,6 +587,10 @@ if (-not $SkipProfiles) {
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
+        if ($profile.Name -eq 'rtx_pro') {
+          Sync-AecDemoControllerPlugin $profilePath
+          Enable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
+        }
         Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml')
         if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
         if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }
@@ -570,6 +602,10 @@ if (-not $SkipProfiles) {
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
+        if ($profile.Name -eq 'rtx_pro') {
+          Sync-AecDemoControllerPlugin $profilePath
+          Enable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
+        }
         Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml')
         if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
         if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }

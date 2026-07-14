@@ -28,6 +28,7 @@ memory:
 plugins:
   enabled:
     - daystrom_dml
+    - aec_demo_controller
   disabled: []
 
 # Installed paths are machine-specific. The installer/preflight must resolve

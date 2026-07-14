@@ -49,26 +49,33 @@ design geometry is not evidence of agent work. If it is present, stop and ask th
 operator to reopen the checked-in datum template; do not call `_New`, reuse the
 geometry, silently delete it, close the document, or spawn another Rhino slot.
 
-Before doing project work, read these files completely:
+At startup, read only this compact packet completely:
 
 - `prompts/00_workflow_and_dml.md`
 - `prompts/01_standard_vp_studio_brief.md`
 - `prompts/02_rhino_modeling_contract.md`
 - `prompts/02a_phase_site_shell.md`
-- `prompts/02b_phase_stage_led.md`
-- `prompts/02c_phase_rooms_access.md`
-- `prompts/02d_phase_rigging_cameras.md`
-- `prompts/02e_phase_electrical_mechanical.md`
-- `prompts/02f_phase_life_safety_data.md`
-- `prompts/03_asset_sourcing_contract.md`
-- `prompts/04_comfyui_stylization_contract.md`
-- `prompts/05_dml_learning_contract.md`
 - `prompts/06_mcp_operations_contract.md`
-- `prompts/07_phase_export_blender.md`
-- `../../system_prompts/07_phase_export_blender.md`
-- `../../skills/import_with_metadata.py`
-- `../../skills/validate_blender_scene.py`
-- `assets/asset_manifest.yaml`
+- `phase_manifest.yaml`
+
+Do not preload later-phase prompts, shared Blender scripts, or the asset manifest.
+After a subphase passes, read only the next prompt named by
+`phase_manifest.yaml`. Read `prompts/05_dml_learning_contract.md` when writing the
+first attempt record. Read the export, shared Blender, asset, and ComfyUI files
+only when their preceding application gate has passed. This staged loading is a
+context-control requirement, not permission to skip a contract when its phase
+becomes active.
+
+At the Rhino-to-Blender gate, load `prompts/07_phase_export_blender.md`,
+`../../system_prompts/07_phase_export_blender.md`,
+`../../skills/import_with_metadata.py`, and
+`../../skills/validate_blender_scene.py`. At the asset and stylization gates,
+load `prompts/03_asset_sourcing_contract.md`, `assets/asset_manifest.yaml`, and
+`prompts/04_comfyui_stylization_contract.md` as applicable.
+
+The installed `aec_demo_controller` plugin enforces the phase order at tool-call
+time. A blocked tool call is a corrective instruction: do not retry it unchanged.
+The controller contains no dimensions or geometry and is not a builder.
 
 Hermes starts with this demo directory as its working directory. The repository
 root is exactly `../..` relative to it. Shared scripts therefore live at

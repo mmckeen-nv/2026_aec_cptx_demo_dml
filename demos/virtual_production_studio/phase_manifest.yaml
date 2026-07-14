@@ -1,0 +1,44 @@
+project_id: vp-studio-01
+mode: agent_authored_geometry
+starting_document: source/vp_studio_01_template.3dm
+units: inches
+absolute_tolerance: 0.01
+
+startup_context:
+  - prompts/00_workflow_and_dml.md
+  - prompts/01_standard_vp_studio_brief.md
+  - prompts/02_rhino_modeling_contract.md
+  - prompts/02a_phase_site_shell.md
+  - prompts/06_mcp_operations_contract.md
+
+rhino_subphases:
+  - id: site_shell
+    prompt: prompts/02a_phase_site_shell.md
+  - id: stage_led
+    prompt: prompts/02b_phase_stage_led.md
+  - id: rooms_access
+    prompt: prompts/02c_phase_rooms_access.md
+  - id: rigging_cameras
+    prompt: prompts/02d_phase_rigging_cameras.md
+  - id: electrical_mechanical
+    prompt: prompts/02e_phase_electrical_mechanical.md
+  - id: life_safety_data
+    prompt: prompts/02f_phase_life_safety_data.md
+
+subphase_cycle:
+  - dml_stats
+  - dml_query
+  - cma_augment
+  - agent_authors_bounded_geometry
+  - object_inspection
+  - viewport_inspection
+  - record_attempt
+
+hard_gates:
+  max_mutations_without_inspection: 3
+  max_mutations_without_memory_checkpoint: 6
+  identical_failures_before_replan: 2
+  save_only_after_final_rhino_validation: true
+  blender_requires_validated_rhino_save: true
+  comfyui_requires_validated_blender_scene: true
+
