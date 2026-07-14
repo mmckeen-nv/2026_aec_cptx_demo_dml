@@ -179,6 +179,19 @@ class AecDemoControllerTests(unittest.TestCase):
                 controller.on_session_start(**self.kw)
                 self.assertTrue((Path(root) / "work" / "dml_events").is_dir())
 
+    def test_comfyui_is_blocked_until_blender_visual_pass(self):
+        request = {"command": "Invoke-RestMethod http://127.0.0.1:8188/prompt"}
+        blocked = self.pre("terminal", request)
+        self.assertIn("fresh Blender viewport", blocked["message"])
+        state = controller._STATES["test-task"]
+        state["blender_viewport_since_mutation"] = True
+        state["active_visual_app"] = "blender"
+        self.post(
+            "vision_analyze",
+            {"image_url": "C:/demo/work/blender.png", "question": "Check production scene"},
+        )
+        self.assertIsNone(self.pre("terminal", request))
+
     def test_browser_and_blender_lifecycle_recovery_are_blocked(self):
         self.assertIn("browser fallback", self.pre("browser_snapshot", {})["message"])
         blocked = self.pre("terminal", {"command": 'Blender.exe --python-expr "bpy.ops.blendermcp.start_server()"'})

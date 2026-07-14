@@ -40,6 +40,7 @@ _MUTATION_RE = re.compile(
 )
 _RHINO_CAPTURE_RE = re.compile(r"CaptureToBitmap|CaptureToFile", re.IGNORECASE)
 _LOCAL_PNG_RE = re.compile(r"(?P<path>[A-Za-z]:[\\/][^\"'\r\n]+?\.png)", re.IGNORECASE)
+_COMFY_EXECUTION_RE = re.compile(r"(?:127\.0\.0\.1:8188|localhost:8188|/prompt\b|ComfyUI)", re.IGNORECASE)
 _RHINO_UI_RECOVERY_RE = re.compile(
     r"(?:rhino(?:\.exe)?[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
     r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino)",
@@ -359,6 +360,11 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             return _block(kwargs, "the running demo may not modify Hermes configuration; report the MCP preflight blocker for host-side repair")
         if _BLENDER_RECOVERY_RE.search(payload):
             return _block(kwargs, "do not launch, configure, patch, or repair Blender/add-ons from inside the demo; report the Blender MCP preflight blocker")
+        if _COMFY_EXECUTION_RE.search(payload) and not _blender_visual_validation_ready(state):
+            return _block(
+                kwargs,
+                "ComfyUI execution requires a fresh Blender viewport screenshot and a literal PASS from vision_analyze after the latest Blender change",
+            )
 
     if tool == "mcp_rhino_open_doc":
         path = str(args.get("path") or args.get("file_path") or "").replace("\\", "/").lower()
