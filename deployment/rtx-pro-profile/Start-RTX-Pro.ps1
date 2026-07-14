@@ -28,6 +28,7 @@ if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
 
 $projectRoot = $env:AEC_DEMO_ROOT
 if (-not $projectRoot) { $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path }
+$env:AEC_DEMO_ROOT = $projectRoot
 $studioRoot = Join-Path $projectRoot 'demos\virtual_production_studio'
 if (-not (Test-Path -LiteralPath $studioRoot -PathType Container)) { throw "Virtual production project not found at $studioRoot" }
 $env:AEC_DEMO_ID = 'vp-studio-01'

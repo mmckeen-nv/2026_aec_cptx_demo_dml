@@ -30,9 +30,9 @@ Use the configured application MCP servers as stateful application bridges. Insp
   zoom, selection, open, and save tools or direct bounded Python/C#.
 - Rhino MCP 0.1.5 returns `get_viewport_image` as nested base64, not a usable
   URL. Never invent a URL and never copy that base64 into `execute_code`.
-  Continue calling `mcp_rhino_get_viewport_image` for the controller checkpoint
-  and scene metadata, then save the same active view with one read-only Rhino
-  Python call:
+  Do not loop on `mcp_rhino_get_viewport_image`. Save the active view with one
+  read-only Rhino Python call; the controller treats the successful
+  `CaptureToBitmap` call itself as the viewport checkpoint:
 
   ```python
   import System
@@ -68,6 +68,10 @@ Use the configured application MCP servers as stateful application bridges. Insp
   `../../skills/validate_blender_scene.py` for the acceptance gate. There is no
   demo-local `skills/` directory.
 - Do not substitute an improvised importer or advance to ComfyUI until object counts, metadata, units, and bounds pass.
+- Rhino and Blender visual gates are independent. After Blender mutation, call
+  `mcp_blender_get_viewport_screenshot` once, then call `vision_analyze` on that
+  screenshot's local path and require a literal PASS verdict. Never rerun Rhino
+  validation merely because Blender changed.
 
 ## Daystrom DML and CMA
 
@@ -75,7 +79,8 @@ Use the configured application MCP servers as stateful application bridges. Insp
 - Use `mcp_cma_augment` for the consequential plan after retrieval.
 - Write and ingest one compact record after a validated phase success or a real
   failure/partial mutation. Do not record every ordinary successful geometry call.
-- At every validated phase save, write one compact `work/dml_events/phase_N_state.md`
+- The launcher/controller pre-creates `work/dml_events/`. At every validated
+  phase save, write one compact `work/dml_events/phase_N_state.md`
   record capped at 1,200 characters. Include only phase, accepted decisions,
   objective counts/bounds, local viewport and `.3dm` paths, vision PASS/REVISE,
   remaining defects, and the next phase. Ingest it immediately and use this record,

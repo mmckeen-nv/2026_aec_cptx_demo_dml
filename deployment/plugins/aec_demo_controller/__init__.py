@@ -22,6 +22,8 @@ _DEMO_ID = "vp-studio-01"
 _CONTEXT_LENGTH = max(1, int(os.environ.get("AEC_DEMO_CONTEXT_LENGTH", "262144")))
 _MUTATION_TOOLS = {"mcp_rhino_run_python", "mcp_rhino_run_csharp"}
 _INSPECTION_TOOLS = {"mcp_rhino_list_objects", "mcp_rhino_get_viewport_image"}
+_BLENDER_MUTATION_TOOLS = {"mcp_blender_execute_blender_code", "mcp_blender_execute_code"}
+_BLENDER_VIEWPORT_TOOLS = {"mcp_blender_get_viewport_screenshot"}
 _MEMORY_TOOLS = {
     "mcp_daystrom_dml_stats",
     "mcp_daystrom_dml_query",
@@ -36,6 +38,8 @@ _MUTATION_RE = re.compile(
     r"SetUserString|SetUserText|CommitChanges|Layers\s*\.\s*Add)",
     re.IGNORECASE,
 )
+_RHINO_CAPTURE_RE = re.compile(r"CaptureToBitmap|CaptureToFile", re.IGNORECASE)
+_LOCAL_PNG_RE = re.compile(r"(?P<path>[A-Za-z]:[\\/][^\"'\r\n]+?\.png)", re.IGNORECASE)
 _RHINO_UI_RECOVERY_RE = re.compile(
     r"(?:rhino(?:\.exe)?[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
     r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino)",
@@ -85,6 +89,13 @@ def _fresh() -> Dict[str, Any]:
         "vision_since_viewport": False,
         "ingested_since_memory": False,
         "saved": False,
+        "rhino_handoff_ready": False,
+        "active_visual_app": "rhino",
+        "rhino_last_viewport_path": "",
+        "blender_mutations": 0,
+        "blender_viewports": 0,
+        "blender_viewport_since_mutation": False,
+        "blender_vision_since_viewport": False,
         "failures": {},
         "calls": 0,
         "api_calls": 0,
@@ -140,6 +151,22 @@ def _is_mutation(tool: str, args: Dict[str, Any]) -> bool:
     return tool in _MUTATION_TOOLS and bool(_MUTATION_RE.search(_script(args, tool)))
 
 
+def _is_rhino_capture(tool: str, args: Dict[str, Any]) -> bool:
+    return tool == "mcp_rhino_run_python" and bool(_RHINO_CAPTURE_RE.search(_script(args, tool)))
+
+
+def _captured_png(args: Dict[str, Any]) -> str:
+    match = _LOCAL_PNG_RE.search(_script(args, "mcp_rhino_run_python"))
+    return match.group("path") if match else ""
+
+
+def _vision_passed(kwargs: Dict[str, Any]) -> bool:
+    payload = json.dumps(kwargs.get("result"), ensure_ascii=False, default=str)
+    return bool(re.search(r"\bPASS\b", payload, re.IGNORECASE)) and not bool(
+        re.search(r"\b(?:REVISE|FAIL(?:ED|URE)?)\b", payload, re.IGNORECASE)
+    )
+
+
 def _visual_validation_ready(state: Dict[str, Any]) -> bool:
     return bool(
         state["listed_since_mutation"]
@@ -148,11 +175,29 @@ def _visual_validation_ready(state: Dict[str, Any]) -> bool:
     )
 
 
+def _blender_visual_validation_ready(state: Dict[str, Any]) -> bool:
+    return bool(
+        state["blender_viewport_since_mutation"]
+        and state["blender_vision_since_viewport"]
+    )
+
+
+def _ensure_runtime_dirs() -> None:
+    root = os.environ.get("AEC_DEMO_ROOT") or os.environ.get("AEC_DEMO_DIR")
+    if not root:
+        return
+    try:
+        (Path(root) / "work" / "dml_events").mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+
+
 def on_session_start(**kwargs: Any) -> None:
     if not _active():
         return
     with _LOCK:
         _STATES.setdefault(_session(kwargs), _fresh())
+    _ensure_runtime_dirs()
     _log("session_start", kwargs)
 
 
@@ -167,6 +212,7 @@ def on_session_reset(**kwargs: Any) -> None:
 def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if not _active():
         return None
+    _ensure_runtime_dirs()
     context = (
         "AEC VP SAFETY SHIM: follow the same agentic phase workflow as Cliff House, using the VP "
         "studio brief as the project-specific design input. Author bounded Rhino geometry and "
@@ -178,7 +224,8 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "At every major Rhino phase boundary, capture fresh object-list and viewport evidence after "
         "the latest geometry change. Rhino MCP 0.1.5 nests viewport bytes instead of returning a "
         "usable URL: save ActiveView.CaptureToBitmap(System.Drawing.Size(960,540)) to an absolute "
-        "PNG under work/ with a read-only mcp_rhino_run_python(script=...) call, then call "
+        "PNG under work/ with a read-only mcp_rhino_run_python(script=...) call; the controller "
+        "recognizes CaptureToBitmap as viewport evidence, so do not call get_viewport_image again. Then call "
         "vision_analyze on that local path. Never invent a URL or decode base64 with execute_code. "
         "Ask vision only for required visible elements, named defects, and a short PASS/REVISE "
         "verdict; never request a general image description. Use one final object listing per "
@@ -193,7 +240,10 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "required equipment proxy with an approved cached asset and complete actual materials plus "
         "motivated LED/key/fill/rim/practical lighting before any beauty render or ComfyUI work. "
         "Save Rhino exactly once after the final physical-layout audit. CMA success reinforcement "
-        "requires the visual pass; Blender handoff additionally requires the final gated save."
+        "requires the visual pass; Blender handoff additionally requires the final gated save. "
+        "Rhino and Blender have independent viewport/vision gates. A JSON or Markdown report is never "
+        "visual evidence. After Blender changes, capture with mcp_blender_get_viewport_screenshot and call "
+        "vision_analyze on its local image path; do not repeat Rhino validation."
     )
     return {"context": context}
 
@@ -325,9 +375,16 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         image_source = str(args.get("image_url") or "").strip()
         if not image_source or not str(args.get("question") or "").strip():
             return _block(kwargs, "vision_analyze requires the captured viewport image_url and a specific defect-review question")
-        if not state["viewport_since_mutation"]:
-            return _block(kwargs, "capture a fresh Rhino viewport after the latest mutation before vision analysis")
-        if re.match(r"^https?://", image_source, re.IGNORECASE):
+        app = str(state.get("active_visual_app") or "rhino")
+        viewport_ready = (
+            state["blender_viewport_since_mutation"]
+            if app == "blender"
+            else state["viewport_since_mutation"]
+        )
+        if not viewport_ready:
+            capture_tool = "mcp_blender_get_viewport_screenshot" if app == "blender" else "a CaptureToBitmap Rhino Python call"
+            return _block(kwargs, f"capture a fresh {app.title()} viewport with {capture_tool} after the latest mutation before vision analysis")
+        if app == "rhino" and re.match(r"^https?://", image_source, re.IGNORECASE):
             return _block(
                 kwargs,
                 "Rhino MCP 0.1.5 does not return a usable remote viewport URL; save the active view to work/*.png with ActiveView.CaptureToBitmap in a read-only Rhino Python call, then pass that absolute local path",
@@ -340,9 +397,12 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         if not _visual_validation_ready(state):
             return _block(kwargs, "CMA success reinforcement requires fresh Rhino object/vision validation after the latest mutation")
 
-    if tool in {"mcp_blender_execute_blender_code", "mcp_blender_execute_code"} and state["mutations"]:
-        if not _visual_validation_ready(state) or not state["saved"]:
-            return _block(kwargs, "Blender mutation/import requires a visually validated and successfully saved Rhino handoff")
+    if tool in _BLENDER_MUTATION_TOOLS and state["mutations"]:
+        if not state["rhino_handoff_ready"]:
+            return _block(
+                kwargs,
+                "Blender import requires a successfully saved Rhino handoff. Do exactly this once in Rhino: list_objects, save one local PNG with CaptureToBitmap, vision_analyze that PNG to a PASS verdict, then mcp_rhino_save_doc. Do not create validation JSON and do not repeat completed steps.",
+            )
 
     _log("allowed", kwargs, tool_name=tool, signature=sig)
     return None
@@ -382,21 +442,47 @@ def on_post_tool_call(**kwargs: Any) -> None:
         state["viewport_since_mutation"] = False
         state["vision_since_viewport"] = False
         state["saved"] = False
+        state["rhino_handoff_ready"] = False
+        state["active_visual_app"] = "rhino"
+    elif _is_rhino_capture(tool, args):
+        state["inspections"] += 1
+        state["viewports"] += 1
+        state["viewport_since_mutation"] = True
+        state["vision_since_viewport"] = False
+        state["active_visual_app"] = "rhino"
+        state["rhino_last_viewport_path"] = _captured_png(args)
     elif tool in _INSPECTION_TOOLS:
         state["inspections"] += 1
         if tool == "mcp_rhino_get_viewport_image":
             state["viewports"] += 1
             state["viewport_since_mutation"] = True
             state["vision_since_viewport"] = False
+            state["active_visual_app"] = "rhino"
         elif tool == "mcp_rhino_list_objects":
             state["listed_since_mutation"] = True
         # Object and viewport evidence still require a subsequent vision call.
         if state["listed_since_mutation"] and state["viewport_since_mutation"]:
             state["mutations_since_inspection"] = 0
-    elif tool == "vision_analyze" and state["viewport_since_mutation"]:
-        state["vision_since_viewport"] = True
+    elif tool in _BLENDER_MUTATION_TOOLS:
+        state["blender_mutations"] += 1
+        state["blender_viewport_since_mutation"] = False
+        state["blender_vision_since_viewport"] = False
+        state["active_visual_app"] = "blender"
+    elif tool in _BLENDER_VIEWPORT_TOOLS:
+        state["blender_viewports"] += 1
+        state["blender_viewport_since_mutation"] = True
+        state["blender_vision_since_viewport"] = False
+        state["active_visual_app"] = "blender"
+    elif tool == "vision_analyze":
+        passed = _vision_passed(kwargs)
+        if state.get("active_visual_app") == "blender" and state["blender_viewport_since_mutation"]:
+            state["blender_vision_since_viewport"] = passed
+        elif state["viewport_since_mutation"]:
+            state["vision_since_viewport"] = passed
+        _log("vision_verdict", kwargs, application=state.get("active_visual_app"), passed=passed)
     elif tool == "mcp_rhino_save_doc":
         state["saved"] = True
+        state["rhino_handoff_ready"] = _visual_validation_ready(state)
     _log("tool_ok", kwargs, tool_name=tool, signature=sig, state=state.copy())
 
 

@@ -30,12 +30,14 @@ class AecDemoControllerTests(unittest.TestCase):
     def tearDown(self):
         self.env.stop()
 
-    def post(self, tool, args=None, status="ok", error_message=None):
+    def post(self, tool, args=None, status="ok", error_message=None, result=None):
+        if result is None:
+            result = "PASS: required visible elements are present" if tool == "vision_analyze" else "ok"
         controller.on_post_tool_call(
             **self.kw,
             tool_name=tool,
             args=args or {},
-            result="ok",
+            result=result,
             status=status,
             error_message=error_message,
         )
@@ -124,6 +126,58 @@ class AecDemoControllerTests(unittest.TestCase):
             {"image_url": "https://viewer.example/fake.jpg", "question": "Any defects?"},
         )
         self.assertIn("CaptureToBitmap", blocked["message"])
+
+    def test_capture_to_bitmap_is_viewport_evidence_not_a_mutation(self):
+        mutation = self.mutation()
+        self.post("mcp_rhino_run_python", mutation)
+        self.post("mcp_rhino_list_objects", {})
+        capture = {
+            "script": "view.ActiveViewport.CaptureToBitmap(System.Drawing.Size(960,540)).Save('C:/demo/work/rhino_phase.png')"
+        }
+        self.post("mcp_rhino_run_python", capture)
+        state = controller._STATES["test-task"]
+        self.assertEqual(1, state["mutations"])
+        self.assertTrue(state["viewport_since_mutation"])
+        self.assertEqual("C:/demo/work/rhino_phase.png", state["rhino_last_viewport_path"])
+        vision = {"image_url": state["rhino_last_viewport_path"], "question": "Check the LED curve"}
+        self.assertIsNone(self.pre("vision_analyze", vision))
+
+    def test_blender_validation_does_not_invalidate_rhino_handoff(self):
+        mutation = self.mutation()
+        self.post("mcp_rhino_run_python", mutation)
+        self.post("mcp_rhino_list_objects", {})
+        self.post("mcp_rhino_get_viewport_image", {})
+        rhino_vision = {"image_url": "C:/demo/work/rhino.png", "question": "Check layout"}
+        self.post("vision_analyze", rhino_vision)
+        self.post("mcp_rhino_save_doc", {"path": "C:/demo/work/handoff.3dm"})
+        self.post("mcp_blender_execute_blender_code", {"code": "import bpy"})
+        state = controller._STATES["test-task"]
+        self.assertTrue(state["rhino_handoff_ready"])
+        self.assertTrue(state["vision_since_viewport"])
+        self.assertFalse(state["blender_vision_since_viewport"])
+        self.post("mcp_blender_get_viewport_screenshot", {"path": "C:/demo/work/blender.png"})
+        blender_vision = {"image_url": "C:/demo/work/blender.png", "question": "Check imported geometry"}
+        self.assertIsNone(self.pre("vision_analyze", blender_vision))
+        self.post("vision_analyze", blender_vision)
+        self.assertTrue(state["blender_vision_since_viewport"])
+
+    def test_revise_vision_verdict_does_not_unlock_save(self):
+        mutation = self.mutation()
+        self.post("mcp_rhino_run_python", mutation)
+        self.post("mcp_rhino_list_objects", {})
+        self.post("mcp_rhino_get_viewport_image", {})
+        vision = {"image_url": "C:/demo/work/rhino.png", "question": "Check geometry quality"}
+        self.post("vision_analyze", vision, result="REVISE: LED wall is visibly faceted")
+        state = controller._STATES["test-task"]
+        self.assertFalse(state["vision_since_viewport"])
+        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/handoff.3dm"})
+        self.assertIn("completed vision_analyze", blocked["message"])
+
+    def test_dml_runtime_directory_is_precreated(self):
+        with tempfile.TemporaryDirectory() as root:
+            with mock.patch.dict(os.environ, {"AEC_DEMO_ROOT": root}, clear=False):
+                controller.on_session_start(**self.kw)
+                self.assertTrue((Path(root) / "work" / "dml_events").is_dir())
 
     def test_browser_and_blender_lifecycle_recovery_are_blocked(self):
         self.assertIn("browser fallback", self.pre("browser_snapshot", {})["message"])

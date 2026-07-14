@@ -24,8 +24,9 @@ Both Rhino execution tools require the argument name `script`. In Python, use
   was created.
 
 `mcp_rhino_get_viewport_image` returns nested base64 rather than a usable URL.
-Never invent a URL or copy base64 into `execute_code`. After that MCP checkpoint,
-save the active view through a read-only Rhino call:
+Never invent a URL, copy base64 into `execute_code`, or loop on that tool. Save
+the active view directly through this read-only Rhino call; the controller
+recognizes the successful `CaptureToBitmap` call as the viewport checkpoint:
 
 ```python
 import System
@@ -37,8 +38,10 @@ print(image_path)
 ```
 
 Then call `vision_analyze(image_url=image_path, question=<focused defect
-review>)`. This capture method was executed successfully against the live slot.
+review>)` and require a literal PASS verdict. REVISE does not unlock saving or
+handoff. This capture method was executed successfully against the live slot.
 
 avoidance_rule: reject memories recommending `rs.LayerIndex`,
 `rs.ObjectAttributes`, `.Index` after `FindByFullPath`, invented viewer URLs,
-or base64 decoding through `execute_code`.
+base64 decoding through `execute_code`, or a redundant
+`mcp_rhino_get_viewport_image` call before `CaptureToBitmap`.
