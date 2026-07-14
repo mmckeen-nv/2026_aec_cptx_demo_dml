@@ -18,17 +18,21 @@ unobstructed shooting area, and operational buffers.
 
 ## Design decisions before modeling
 
-Choose the horseshoe orientation, center, segmentation/rationalization, opening
+Choose the horseshoe orientation, center, smooth construction method, opening
 toward support space, ceiling position, cable/service access, and relationship to
-loading and camera movement. The brief controls diameter and active height but
-does not prescribe object coordinates or segment count.
+loading and camera movement. Build a continuous curved surface/Brep with a
+consistent radius and shallow realistic depth. Panel seams must not break the
+continuous visible arc. The brief controls diameter and active height but does
+not prescribe object coordinates.
 
 ## Execution steps
 
 1. Inspect the stage interior and cite the accepted clear dimensions.
-2. Author a bounded MCP call for a manageable group of curved-wall segments;
-   inspect curvature, radius, height, names, and metadata before adding more.
-3. Continue in bounded groups until the 180-degree wall reads continuously.
+2. Author one bounded MCP call for the smooth 180-degree wall face and shallow
+   backing/support assembly; inspect curvature, radius, thickness, height, names,
+   edge continuity, and metadata.
+3. Add panel intent only as lightweight seams, material/UV divisions, or shallow
+   surface subdivisions. Never create a coarse ring of thick box panels.
 4. In separate calls, model support/service clearance, ceiling active area and
    operating envelope, central shooting zone, and optional floor alternate.
 5. Inspect from plan and stage-interior views and measure diameter/height/buffers.
@@ -37,6 +41,8 @@ does not prescribe object coordinates or segment count.
 ## Post-phase checklist
 
 - Main wall is approximately 80 ft diameter, 180 degrees, and 24 ft active height.
+- The visible wall is smooth and continuously curved, with realistic shallow
+  depth and no faceted box silhouette, radial thickness spikes, or gaps.
 - Service zone, support structure intent, and 10 ft operational buffer are legible.
 - LED ceiling is 30 ft x 20 ft with its operating envelope represented.
 - At least 50 ft x 40 ft of central shooting floor remains unobstructed.
@@ -45,4 +51,5 @@ does not prescribe object coordinates or segment count.
 ## Review gate
 
 Present plan and interior perspective evidence with measured LED and shooting-zone
-bounds. Do not proceed if the volume is merely a flat wall or blocks circulation.
+bounds. Do not proceed if the volume is flat, visibly faceted, excessively thick,
+assembled from square placeholders, discontinuous, or blocking circulation.

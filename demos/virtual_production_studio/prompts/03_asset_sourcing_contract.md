@@ -2,7 +2,12 @@
 
 ## Purpose
 
-Third-party production equipment and set dressing belong in Blender, not in the authoritative Rhino architectural model. Rhino contains named proxy boxes, envelopes, and clearances; Blender replaces approved proxies with detailed assets after the Rhino-to-Blender gate passes.
+Third-party production equipment and set dressing belong in Blender, not in the
+authoritative Rhino architectural model. Rhino may contain named lightweight
+proxy volumes, movement envelopes, and clearances, but these are coordination
+objects—not finished visible equipment. After the Rhino-to-Blender gate, Blender
+must replace every visible required proxy with its approved detailed cached asset.
+Do not present proxy boxes as a finished scene.
 
 ## License policy
 
@@ -29,6 +34,17 @@ License metadata can change. Before every download, reopen the source page and v
 9. Create an optimized linked/collection instance for the production scene. Preserve the untouched imported collection, disabled from render.
 10. Add the actually used asset and any modifications to `assets/ATTRIBUTIONS.md`.
 11. Ingest the validated asset record into DML. Reinforce only if the import and render test pass.
+
+## Required replacement gate
+
+- Map proxy names/roles to manifest keys before importing assets.
+- Required visible roles include cinema camera/tripod, production/director
+  seating, control-room seating/monitors, practical LED lights/stands, and road cases.
+- Preserve the proxy transform and clearance intent when placing the detailed asset.
+- Hide the corresponding proxy from render only after the replacement asset is
+  present, correctly scaled, grounded, oriented, and visually inspected.
+- Fail the Blender beauty gate if a required visible proxy remains as a cube,
+  cuboid, generic cylinder, or other placeholder silhouette.
 
 ## Performance budgets
 

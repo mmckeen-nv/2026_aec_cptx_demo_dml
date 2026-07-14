@@ -52,11 +52,24 @@ class VpRhinoAgenticContractTests(unittest.TestCase):
         self.assertIn("six operator chairs", brief)
         self.assertIn("12 movable production chairs", brief)
 
+    def test_backend_requires_smooth_led_assets_and_lighting(self):
+        brief = (DEMO / "prompts" / "01_standard_vp_studio_brief.md").read_text(encoding="utf-8")
+        led = (DEMO / "prompts" / "02b_phase_stage_led.md").read_text(encoding="utf-8")
+        assets = (DEMO / "prompts" / "03_asset_sourcing_contract.md").read_text(encoding="utf-8")
+        handoff = (DEMO / "prompts" / "07_phase_export_blender.md").read_text(encoding="utf-8")
+        self.assertIn("thin, smooth, continuous curve", brief)
+        self.assertIn("Never create a coarse ring of thick box panels", led)
+        self.assertIn("must replace every visible required proxy", assets)
+        self.assertIn("key, fill, rim/backlight", handoff)
+        self.assertIn("block ComfyUI", handoff)
+
     def test_current_dml_policy_supersedes_builder_recipe(self):
         policy = (DEMO / "knowledge" / "dml" / "rhino_agent_authored_workflow_current_20260713.md").read_text(encoding="utf-8")
         self.assertIn("status: CURRENT_POLICY", policy)
         self.assertIn("supersedes: build_rhino_massing.py", policy)
         self.assertIn("target 98 objects", policy)
+        self.assertIn("thin smooth continuous curved assembly", policy)
+        self.assertIn("replace every visible required", policy)
 
     def test_blender_handoff_policy_names_real_tool_and_paths(self):
         policy = (DEMO / "knowledge" / "dml" / "blender_handoff_tool_contract_current_20260713.md").read_text(encoding="utf-8")

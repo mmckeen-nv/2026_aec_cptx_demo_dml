@@ -29,6 +29,11 @@ Use US customary dimensions and model in Rhino inches. Use absolute tolerance
 ## Stage and LED volume
 
 - Main LED wall: 180-degree horseshoe, 80 ft nominal diameter, 24 ft active height.
+- The visible LED face must be a thin, smooth, continuous curve with consistent
+  radius and realistic shallow assembly depth. Never build the finished wall as
+  thick cuboids, a coarse faceted ring, or disconnected square placeholders.
+- If panel modules are shown, express them as lightweight seams, UV/material
+  divisions, or shallow surface subdivisions that preserve the smooth arc.
 - Wall planning module: 500 mm x 500 mm.
 - Provide a 6 ft minimum service zone behind the wall and visible support depth.
 - LED ceiling: 30 ft x 20 ft active area at nominal 24 ft trim, with a 16-32 ft
@@ -67,7 +72,19 @@ attachments, fall protection, and rigging engineering are outside this demo.
 - Keep furniture and equipment outside camera movement, scenery, loading,
   LED-service, and clear-circulation routes.
 - Rhino owns simple named proxy volumes. Blender replaces or supplements these
-  with cached Creative Commons assets; do not detail furniture in Rhino.
+  with cached Creative Commons assets; do not detail furniture in Rhino. Every
+  visible required proxy must be replaced before the final Blender beauty render.
+
+## Blender presentation and lighting baseline
+
+- Assign readable architectural, LED, floor, glazing, metal, fabric, and equipment materials.
+- Make the LED wall visibly emissive and use it as motivated environmental light.
+- Add a deliberate studio rig with key, fill, rim/backlight, practical soft
+  panels, and restrained ambient/world illumination.
+- Produce a stage-wide hero composition where the curved LED wall, cameras,
+  chairs, workstations, rigging, and equipment read immediately.
+- Flat default lighting, unassigned gray materials, and visible box proxies fail
+  the Blender presentation gate.
 
 ## Estimated electrical load note — documentation only
 

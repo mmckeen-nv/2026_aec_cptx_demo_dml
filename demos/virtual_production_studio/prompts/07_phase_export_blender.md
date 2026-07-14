@@ -42,6 +42,24 @@ The registered Blender tools include `mcp_blender_get_scene_info`,
    Advance only when counts, per-object metre bounds, metadata, names, faces, and
    visual validation all pass.
 
+## Required production-scene pass after import
+
+The handoff gate preserves Rhino geometry; it is not the final beauty scene.
+Immediately after a passing import:
+
+1. Read `03_asset_sourcing_contract.md`, `assets/asset_manifest.yaml`, and
+   `assets/cache/cache_index.json`.
+2. Replace visible Rhino equipment/furniture proxies with approved cached
+   cameras, tripods, chairs, monitors, lights/stands, and road cases while
+   preserving their intended transforms and clearances.
+3. Assign actual Blender material slots. Make the smooth curved LED face
+   emissive; do not rebuild it as box panels in Blender.
+4. Add motivated studio lighting: LED contribution, key, fill, rim/backlight,
+   practical soft panels, and restrained ambient/world light.
+5. Capture and inspect a stage-wide hero viewport/render. Visible proxy boxes,
+   flat gray shading, default lighting, broken LED curvature, or missing required
+   equipment fail the production-scene gate and block ComfyUI.
+
 ## Autonomous repair rule
 
 `Rhino.Geometry.Mesh.CreateFromBrep(brep, params)` returns `Mesh[]`. Join every

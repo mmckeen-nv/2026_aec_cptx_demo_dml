@@ -40,6 +40,14 @@ and physical production equipment/furniture layout. Do not model electrical,
 mechanical, fire-protection, or data-distribution systems. Their only deliverable
 is the brief's compact estimated-load note.
 
+Finished architectural geometry must be recognizable, dimensionally credible,
+and visually composed; anonymous boxes are not an acceptable final design. The
+LED wall is a thin, smooth, continuous curved assembly. Do not approximate its
+visible face with thick blocks or a faceted ring of square boxes. Rhino may use
+named lightweight proxies only for third-party props that the Blender phase then
+replaces with approved cached assets. No visible proxy may remain in the final
+Blender beauty scene when a required cached asset is available.
+
 Use the working Cliff House rhythm: inspect the application, make a meaningful
 bounded change, and inspect again at design checkpoints. Do not impose arbitrary
 mutation counts. Save useful timestamped checkpoints with `mcp_rhino_save_doc`;
@@ -136,7 +144,10 @@ missing mass, scale drift, or bounds inconsistent with Rhino fail the handoff.
 
 Detailed Creative Commons equipment enters only in Blender from
 `assets/asset_manifest.yaml`; Rhino uses proxy volumes. Preserve attribution and
-license metadata. ComfyUI uses approved Blender renders as geometry authority and
+license metadata. Blender must replace visible camera, tripod, chair, light,
+monitor, cart/case, and workstation proxies with approved cached assets before
+the beauty-render gate. Blender also owns a deliberate studio-lighting pass with
+motivated key/fill/rim/practical fixtures and an emissive LED volume. ComfyUI uses approved Blender renders as geometry authority and
 does not replace the modeled design.
 
 The estimated electrical load, rigging, structural, fire/life-safety,

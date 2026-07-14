@@ -188,6 +188,10 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "phase, ingest one <=1200-character DML state record and begin the next phase with one "
         "targeted DML query plus CMA augmentation. A captured image without completed "
         "vision_analyze is not validation. "
+        "The LED wall must be a thin smooth continuous curve, never thick box panels. Finished "
+        "architecture cannot be anonymous boxes. After Blender import, replace every visible "
+        "required equipment proxy with an approved cached asset and complete actual materials plus "
+        "motivated LED/key/fill/rim/practical lighting before any beauty render or ComfyUI work. "
         "Save Rhino exactly once after the final physical-layout audit. CMA success reinforcement "
         "requires the visual pass; Blender handoff additionally requires the final gated save."
     )

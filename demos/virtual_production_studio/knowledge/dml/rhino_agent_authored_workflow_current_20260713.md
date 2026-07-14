@@ -10,6 +10,8 @@ required_method: Read the brief and current phase prompt; query DML; augment the
 prohibited_method: Do not execute a checked-in geometry builder, import a JSON object schedule, call exec(open(...)) for geometry, copy an earlier complete 3dm, target 98 objects, or build the studio in one MCP call.
 validation_policy: Use dynamic object counts and semantic gates for dimensions, names, layers, metadata, phase completeness, and viewport evidence. The Rhino-to-Blender source count is whatever the accepted agent-authored Rhino model contains.
 scope_policy: Model only the building, LED volume, rooms/access, rigging, cameras, chairs, workstations, and physical production equipment. Electrical/HVAC/data/fire systems are documentation-only and must not become geometry.
+quality_policy: Finished architecture must be recognizable geometry, not anonymous boxes. Build the LED wall as a thin smooth continuous curved assembly; panel intent must not create a thick faceted ring of cuboids.
+blender_policy: After the metadata-preserving handoff, replace every visible required equipment/furniture proxy with approved cached assets, assign actual materials, and complete motivated LED/key/fill/rim/practical lighting before beauty rendering or ComfyUI.
 load_note_policy: Write work/vp_studio_01_estimated_load.md with transparent planning arithmetic; do not infer a service size or engineering design.
 save_policy: Do not save periodically. Save exactly once through mcp_rhino_save_doc after all four Rhino subphases and the full audit pass.
 dml_policy: Historical builder successes remain factual records of earlier runs but are obsolete as reusable recipes and must not control a new run.

@@ -86,6 +86,13 @@ Gate:
 
 Blender owns render-specific work: mesh cleanup, UVs, materials, emissive LED content, practical fixtures, camera bodies and lenses, tracking markers, lighting, animation, and render passes. Keep architectural dimensions synchronized with Rhino; architectural changes go back to Rhino first.
 
+The first Blender production task is mandatory proxy replacement using the
+approved cache. A technically correct `.3dm` import is not presentation-ready.
+No visible required camera, tripod, chair, workstation/monitor, practical light,
+or road case may remain a generic box in the beauty scene. Require a smooth
+emissive LED wall, actual material slots, and deliberate key/fill/rim/practical
+lighting before advancing to ComfyUI.
+
 Produce at least:
 
 - Exterior establishing camera.
