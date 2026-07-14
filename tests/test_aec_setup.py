@@ -132,9 +132,18 @@ class SetupTests(unittest.TestCase):
         self.assertIn("mcp_blender_execute_blender_code", handoff)
         self.assertIn("No tool named `run` exists", handoff)
         self.assertIn("../../skills/import_with_metadata.py", handoff)
+        self.assertIn("never use", handoff.lower())
+        self.assertIn("only `parts[0]`", handoff)
         self.assertNotIn("ToFloatArray", importer)
         self.assertNotIn("ToIntArray", importer)
         self.assertIn("unit_scale_to_meters", importer)
+
+        validator = (REPO_ROOT / "skills" / "validate_blender_scene.py").read_text()
+        detector = (REPO_ROOT / "skills" / "coplanar_detector.py").read_text()
+        self.assertIn("require_material_slots=False", validator)
+        self.assertIn("objects_missing_material_metadata", validator)
+        self.assertIn("opposed_contact", detector)
+        self.assertIn("same_facing", detector)
 
     def test_comfyui_contract_uses_verified_blender_asset_handoff(self):
         contract = (

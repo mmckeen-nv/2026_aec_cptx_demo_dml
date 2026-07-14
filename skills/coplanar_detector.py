@@ -2,7 +2,9 @@
 
 Bucket every axis-aligned face from every visible mesh by (axis, world_offset).
 Pairs of faces from DIFFERENT objects landing in the same bucket with overlapping
-projections are literal coplanar z-fights, regardless of rendering.
+projections are classified by face direction. Same-facing overlaps are potential
+visible z-fights. Opposed faces are normally intentional contact boundaries
+between adjacent architectural solids and are reported separately.
 
 Usage:
     import sys
@@ -35,7 +37,9 @@ def run(normal_tol=0.97, offset_resolution=0.005,
                     area = (amx - amn) * (bmx - bmn)
                     if area < min_face_area: break
                     key = (ax, round(offset / offset_resolution))
-                    buckets[key].append((obj.name, offset, amn, amx, bmn, bmx, area))
+                    normal_sign = 1 if n[ax] >= 0 else -1
+                    buckets[key].append((obj.name, offset, amn, amx, bmn, bmx,
+                                         area, normal_sign))
                     break
 
     pairs = []
@@ -57,6 +61,9 @@ def run(normal_tol=0.97, offset_resolution=0.005,
                     "plane_offset": (f1[1] + f2[1]) / 2,
                     "obj1": f1[0],
                     "obj2": f2[0],
+                    "same_facing": f1[7] == f2[7],
+                    "relationship": "potential_zfight" if f1[7] == f2[7]
+                                    else "opposed_contact",
                 })
     pairs.sort(key=lambda p: -p["overlap_m2"])
     offender_counter = Counter()
@@ -64,10 +71,14 @@ def run(normal_tol=0.97, offset_resolution=0.005,
         offender_counter[p["obj1"]] += 1
         offender_counter[p["obj2"]] += 1
     if verbose:
-        print(f"Coplanar face pairs (>{min_overlap_area}m^2 overlap): {len(pairs)}")
+        zfight_count = sum(1 for p in pairs if p["same_facing"])
+        contact_count = len(pairs) - zfight_count
+        print(f"Coplanar face pairs (>{min_overlap_area}m^2 overlap): {len(pairs)} "
+              f"({zfight_count} potential z-fights, {contact_count} opposed contacts)")
         for p in pairs[:25]:
             print(f"  {p['overlap_m2']:6.2f}m^2 gap={p['gap_mm']:.1f}mm "
-                  f"{p['axis']}={p['plane_offset']:.3f}  [{p['obj1']}] <-> [{p['obj2']}]")
+                  f"{p['axis']}={p['plane_offset']:.3f} {p['relationship']}  "
+                  f"[{p['obj1']}] <-> [{p['obj2']}]")
         print("\nTop offenders by conflict count:")
         for name, c in offender_counter.most_common(20):
             print(f"  {c:3d}  {name}")

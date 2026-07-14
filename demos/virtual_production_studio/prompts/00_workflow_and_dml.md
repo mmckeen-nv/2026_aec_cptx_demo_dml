@@ -48,6 +48,8 @@ contract.
 Gate:
 
 - No silent skipped Breps, Meshes, or Extrusions.
+- Every per-object render mesh matches its source Brep bounding box on all axes;
+  no `Mesh.CreateFromBrep` result may keep only the first returned part.
 - Required architectural objects are present in Blender.
 - Scale and world origin match Rhino.
 - Missing materials, duplicate names, and critical overlaps fail validation.
@@ -58,6 +60,10 @@ Gate:
   Convert inches to meters exactly once.
 - Face indices, non-degenerate faces, and connected-component/object counts pass
   before materials, lighting, cameras, or renders are created.
+- Plan and axonometric viewport screenshots visibly show the full studio rather
+  than edge-on or flattened sheets. The agent inspects both images before passing.
+- The handoff gate checks `material` custom-property metadata. Empty Blender
+  material slots are informational until the dedicated material phase.
 
 ## Phase 3: Blender production scene
 

@@ -56,6 +56,13 @@ class VpRhinoAgenticContractTests(unittest.TestCase):
         self.assertIn("../../skills/import_with_metadata.py", policy)
         self.assertIn("no generic `run` tool", policy)
 
+    def test_handoff_memory_rejects_first_mesh_part_and_count_only_gate(self):
+        policy = (DEMO / "knowledge" / "dml" / "rhino_mesh_first_part_failure_20260713.md").read_text(encoding="utf-8")
+        self.assertIn("status: CURRENT_POLICY", policy)
+        self.assertIn("retained only the first face mesh", policy)
+        self.assertIn("bounding-box parity", policy)
+        self.assertIn("count equality alone never passes", policy)
+
 
 if __name__ == "__main__":
     unittest.main()

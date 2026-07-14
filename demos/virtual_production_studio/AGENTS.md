@@ -115,6 +115,22 @@ render-meshed Brep count, and confirm `UnitSystem.Inches`. The importer
 converts inches to metres exactly once and preserves Rhino names, layers, and User
 Text.
 
+Count equality alone is not a handoff pass. `Mesh.CreateFromBrep` returns an
+array of face meshes. For each managed Brep, the agent must append every returned
+part into one joined mesh; using only `parts[0]` is a known failure. Before save,
+compare each joined mesh with its source Brep: names/IDs, metadata, nonempty
+vertices/faces, and bounding-box min/max and per-axis extents must agree within
+tolerance. A source dimension that becomes zero or materially shrinks fails the
+handoff. The agent must repair failed mesh generation through a bounded Rhino MCP
+call, revalidate, and retry with a changed approach; it must not advance or ask an
+external agent to compensate in Blender.
+
+After import, call `mcp_blender_get_viewport_screenshot` from at least an
+axonometric and plan view and inspect the images. Flat sheets, missing plan depth,
+an absent building shell, or bounds inconsistent with Rhino fail even when object
+counts match. Phase-7 validation requires the `material` custom property; actual
+Blender material slots are assigned and required in the later material phase.
+
 If a timed-out interactive Rhino command leaves the application waiting for
 input, cancel that command and recheck the existing slot. Do not infer that
 `run_python` is broken, spawn a replacement slot, or change the MCP installation.

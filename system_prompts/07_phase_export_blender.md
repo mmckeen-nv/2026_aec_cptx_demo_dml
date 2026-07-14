@@ -216,6 +216,11 @@ This script:
 - Sets `obj["rhino_layer"]` custom property for segmentation pass use
 - Organises the scene hierarchy — each Rhino layer becomes a collection
 
+Before import, prove every generated mesh matches its source Brep's bounding box
+on all axes. `Rhino.Geometry.Mesh.CreateFromBrep` returns an array: append every
+part into one mesh and never keep only the first element. Equal source and mesh
+counts do not prove geometric parity.
+
 **Do NOT attempt to import via File → Import FBX/OBJ.**
 The `rhino3dm` approach is the only method that preserves metadata.
 
@@ -223,6 +228,8 @@ After import, confirm in the Blender outliner:
 - All expected objects are present
 - Objects are organised into collections matching Rhino layer names
 - No objects at world origin that should be elsewhere
+- Plan and axonometric screenshots show the complete building and rooms, not
+  flattened or edge-on sheets
 
 ### Step 6 — Set rotation_mode = 'XYZ' on all imports
 
@@ -243,7 +250,10 @@ This must be run before any transform work.
 
 Use `mcp_blender_execute_blender_code(code=...)` to load repository-root
 `skills/validate_blender_scene.py` into a namespace with `__file__` set, then call
-its `validate()` function. Do not call a generic `run` tool.
+its `validate(require_material_slots=False)` function. Do not call a generic
+`run` tool. Material metadata is required at handoff; actual Blender slots become
+mandatory only after the material-assignment phase, which calls
+`validate(require_material_slots=True)`.
 This script checks:
 - Every mesh has the `material` custom property set
 - No objects at world origin (un-imported stubs)

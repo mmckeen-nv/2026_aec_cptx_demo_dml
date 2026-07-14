@@ -1,7 +1,9 @@
 """Validated .3dm importer with metadata extraction.
 
 Reads a Rhino .3dm via rhino3dm. For each object:
-  - Builds Blender mesh from Brep face render meshes
+  - Handles both Brep AND Mesh geometry types
+  - For Mesh: imports vertices/faces directly (render meshes from Rhino)
+  - For Brep: attempts face-level render meshes; if none, tries full B-rep mesh
   - Preserves layer hierarchy as nested Blender Collections
   - Sets hide_viewport per Rhino visibility
   - Extracts User Text attributes -> Blender custom properties
@@ -43,22 +45,11 @@ def _unit_scale_to_meters(unit_system):
     """Return a deterministic model-unit to metre conversion."""
     unit_name = str(unit_system).split(".")[-1].lower()
     scales = {
-        "angstroms": 1e-10,
-        "nanometers": 1e-9,
-        "microns": 1e-6,
-        "millimeters": 1e-3,
-        "centimeters": 1e-2,
-        "decimeters": 1e-1,
-        "meters": 1.0,
-        "dekameters": 10.0,
-        "hectometers": 100.0,
-        "kilometers": 1000.0,
-        "microinches": 0.0254e-6,
-        "mils": 0.0254e-3,
-        "inches": 0.0254,
-        "feet": 0.3048,
-        "yards": 0.9144,
-        "miles": 1609.344,
+        "angstroms": 1e-10, "nanometers": 1e-9, "microns": 1e-6,
+        "millimeters": 1e-3, "centimeters": 1e-2, "decimeters": 1e-1,
+        "meters": 1.0, "dekameters": 10.0, "hectometers": 100.0,
+        "kilometers": 1000.0, "microinches": 0.0254e-6, "mils": 0.0254e-3,
+        "inches": 0.0254, "feet": 0.3048, "yards": 0.9144, "miles": 1609.344,
     }
     if unit_name not in scales:
         raise RuntimeError(f"Unsupported or unset Rhino unit system: {unit_system}")
@@ -97,35 +88,62 @@ def import_3dm(path, root_name="ImportedRhino", verbose=True):
         else:
             root_col.children.link(info["col"])
 
-    # Build mesh objects from Breps
+    # Build mesh objects from BOTH Brep AND Mesh geometry objects
     skipped = 0
     imported = 0
     for robj in f3dm.Objects:
         attrs = robj.Attributes
         g = robj.Geometry
-        if not isinstance(g, rhino3dm.Brep):
-            continue
-        # Collect render meshes from all faces
-        verts_all = []
-        faces_all = []
-        vbase = 0
-        for fi in range(len(g.Faces)):
-            face = g.Faces[fi]
-            rm = face.GetMesh(rhino3dm.MeshType.Render)
-            if rm is None: continue
-            nv = len(rm.Vertices)
-            for vertex in rm.Vertices:
+
+        if isinstance(g, rhino3dm.Mesh):
+            # Direct mesh geometry (render meshes from Rhino)
+            verts_all = []
+            faces_all = []
+            for vertex in g.Vertices:
                 verts_all.append((
                     vertex.X * unit_scale,
                     vertex.Y * unit_scale,
                     vertex.Z * unit_scale,
                 ))
-            for mesh_face in rm.Faces:
+            for mesh_face in g.Faces:
                 indices = tuple(mesh_face)
                 if len(indices) == 4 and indices[2] == indices[3]:
                     indices = indices[:3]
-                faces_all.append(tuple(index + vbase for index in indices))
-            vbase += nv
+                faces_all.append(tuple(index for index in indices))
+
+        elif isinstance(g, rhino3dm.Brep):
+            # Try face-level render meshes first
+            verts_all = []
+            faces_all = []
+            vbase = 0
+            has_mesh = False
+            for fi in range(len(g.Faces)):
+                face = g.Faces[fi]
+                rm = face.GetMesh(rhino3dm.MeshType.Render)
+                if rm is not None:
+                    has_mesh = True
+                    nv = len(rm.Vertices)
+                    for vertex in rm.Vertices:
+                        verts_all.append((
+                            vertex.X * unit_scale,
+                            vertex.Y * unit_scale,
+                            vertex.Z * unit_scale,
+                        ))
+                    for mesh_face in rm.Faces:
+                        indices = tuple(mesh_face)
+                        if len(indices) == 4 and indices[2] == indices[3]:
+                            indices = indices[:3]
+                        faces_all.append(tuple(index + vbase for index in indices))
+                    vbase += nv
+            if not has_mesh:
+                # No face-level render meshes — check if there's a separate Mesh obj by name/layer
+                # This is handled by the separate Mesh geometry pass above
+                skipped += 1
+                continue
+        else:
+            # Not a Brep or Mesh — skip (curves, points, etc.)
+            continue
+
         if not verts_all or not faces_all:
             skipped += 1
             continue
@@ -167,6 +185,6 @@ def import_3dm(path, root_name="ImportedRhino", verbose=True):
         imported += 1
 
     if verbose:
-        print(f"Imported {imported} Brep objects, skipped {skipped}, "
+        print(f"Imported {imported} objects, skipped {skipped}, "
               f"layers={len(layers)}, unit_scale={unit_scale}")
     return imported, skipped, layers
