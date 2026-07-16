@@ -15,9 +15,10 @@ Use US customary dimensions and model in Rhino inches. Use absolute tolerance
 
 ## Site and building baseline
 
-- Concept lot: 300 ft x 400 ft, approximately 2.75 acres.
-- Main building: approximately 180 ft x 150 ft, 27,000 gross sq ft.
-- Clear soundstage: at least 120 ft x 100 ft and 40 ft clear to the grid.
+- Concept lot: exactly 300 ft x 400 ft for this demo.
+- Main building: exactly 180 ft x 150 ft, 27,000 gross sq ft.
+- Soundstage planning zone: exactly 120 ft x 100 ft and clear below the grid
+  datum at 40 ft.
 - Ancillary bar: control room, edit/color, media-server room, camera prep,
   wardrobe/makeup, green rooms, production office, shop/storage, and toilets.
 - Loading: two 14 ft x 16 ft overhead doors, a 60 ft truck apron, and a scenery
@@ -28,19 +29,19 @@ Use US customary dimensions and model in Rhino inches. Use absolute tolerance
 
 ## Stage and LED volume
 
-- Main LED wall: 180-degree horseshoe, 80 ft nominal diameter, 24 ft active height.
+- Main LED wall: exactly 180 degrees, 40 ft active-face radius, and 24 ft active height.
 - The visible LED face must be a thin, smooth, continuous curve with consistent
   radius and realistic shallow assembly depth. Never build the finished wall as
   thick cuboids, a coarse faceted ring, or disconnected square placeholders.
 - If panel modules are shown, express them as lightweight seams, UV/material
   divisions, or shallow surface subdivisions that preserve the smooth arc.
 - Wall planning module: 500 mm x 500 mm.
-- Provide a 6 ft minimum service zone behind the wall and visible support depth.
-- LED ceiling: 30 ft x 20 ft active area at nominal 24 ft trim, with a 16-32 ft
-  operating envelope.
-- Optional LED floor proxy: 40 ft x 30 ft.
-- Preserve at least 50 ft x 40 ft of unobstructed central shooting floor.
-- Keep a 10 ft preferred talent/key-light stand-off from the LED wall.
+- Provide exactly 6 ft of scheduled service clearance beyond the 18 in rear
+  support depth.
+- LED ceiling: exactly 30 ft x 20 ft active area at 24 ft trim.
+- LED floor proxy: exactly 40 ft x 30 ft.
+- Preserve the exact talent and shooting zones in the locked scene manifest.
+- Use the locked 10 ft talent/key-light stand-off.
 - Include tracking-marker datums, calibration-target storage, removable scenery
   zones, protected cable crossings, and equipment parking outside camera paths.
 

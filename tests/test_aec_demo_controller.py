@@ -55,20 +55,11 @@ class AecDemoControllerTests(unittest.TestCase):
         blocked = self.pre("mcp_rhino_run_python", {})
         self.assertIn("non-empty 'script'", blocked["message"])
 
-    def test_mutation_is_not_quota_gated_but_phase_transitions_need_visual_evidence(self):
+    def test_mutation_save_and_phase_transition_are_not_ceremony_gated(self):
         for index in range(12):
             args = self.mutation(str(index))
             self.assertIsNone(self.pre("mcp_rhino_run_python", args))
             self.post("mcp_rhino_run_python", args)
-        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"})
-        self.assertIn("completed vision_analyze", blocked["message"])
-        self.post("mcp_rhino_list_objects", {})
-        self.post("mcp_rhino_get_viewport_image", {})
-        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"})
-        self.assertIn("completed vision_analyze", blocked["message"])
-        vision = {"image_url": "C:/demo/work/viewport.png", "question": "Check massing and collisions"}
-        self.assertIsNone(self.pre("vision_analyze", vision))
-        self.post("vision_analyze", vision)
         save_args = {"path": "C:/demo/work/checkpoint.3dm"}
         self.assertIsNone(self.pre("mcp_rhino_save_doc", save_args))
         self.post("mcp_rhino_save_doc", save_args)
@@ -76,15 +67,11 @@ class AecDemoControllerTests(unittest.TestCase):
         self.assertIsNone(self.pre("mcp_blender_execute_blender_code", {"code": "print('import')"}))
         self.assertIsNone(self.pre("mcp_cma_reinforce", {"evidence": "passed"}))
 
-    def test_reinforce_uses_visual_gate_while_blender_requires_final_save(self):
+    def test_reinforce_is_advisory_while_blender_requires_a_save(self):
         args = self.mutation()
         self.post("mcp_rhino_run_python", args)
-        self.post("mcp_rhino_list_objects", {})
-        self.post("mcp_rhino_get_viewport_image", {})
-        vision = {"image_url": "C:/demo/work/viewport.png", "question": "Check the phase"}
-        self.post("vision_analyze", vision)
         self.assertIsNone(self.pre("mcp_cma_reinforce", {}))
-        self.assertIn("successfully saved Rhino handoff", self.pre("mcp_blender_execute_blender_code", {"code": "x"})["message"])
+        self.assertIn("saved Rhino .3dm", self.pre("mcp_blender_execute_blender_code", {"code": "x"})["message"])
 
     def test_python_and_csharp_both_use_script_argument(self):
         for tool in ("mcp_rhino_run_python", "mcp_rhino_run_csharp"):
@@ -104,28 +91,26 @@ class AecDemoControllerTests(unittest.TestCase):
             blocked = self.pre("mcp_rhino_run_command", {"command": command})
             self.assertIn("Rhino command macros are prohibited", blocked["message"])
 
-    def test_viewport_capture_without_vision_is_not_validation(self):
+    def test_save_is_allowed_when_vision_is_temporarily_unavailable(self):
         args = self.mutation()
         self.post("mcp_rhino_run_python", args)
         self.post("mcp_rhino_list_objects", {})
-        self.post("mcp_rhino_get_viewport_image", {})
-        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"})
-        self.assertIn("completed vision_analyze", blocked["message"])
+        self.assertIsNone(self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"}))
 
-    def test_vision_requires_fresh_viewport_and_complete_arguments(self):
+    def test_vision_requires_complete_arguments_but_not_controller_bookkeeping(self):
         self.assertIn("image_url", self.pre("vision_analyze", {})["message"])
-        self.assertIn(
-            "fresh Rhino viewport",
-            self.pre("vision_analyze", {"image_url": "x.png", "question": "inspect"})["message"],
-        )
+        self.assertIsNone(self.pre("vision_analyze", {"image_url": "x.png", "question": "inspect"}))
 
     def test_vision_rejects_invented_remote_rhino_url(self):
-        self.post("mcp_rhino_get_viewport_image", {})
         blocked = self.pre(
             "vision_analyze",
             {"image_url": "https://viewer.example/fake.jpg", "question": "Any defects?"},
         )
         self.assertIn("CaptureToBitmap", blocked["message"])
+
+    def test_large_inline_viewport_tool_is_redirected_to_local_png(self):
+        blocked = self.pre("mcp_rhino_get_viewport_image", {})
+        self.assertIn("local-PNG", blocked["message"])
 
     def test_capture_to_bitmap_is_viewport_evidence_not_a_mutation(self):
         mutation = self.mutation()
@@ -146,7 +131,7 @@ class AecDemoControllerTests(unittest.TestCase):
         mutation = self.mutation()
         self.post("mcp_rhino_run_python", mutation)
         self.post("mcp_rhino_list_objects", {})
-        self.post("mcp_rhino_get_viewport_image", {})
+        self.post("mcp_rhino_run_python", {"script": "view.ActiveViewport.CaptureToBitmap(size).Save('C:/demo/work/rhino.png')"})
         rhino_vision = {"image_url": "C:/demo/work/rhino.png", "question": "Check layout"}
         self.post("vision_analyze", rhino_vision)
         self.post("mcp_rhino_save_doc", {"path": "C:/demo/work/handoff.3dm"})
@@ -161,17 +146,17 @@ class AecDemoControllerTests(unittest.TestCase):
         self.post("vision_analyze", blender_vision)
         self.assertTrue(state["blender_vision_since_viewport"])
 
-    def test_revise_vision_verdict_does_not_unlock_save(self):
+    def test_revise_vision_verdict_is_recorded_but_does_not_destroy_checkpointing(self):
         mutation = self.mutation()
         self.post("mcp_rhino_run_python", mutation)
         self.post("mcp_rhino_list_objects", {})
-        self.post("mcp_rhino_get_viewport_image", {})
+        capture = {"script": "view.ActiveViewport.CaptureToBitmap(size).Save('C:/demo/work/rhino.png')"}
+        self.post("mcp_rhino_run_python", capture)
         vision = {"image_url": "C:/demo/work/rhino.png", "question": "Check geometry quality"}
         self.post("vision_analyze", vision, result="REVISE: LED wall is visibly faceted")
         state = controller._STATES["test-task"]
         self.assertFalse(state["vision_since_viewport"])
-        blocked = self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/handoff.3dm"})
-        self.assertIn("completed vision_analyze", blocked["message"])
+        self.assertIsNone(self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/handoff.3dm"}))
 
     def test_dml_runtime_directory_is_precreated(self):
         with tempfile.TemporaryDirectory() as root:
@@ -179,18 +164,13 @@ class AecDemoControllerTests(unittest.TestCase):
                 controller.on_session_start(**self.kw)
                 self.assertTrue((Path(root) / "work" / "dml_events").is_dir())
 
-    def test_comfyui_is_blocked_until_blender_visual_pass(self):
+    def test_comfyui_is_not_controller_gated_by_visual_bookkeeping(self):
         request = {"command": "Invoke-RestMethod http://127.0.0.1:8188/prompt"}
-        blocked = self.pre("terminal", request)
-        self.assertIn("fresh Blender viewport", blocked["message"])
-        state = controller._STATES["test-task"]
-        state["blender_viewport_since_mutation"] = True
-        state["active_visual_app"] = "blender"
-        self.post(
-            "vision_analyze",
-            {"image_url": "C:/demo/work/blender.png", "question": "Check production scene"},
-        )
         self.assertIsNone(self.pre("terminal", request))
+
+    def test_dml_query_does_not_require_stats_first(self):
+        self.post("mcp_daystrom_dml_query", {"query": "prior stage lesson"})
+        self.assertTrue(controller._STATES["test-task"]["query"])
 
     def test_browser_and_blender_lifecycle_recovery_are_blocked(self):
         self.assertIn("browser fallback", self.pre("browser_snapshot", {})["message"])
@@ -244,8 +224,15 @@ class AecDemoControllerTests(unittest.TestCase):
         self.assertEqual(120000, state["compaction_reclaimed_tokens"])
         self.assertLess(state["compaction_retained_pct"], 12)
 
-    def test_controller_is_inert_outside_target_demo(self):
+    def test_cliff_house_gets_only_lifecycle_guardrails(self):
         with mock.patch.dict(os.environ, {"AEC_DEMO_ID": "cliff-house-01"}, clear=False):
+            self.assertIn("prohibited", self.pre("mcp_rhino_spawn_slot", {})["message"])
+            self.assertIn("command macros", self.pre("mcp_rhino_run_command", {"command": "_Save"})["message"])
+            self.assertIsNone(self.pre("mcp_rhino_open_doc", {"path": "C:/demo/base_model.3dm"}))
+            self.assertIsNone(self.pre("mcp_rhino_save_doc", {"path": "C:/demo/work/checkpoint.3dm"}))
+
+    def test_controller_is_inert_outside_supported_demos(self):
+        with mock.patch.dict(os.environ, {"AEC_DEMO_ID": "unrelated-demo"}, clear=False):
             self.assertIsNone(self.pre("mcp_rhino_spawn_slot", {}))
 
 

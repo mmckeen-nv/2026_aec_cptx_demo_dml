@@ -1,5 +1,8 @@
 # Rhino 8 / Rhino MCP Platform 0.1.5 call recipe
 
+status: READ_ONLY_CAPTURE_REFERENCE
+mutation_policy: SUPERSEDED_BY_CURRENT_PHASE_CSHARP
+
 project: vp-studio-01
 phase: rhino
 operation: reliable-agent-authored-rhino-calls
@@ -7,8 +10,14 @@ outcome: SUCCESS_VALIDATED
 validation_status: PASSED
 source_provenance: live schema inspection and read-only Rhino MCP probes on 2026-07-14
 
-Both Rhino execution tools require the argument name `script`. In Python, use
-`doc = __rhino_doc__`.
+Geometry mutation now uses only the exact inline C# `Func<>`/`Action<>`
+scaffold embedded in the current phase prompt through
+`mcp_rhino_run_csharp(script=...)`. Treat every `Objects.Add*` return as a
+`Guid` and construct geometry directly from absolute WorldXY intervals.
+
+The Python details below are retained only for read-only inspection and viewport
+capture. Python uses `doc = __rhino_doc__` and must not create, move, delete, or
+replace geometry.
 
 - `doc.Layers.FindByFullPath(path, True)` returns an integer index; `-1` means
   absent. Do not access `.Index` on its result.

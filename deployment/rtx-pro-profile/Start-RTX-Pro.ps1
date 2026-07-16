@@ -6,6 +6,19 @@ if (Test-Path (Join-Path $dmlSource 'pyproject.toml')) { $env:DML_SOURCE_DIR = $
 $hermesScripts = Join-Path $env:HERMES_HOME 'hermes-agent\venv\Scripts'
 $env:Path = $hermesScripts + ';' + (Join-Path $env:HERMES_HOME 'bin') + ';' + $env:Path
 
+function Resolve-AecDemoRoot {
+  $candidates = @($env:AEC_DEMO_ROOT, [Environment]::GetEnvironmentVariable('AEC_DEMO_ROOT', 'User'), [Environment]::GetEnvironmentVariable('AEC_DEMO_ROOT', 'Machine'), (Join-Path $PSScriptRoot '..\..'), (Join-Path $HOME '2026_aec_cptx_demo_dml'), 'G:\AEC-CPTX')
+  foreach ($candidate in $candidates) {
+    if (-not $candidate) { continue }
+    try { $resolved = (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path } catch { continue }
+    if (Test-Path -LiteralPath (Join-Path $resolved 'demos\virtual_production_studio') -PathType Container) { return $resolved }
+  }
+  throw 'AEC demo root not found. Set the user environment variable AEC_DEMO_ROOT to the installed project directory.'
+}
+
+$projectRoot = Resolve-AecDemoRoot
+$env:AEC_DEMO_ROOT = $projectRoot
+
 function Test-LocalModel($port) {
   try {
     $response = Invoke-WebRequest -Uri "http://127.0.0.1:$port/v1/models" -TimeoutSec 3 -UseBasicParsing
@@ -26,14 +39,10 @@ if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
   if ($LASTEXITCODE -ne 0) { throw "Unable to start the local model backend (exit code $LASTEXITCODE)." }
 }
 
-$projectRoot = $env:AEC_DEMO_ROOT
-if (-not $projectRoot) { $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path }
-$env:AEC_DEMO_ROOT = $projectRoot
 $studioRoot = Join-Path $projectRoot 'demos\virtual_production_studio'
 if (-not (Test-Path -LiteralPath $studioRoot -PathType Container)) { throw "Virtual production project not found at $studioRoot" }
 $env:AEC_DEMO_ID = 'vp-studio-01'
 $env:AEC_DEMO_RUN_ID = 'vp-studio-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
-$env:AEC_DEMO_CONTROLLER_LOG_DIR = Join-Path $env:HERMES_HOME 'profiles\rtx_pro\logs'
 $rhinoTemplate = Join-Path $studioRoot 'source\vp_studio_01_template.3dm'
 if (-not (Test-Path -LiteralPath $rhinoTemplate -PathType Leaf)) { throw "VP Studio Rhino template not found at $rhinoTemplate" }
 
@@ -55,6 +64,7 @@ Write-Host ' Chat: nvidia/Qwen3.6-35B-A3B-NVFP4 (:8000)'
 Write-Host ' Vision: Nemotron-3-Nano-Omni-30B-A3B (:8001)'
 Write-Host ' Project: VP Studio 01 (Rhino -> Blender -> ComfyUI)'
 Write-Host ' DML: active-read + synchronized project learning'
+Write-Host ' Workflow: original Cliff House agent-led phase rhythm'
 Write-Host '============================================================'
 Write-Host ''
 

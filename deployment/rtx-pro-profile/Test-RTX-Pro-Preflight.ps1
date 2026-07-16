@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [switch]$StartServices,
+  [switch]$SkipRhino,
   [switch]$SkipComfyUI,
   [int]$WaitSeconds = 30,
   [string]$ProfileName = 'rtx_pro',
@@ -57,7 +58,8 @@ function Test-HttpEndpoint {
 $configText = if (Test-Path -LiteralPath $profileConfig) { Get-Content -LiteralPath $profileConfig -Raw } else { '' }
 Add-Result "$DisplayName profile config" ($configText.Length -gt 0) $profileConfig
 
-foreach ($name in @('rhino', 'blender', 'daystrom_dml', 'cma')) {
+$requiredMcps = if ($SkipRhino) { @('blender', 'daystrom_dml', 'cma') } else { @('rhino', 'blender', 'daystrom_dml', 'cma') }
+foreach ($name in $requiredMcps) {
   $registered = $configText -match "(?m)^  $([regex]::Escape($name)):\s*$"
   Add-Result "MCP registration: $name" $registered $(if ($registered) { "configured in $ProfileName" } else { "missing from $ProfileName config.yaml" })
 }
@@ -92,6 +94,7 @@ foreach ($entry in $policyChecks.GetEnumerator()) {
 Add-Result 'Local chat model API' (Test-HttpEndpoint 'http://127.0.0.1:8000/v1/models') 'http://127.0.0.1:8000/v1/models'
 Add-Result 'Local vision model API' (Test-HttpEndpoint 'http://127.0.0.1:8001/v1/models') 'http://127.0.0.1:8001/v1/models'
 
+if (-not $SkipRhino) {
 $rhinoRouter = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform') `
   -Filter rhino-mcp-router.exe -File -Recurse -ErrorAction SilentlyContinue |
   Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
@@ -100,6 +103,16 @@ Add-Result 'Rhino MCP router executable' ([bool]$rhinoRouter -and (Test-Path -Li
 Add-Result 'Rhino 8 executable' (Test-Path -LiteralPath $rhinoExe -PathType Leaf) $rhinoExe
 if ($RhinoTemplatePath) {
   Add-Result 'Rhino starting template' (Test-Path -LiteralPath $RhinoTemplatePath -PathType Leaf) $RhinoTemplatePath
+  $templateHashPath = $RhinoTemplatePath + '.sha256'
+  $templateHashOk = $false
+  $templateHashDetail = "missing integrity file: $templateHashPath"
+  if ((Test-Path -LiteralPath $RhinoTemplatePath -PathType Leaf) -and (Test-Path -LiteralPath $templateHashPath -PathType Leaf)) {
+    $expectedHash = ((Get-Content -LiteralPath $templateHashPath -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
+    $actualHash = (Get-FileHash -LiteralPath $RhinoTemplatePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $templateHashOk = ($expectedHash -match '^[0-9a-f]{64}$') -and ($actualHash -eq $expectedHash)
+    $templateHashDetail = if ($templateHashOk) { 'basic guide-only template matches repository SHA-256' } else { "template changed or polluted: expected $expectedHash, actual $actualHash" }
+  }
+  Add-Result 'Rhino template integrity' $templateHashOk $templateHashDetail
 }
 $rhinoConfigMatch = [regex]::Match($configText, '(?ms)^  rhino:\s*\r?\n(?<body>.*?)(?=^  \S|\z)')
 $rhinoConfigBody = if ($rhinoConfigMatch.Success) { $rhinoConfigMatch.Groups['body'].Value } else { '' }
@@ -122,6 +135,7 @@ if ($StartServices -and -not (Test-TcpPort $rhinoMcpPort) -and (Test-Path -Liter
 }
 $rhinoBridge = if ($StartServices) { Wait-TcpPort $rhinoMcpPort } else { Test-TcpPort $rhinoMcpPort }
 Add-Result 'Rhino MCP application bridge' $rhinoBridge $(if ($rhinoBridge) { "127.0.0.1:$rhinoMcpPort is accepting connections; the router can adopt this slot" } else { 'Rhino is not exposing an MCP listener; rerun preflight with -StartServices' })
+}
 
 $uvx = Get-Command uvx.exe -ErrorAction SilentlyContinue
 if (-not $uvx) { $uvx = Get-Command uvx -ErrorAction SilentlyContinue }
@@ -155,12 +169,10 @@ if (Test-Path -LiteralPath $dmlPython) {
 $hermesPython = Join-Path $hermesHome 'hermes-agent\venv\Scripts\python.exe'
 $profilePlugin = Join-Path $profileRoot 'plugins\daystrom_dml\__init__.py'
 Add-Result 'Daystrom profile memory plugin' (Test-Path -LiteralPath $profilePlugin -PathType Leaf) $profilePlugin
-$controllerPlugin = Join-Path $profileRoot 'plugins\aec_demo_controller\__init__.py'
-Add-Result 'AEC phase controller plugin' (Test-Path -LiteralPath $controllerPlugin -PathType Leaf) $controllerPlugin
 $profileConfig = Join-Path $profileRoot 'config.yaml'
 $controllerEnabled = (Test-Path -LiteralPath $profileConfig -PathType Leaf) -and
   ((Get-Content -LiteralPath $profileConfig -Raw) -match '(?m)^\s*-\s*aec_demo_controller\s*$')
-Add-Result 'AEC phase controller enabled' $controllerEnabled $profileConfig
+Add-Result 'Agent-led workflow (AEC controller disabled)' (-not $controllerEnabled) $profileConfig
 if (Test-Path -LiteralPath $hermesPython -PathType Leaf) {
   $priorHermesHome = $env:HERMES_HOME
   try {

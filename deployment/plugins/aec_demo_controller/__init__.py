@@ -1,7 +1,8 @@
 """Minimal application-state safety guardrails for the AEC demo agents.
 
-The controller does not create geometry.  It only constrains tool ordering,
-requires inspection and memory checkpoints, and records a durable trajectory.
+The controller does not create geometry and does not impose mutation quotas or
+memory/vision ceremony. It blocks only unsafe lifecycle/UI paths and records a
+durable trajectory for diagnosis.
 """
 
 from __future__ import annotations
@@ -19,9 +20,10 @@ from typing import Any, Dict, Optional
 _LOCK = threading.RLock()
 _STATES: Dict[str, Dict[str, Any]] = {}
 _DEMO_ID = "vp-studio-01"
+_CLIFF_ID = "cliff-house-01"
 _CONTEXT_LENGTH = max(1, int(os.environ.get("AEC_DEMO_CONTEXT_LENGTH", "262144")))
 _MUTATION_TOOLS = {"mcp_rhino_run_python", "mcp_rhino_run_csharp"}
-_INSPECTION_TOOLS = {"mcp_rhino_list_objects", "mcp_rhino_get_viewport_image"}
+_INSPECTION_TOOLS = {"mcp_rhino_list_objects"}
 _BLENDER_MUTATION_TOOLS = {"mcp_blender_execute_blender_code", "mcp_blender_execute_code"}
 _BLENDER_VIEWPORT_TOOLS = {"mcp_blender_get_viewport_screenshot"}
 _MEMORY_TOOLS = {
@@ -46,6 +48,7 @@ _EXTERNAL_SCRIPT_RE = re.compile(
     r"open\s*\([^\r\n]{0,500}\.py\b[^\r\n]{0,500}(?:exec|compile)",
     re.IGNORECASE,
 )
+_RHINO_CAPTURE_SCRIPT = "capture_rhino_viewport.py"
 _RHINO_UI_RECOVERY_RE = re.compile(
     r"(?:rhino(?:\.exe)?[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
     r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino)",
@@ -65,6 +68,10 @@ _HERMES_CONFIG_MUTATION_RE = re.compile(
 
 
 def _active() -> bool:
+    return os.environ.get("AEC_DEMO_ID", "").strip().lower() in {_DEMO_ID, _CLIFF_ID}
+
+
+def _is_vp() -> bool:
     return os.environ.get("AEC_DEMO_ID", "").strip().lower() == _DEMO_ID
 
 
@@ -161,12 +168,23 @@ def _is_mutation(tool: str, args: Dict[str, Any]) -> bool:
 
 
 def _is_rhino_capture(tool: str, args: Dict[str, Any]) -> bool:
-    return tool == "mcp_rhino_run_python" and bool(_RHINO_CAPTURE_RE.search(_script(args, tool)))
+    script = _script(args, tool)
+    return tool == "mcp_rhino_run_python" and bool(
+        _RHINO_CAPTURE_RE.search(script) or _RHINO_CAPTURE_SCRIPT.lower() in script.lower()
+    )
 
 
 def _captured_png(args: Dict[str, Any]) -> str:
     match = _LOCAL_PNG_RE.search(_script(args, "mcp_rhino_run_python"))
     return match.group("path") if match else ""
+
+
+def _capture_call() -> str:
+    return (
+        "mcp_rhino_run_python(script=\"import os; p=os.path.join(os.environ['AEC_DEMO_ROOT'],"
+        "'demos','virtual_production_studio','scripts','capture_rhino_viewport.py'); "
+        "exec(compile(open(p, encoding='utf-8').read(), p, 'exec'))\")"
+    )
 
 
 def _vision_passed(kwargs: Dict[str, Any]) -> bool:
@@ -222,40 +240,24 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if not _active():
         return None
     _ensure_runtime_dirs()
+    if not _is_vp():
+        return {"context": (
+            "AEC CLIFF GUARDRAILS: follow the original Cliff House phase rhythm. Use coherent bounded "
+            "Rhino MCP Python/C# scripts, inspect at meaningful checkpoints, and save useful artifacts. "
+            "DML active-read is automatic; query/ingest at meaningful boundaries, not between every call. "
+            "Never use Rhino command macros, spawn/close slots, open a script editor, or repair apps/config."
+        )}
     context = (
-        "AEC VP SAFETY SHIM: follow the same agentic phase workflow as Cliff House, using the VP "
-        "studio brief as the project-specific design input. Author bounded Rhino geometry and "
-        "inspect at meaningful design checkpoints. The launcher owns the ready Rhino slot; do not "
-        "spawn, close, or replace it. Use script= for both Rhino Python and C# tools. The safety "
-        "shim does not impose mutation quotas, memory quotas, or phase-transition quotas. If an "
-        "application MCP cannot connect, report that blocker immediately. Never repair Hermes "
-        "configuration from inside the demo and never launch Rhino's Python editor or a script through "
-        "Rhino UI/shell commands. You may write bounded generated Python under work/generated_scripts/ "
-        "and load it through the registered Rhino or Blender MCP execution tool; this is preferred for "
-        "substantial geometry batches. Keep viewport capture inline. "
-        "At every major Rhino phase boundary, capture fresh object-list and viewport evidence after "
-        "the latest geometry change. Rhino MCP 0.1.5 nests viewport bytes instead of returning a "
-        "usable URL: save ActiveView.CaptureToBitmap(System.Drawing.Size(960,540)) to an absolute "
-        "PNG under work/ with a read-only mcp_rhino_run_python(script=...) call; the controller "
-        "recognizes CaptureToBitmap as viewport evidence, so do not call get_viewport_image again. Then call "
-        "vision_analyze on that local path. Never invent a URL or decode base64 with execute_code. "
-        "Ask vision only for required visible elements, named defects, and a short PASS/REVISE "
-        "verdict; never request a general image description. Use one final object listing per "
-        "phase and distill it rather than echoing the raw payload. Model only the physical "
-        "building, LED volume, rooms, rigging, cameras, furniture, and production equipment; "
-        "electrical/HVAC/data/fire systems are a load note, never geometry. After each validated "
-        "phase, ingest one <=1200-character DML state record and begin the next phase with one "
-        "targeted DML query plus CMA augmentation. A captured image without completed "
-        "vision_analyze is not validation. "
-        "The LED wall must be a thin smooth continuous curve, never thick box panels. Finished "
-        "architecture cannot be anonymous boxes. After Blender import, replace every visible "
-        "required equipment proxy with an approved cached asset and complete actual materials plus "
-        "motivated LED/key/fill/rim/practical lighting before any beauty render or ComfyUI work. "
-        "Save Rhino exactly once after the final physical-layout audit. CMA success reinforcement "
-        "requires the visual pass; Blender handoff additionally requires the final gated save. "
-        "Rhino and Blender have independent viewport/vision gates. A JSON or Markdown report is never "
-        "visual evidence. After Blender changes, capture with mcp_blender_get_viewport_screenshot and call "
-        "vision_analyze on its local image path; do not repeat Rhino validation."
+        "AEC VP GUARDRAILS: work like the original Cliff House demo. Read the VP brief and only the "
+        "current phase prompt; design the geometry yourself through bounded Rhino MCP Python/C# scripts. "
+        "A substantial coherent phase script is allowed. Inspect after meaningful design groups and save "
+        "useful checkpoints. DML active-read is automatic: query it when prior experience is useful and "
+        "ingest one compact record after a meaningful success or failure, not between ordinary tool calls. "
+        "At phase review, capture a local PNG with scripts/capture_rhino_viewport.py and use vision once; "
+        "revise visible defects, but report unavailable vision instead of looping. The launcher owns Rhino: "
+        "never spawn/close slots, use command macros, open a Python editor, or repair applications/config. "
+        "Model the physical studio only; electrical is an estimated-load note. The LED face must be a smooth "
+        "continuous curve. Use direct .3dm handoff, then cached assets/materials/lighting in Blender."
     )
     return {"context": context}
 
@@ -363,6 +365,12 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if tool.startswith("browser_"):
         return _block(kwargs, "browser fallback is prohibited during the core Rhino-Blender-ComfyUI run; report the missing application MCP")
 
+    if _is_vp() and tool == "mcp_rhino_get_viewport_image":
+        return _block(
+            kwargs,
+            "the Rhino 0.1.5 viewport tool is prohibited because it injects nested base64 into context. Execute this exact local-PNG capture instead: " + _capture_call(),
+        )
+
     if tool in {"terminal", "execute_code", "patch", "write_file"}:
         payload = json.dumps(args, ensure_ascii=False, default=str)
         if tool in {"terminal", "execute_code"} and _RHINO_UI_RECOVERY_RE.search(payload):
@@ -371,13 +379,8 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             return _block(kwargs, "the running demo may not modify Hermes configuration; report the MCP preflight blocker for host-side repair")
         if tool in {"terminal", "execute_code"} and _BLENDER_RECOVERY_RE.search(payload):
             return _block(kwargs, "do not launch, configure, patch, or repair Blender/add-ons from inside the demo; report the Blender MCP preflight blocker")
-        if _COMFY_EXECUTION_RE.search(payload) and not _blender_visual_validation_ready(state):
-            return _block(
-                kwargs,
-                "ComfyUI execution requires a fresh Blender viewport screenshot and a literal PASS from vision_analyze after the latest Blender change",
-            )
 
-    if tool == "mcp_rhino_open_doc":
+    if _is_vp() and tool == "mcp_rhino_open_doc":
         path = str(args.get("path") or args.get("file_path") or "").replace("\\", "/").lower()
         if "vp_studio_01_template.3dm" not in path:
             return _block(kwargs, "only source/vp_studio_01_template.3dm may start a fresh VP run")
@@ -393,32 +396,17 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         if not image_source or not str(args.get("question") or "").strip():
             return _block(kwargs, "vision_analyze requires the captured viewport image_url and a specific defect-review question")
         app = str(state.get("active_visual_app") or "rhino")
-        viewport_ready = (
-            state["blender_viewport_since_mutation"]
-            if app == "blender"
-            else state["viewport_since_mutation"]
-        )
-        if not viewport_ready:
-            capture_tool = "mcp_blender_get_viewport_screenshot" if app == "blender" else "a CaptureToBitmap Rhino Python call"
-            return _block(kwargs, f"capture a fresh {app.title()} viewport with {capture_tool} after the latest mutation before vision analysis")
-        if app == "rhino" and re.match(r"^https?://", image_source, re.IGNORECASE):
+        if _is_vp() and app == "rhino" and re.match(r"^https?://", image_source, re.IGNORECASE):
             return _block(
                 kwargs,
                 "Rhino MCP 0.1.5 does not return a usable remote viewport URL; save the active view to work/*.png with ActiveView.CaptureToBitmap in a read-only Rhino Python call, then pass that absolute local path",
             )
 
-    if tool == "mcp_rhino_save_doc" and state["mutations"] and not _visual_validation_ready(state):
-        return _block(kwargs, "a checkpoint or handoff save requires fresh list_objects, viewport capture, and completed vision_analyze after the latest Rhino mutation")
-
-    if tool == "mcp_cma_reinforce" and state["mutations"]:
-        if not _visual_validation_ready(state):
-            return _block(kwargs, "CMA success reinforcement requires fresh Rhino object/vision validation after the latest mutation")
-
-    if tool in _BLENDER_MUTATION_TOOLS and state["mutations"]:
-        if not state["rhino_handoff_ready"]:
+    if _is_vp() and tool in _BLENDER_MUTATION_TOOLS and state["mutations"]:
+        if not state["saved"]:
             return _block(
                 kwargs,
-                "Blender import requires a successfully saved Rhino handoff. Do exactly this once in Rhino: list_objects, save one local PNG with CaptureToBitmap, vision_analyze that PNG to a PASS verdict, then mcp_rhino_save_doc. Do not create validation JSON and do not repeat completed steps.",
+                "Blender import requires a successfully saved Rhino .3dm handoff first.",
             )
 
     _log("allowed", kwargs, tool_name=tool, signature=sig)
@@ -441,7 +429,7 @@ def on_post_tool_call(**kwargs: Any) -> None:
 
     if tool == "mcp_daystrom_dml_stats":
         state["stats"] = True
-    elif tool == "mcp_daystrom_dml_query" and state["stats"]:
+    elif tool == "mcp_daystrom_dml_query":
         state["query"] = True
     elif tool == "mcp_daystrom_dml_ingest":
         state["ingested_since_memory"] = True
@@ -451,6 +439,16 @@ def on_post_tool_call(**kwargs: Any) -> None:
         state["ingested_since_memory"] = False
     elif tool == "mcp_rhino_open_doc":
         state["opened"] += 1
+    elif _is_rhino_capture(tool, args):
+        state["inspections"] += 1
+        state["viewports"] += 1
+        state["viewport_since_mutation"] = True
+        state["vision_since_viewport"] = False
+        state["active_visual_app"] = "rhino"
+        state["rhino_last_viewport_path"] = _captured_png(args) or str(
+            Path(os.environ.get("AEC_DEMO_ROOT", ""))
+            / "demos" / "virtual_production_studio" / "work" / "rhino_phase_view.png"
+        )
     elif _is_mutation(tool, args):
         state["mutations"] += 1
         state["mutations_since_inspection"] += 1
@@ -461,13 +459,6 @@ def on_post_tool_call(**kwargs: Any) -> None:
         state["saved"] = False
         state["rhino_handoff_ready"] = False
         state["active_visual_app"] = "rhino"
-    elif _is_rhino_capture(tool, args):
-        state["inspections"] += 1
-        state["viewports"] += 1
-        state["viewport_since_mutation"] = True
-        state["vision_since_viewport"] = False
-        state["active_visual_app"] = "rhino"
-        state["rhino_last_viewport_path"] = _captured_png(args)
     elif tool in _INSPECTION_TOOLS:
         state["inspections"] += 1
         if tool == "mcp_rhino_get_viewport_image":
@@ -499,7 +490,7 @@ def on_post_tool_call(**kwargs: Any) -> None:
         _log("vision_verdict", kwargs, application=state.get("active_visual_app"), passed=passed)
     elif tool == "mcp_rhino_save_doc":
         state["saved"] = True
-        state["rhino_handoff_ready"] = _visual_validation_ready(state)
+        state["rhino_handoff_ready"] = True
     _log("tool_ok", kwargs, tool_name=tool, signature=sig, state=state.copy())
 
 

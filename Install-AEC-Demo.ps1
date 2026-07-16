@@ -253,15 +253,6 @@ function Sync-DaystromProfilePlugin {
   }
 }
 
-function Sync-AecDemoControllerPlugin {
-  param([string]$ProfilePath)
-  $source = Join-Path $RepoRoot 'deployment\plugins\aec_demo_controller'
-  $destination = Join-Path $ProfilePath 'plugins\aec_demo_controller'
-  foreach ($name in @('__init__.py', 'plugin.yaml')) {
-    Install-ManagedFile (Join-Path $source $name) (Join-Path $destination $name)
-  }
-}
-
 function Enable-HermesProfilePlugin {
   param([string]$ProfileConfig, [string]$PluginName)
   if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
@@ -278,6 +269,218 @@ function Enable-HermesProfilePlugin {
     $updated = [regex]::Replace($content, $pattern, "`${1}  - $PluginName`r`n", 1)
     Write-Utf8Text $ProfileConfig $updated
     Write-Host "Enabled Hermes plugin $PluginName; backup: $backup"
+  }
+}
+
+function Disable-HermesProfilePlugin {
+  param([string]$ProfileConfig, [string]$PluginName)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  $pattern = "(?m)^\s*-\s*$([regex]::Escape($PluginName))\s*\r?\n?"
+  if (-not [regex]::IsMatch($content, $pattern)) { return }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, "Disable Hermes plugin $PluginName")) {
+    $backup = "$ProfileConfig.bak-disable-$PluginName-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    Write-Utf8Text $ProfileConfig ([regex]::Replace($content, $pattern, ''))
+    Write-Host "Disabled Hermes plugin $PluginName; backup: $backup"
+  }
+}
+
+function Repair-CliffStyleProfileRuntime {
+  param([string]$ProfileConfig, [string]$WorkingDirectory)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  $updated = $content
+  # Match the proven Cliff House compaction cadence. DML-first remains the
+  # continuity source; the smaller target prevents a long summary from becoming
+  # the new working context.
+  $updated = [regex]::Replace($updated, '(?m)^(  threshold:\s*)[0-9.]+\s*$', '${1}0.5')
+  $updated = [regex]::Replace($updated, '(?m)^(  target_ratio:\s*)[0-9.]+\s*$', '${1}0.2')
+  $cwdYaml = $WorkingDirectory.Replace('\', '/')
+  $updated = [regex]::Replace($updated, '(?m)^(  cwd:\s*).*$','${1}' + $cwdYaml)
+  if ($updated -eq $content) { return }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Align Cliff House compaction cadence and demo working directory')) {
+    $backup = "$ProfileConfig.bak-cliff-style-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Aligned Cliff-style profile runtime; backup: $backup"
+  }
+}
+
+function Sync-CliffStyleProfileFiles {
+  param([string]$ProfileName, [string]$ProfilePath)
+  $deploymentName = switch ($ProfileName) {
+    'aec-cptx' { 'aec-cptx-profile' }
+    'bac_teapot' { 'bac-teapot-profile' }
+    'rtx_pro' { 'rtx-pro-profile' }
+    'cliff_hero' { 'cliff-hero-profile' }
+    default { return }
+  }
+  Install-ManagedFile (Join-Path $RepoRoot "deployment\$deploymentName\SOUL.md") (Join-Path $ProfilePath 'SOUL.md')
+  if ($ProfileName -eq 'aec-cptx') {
+    Install-ManagedFile (Join-Path $RepoRoot 'deployment\aec-cptx-profile\AGENTS.md') (Join-Path $ProfilePath 'AGENTS.md')
+  }
+}
+
+function Sync-VpExecutionRails {
+  param([string]$ProfilePath)
+  $pluginSource = Join-Path $RepoRoot 'deployment\plugins\vp_execution_rails'
+  $pluginDestination = Join-Path $ProfilePath 'plugins\vp_execution_rails'
+  $skillSource = Join-Path $RepoRoot 'demos\virtual_production_studio\skills\vp-studio-rhino-build'
+  $skillDestination = Join-Path $ProfilePath 'skills\3d-modeling\vp-studio-rhino-build'
+  $comfySkillSource = Join-Path $RepoRoot 'demos\virtual_production_studio\skills\comfyui\comfyui-cookbook'
+  $comfySkillDestination = Join-Path $ProfilePath 'skills\comfyui\comfyui-cookbook'
+  New-Item -ItemType Directory -Path $pluginDestination -Force | Out-Null
+  New-Item -ItemType Directory -Path $skillDestination -Force | Out-Null
+  New-Item -ItemType Directory -Path $comfySkillDestination -Force | Out-Null
+  Install-ManagedFile (Join-Path $pluginSource 'plugin.yaml') (Join-Path $pluginDestination 'plugin.yaml')
+  Install-ManagedFile (Join-Path $pluginSource '__init__.py') (Join-Path $pluginDestination '__init__.py')
+  Install-ManagedFile (Join-Path $skillSource 'SKILL.md') (Join-Path $skillDestination 'SKILL.md')
+  Install-ManagedFile (Join-Path $RepoRoot 'demos\virtual_production_studio\prompts\01a_locked_scene_manifest.md') (Join-Path $skillDestination 'SCENE_MANIFEST.md')
+  Install-ManagedFile (Join-Path $comfySkillSource 'SKILL.md') (Join-Path $comfySkillDestination 'SKILL.md')
+  Enable-HermesProfilePlugin (Join-Path $ProfilePath 'config.yaml') 'vp_execution_rails'
+}
+
+function Sync-TeapotExecutionRails {
+  param([string]$ProfilePath)
+  $pluginSource = Join-Path $RepoRoot 'deployment\plugins\teapot_execution_rails'
+  $pluginDestination = Join-Path $ProfilePath 'plugins\teapot_execution_rails'
+  New-Item -ItemType Directory -Path $pluginDestination -Force | Out-Null
+  Install-ManagedFile (Join-Path $pluginSource 'plugin.yaml') (Join-Path $pluginDestination 'plugin.yaml')
+  Install-ManagedFile (Join-Path $pluginSource '__init__.py') (Join-Path $pluginDestination '__init__.py')
+  Enable-HermesProfilePlugin (Join-Path $ProfilePath 'config.yaml') 'teapot_execution_rails'
+}
+
+function Repair-TeapotDemoRuntime {
+  param([string]$ProfileConfig)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  $updated = [regex]::Replace($content, '(?ms)^  obs:\s*\r?\n.*?(?=^  \S|^\S|\z)', '')
+  $updated = [regex]::Replace($updated, '(?m)^(  nudge_interval:\s*)\d+\s*$', '${1}0')
+  $updated = [regex]::Replace($updated, '(?m)^(  creation_nudge_interval:\s*)\d+\s*$', '${1}0')
+  if ($updated -eq $content) { return }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Remove stale OBS MCP and background review forks for BAC Teapot')) {
+    $backup = "$ProfileConfig.bak-teapot-runtime-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Hardened BAC Teapot runtime; backup: $backup"
+  }
+}
+
+function Ensure-DemoMemoryMcps {
+  param([string]$ProfileConfig, [string]$DmlLauncher, [string]$CmaLauncher)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  $mcp = [regex]::Match($content, '(?ms)^mcp_servers:\s*\r?\n(?<body>.*?)(?=^\S|\z)')
+  if (-not $mcp.Success) { return }
+  $blocks = [System.Collections.Generic.List[string]]::new()
+  if ($mcp.Groups['body'].Value -notmatch '(?m)^  daystrom_dml:\s*$') {
+    $path = "$env:LOCALAPPDATA/hermes/integrations/daystrom-dml/bin/$DmlLauncher"
+    $blocks.Add("  daystrom_dml:`r`n    command: cmd`r`n    args:`r`n    - /c`r`n    - $path`r`n    connect_timeout: 30`r`n    timeout: 180")
+  }
+  if ($mcp.Groups['body'].Value -notmatch '(?m)^  cma:\s*$') {
+    $path = "$env:LOCALAPPDATA/hermes/integrations/daystrom-dml/bin/$CmaLauncher"
+    $blocks.Add("  cma:`r`n    command: cmd`r`n    args:`r`n    - /c`r`n    - $path`r`n    connect_timeout: 30`r`n    timeout: 180")
+  }
+  if ($blocks.Count -eq 0) { return }
+  $insert = ($blocks -join "`r`n") + "`r`n"
+  $updated = [regex]::Replace($content, '(?m)^mcp_servers:\s*$', "mcp_servers:`r`n$insert", 1)
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Add isolated Daystrom DML and CMA MCP registrations')) {
+    $backup = "$ProfileConfig.bak-memory-mcps-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Added isolated memory MCPs; backup: $backup"
+  }
+}
+
+function Repair-CliffHeroLocalRuntime {
+  param([string]$ProfileConfig)
+  if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
+  $content = Read-Utf8Text $ProfileConfig
+  $updated = $content
+  $modelBlock = @'
+model:
+  default: nvidia/Qwen3.6-35B-A3B-NVFP4
+  provider: custom:vllm_local
+  base_url: http://localhost:8000/v1
+  context_length: 262144
+  api_mode: chat_completions
+'@
+  $updated = [regex]::Replace($updated, '(?ms)^model:\s*\r?\n.*?(?=^\S)', $modelBlock.TrimEnd() + "`r`n", 1)
+  if ($updated -notmatch '(?m)^  vllm_local:\s*$') {
+    $providerBlock = @'
+  vllm_local:
+    name: Local vLLM (WSL2 Docker)
+    api: http://localhost:8000/v1
+    key_env: VLLM_API_KEY
+    default_model: nvidia/Qwen3.6-35B-A3B-NVFP4
+    transport: chat_completions
+    context_length: 262144
+  vllm_vision:
+    name: Local vLLM Vision (WSL2 Docker, GPU1)
+    api: http://localhost:8001/v1
+    key_env: VLLM_API_KEY
+    default_model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    transport: chat_completions
+    context_length: 65536
+'@
+    $updated = [regex]::Replace($updated, '(?m)^providers:\s*$', "providers:`r`n" + $providerBlock.TrimEnd(), 1)
+  }
+  $auxBlock = @'
+auxiliary:
+  vision:
+    provider: custom:vllm_vision
+    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    base_url: http://localhost:8001/v1
+    temperature: 0.2
+    max_tokens: 512
+    extra_body:
+      top_k: 1
+      chat_template_kwargs:
+        enable_thinking: false
+  compression:
+    provider: custom:vllm_local
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+  title_generation:
+    provider: custom:vllm_local
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+  approval:
+    provider: custom:vllm_local
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+  mcp:
+    provider: custom:vllm_local
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+  skills_hub:
+    provider: custom:vllm_local
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+'@
+  $updated = [regex]::Replace($updated, '(?ms)^auxiliary:\s*\r?\n.*?(?=^\S)', $auxBlock.TrimEnd() + "`r`n", 1)
+  $updated = [regex]::Replace($updated, '(?ms)^  obs:\s*\r?\n.*?(?=^  \S|^\S|\z)', '')
+  # Repair profiles previously migrated by the older OBS regex, which could
+  # leave plugins.enabled indented under mcp_servers.
+  $updated = [regex]::Replace(
+    $updated,
+    '(?m)^  enabled:\s*\r?\n  - daystrom_dml\s*\r?\n  disabled:\s*\[\]\s*$',
+    "plugins:`r`n  enabled:`r`n  - daystrom_dml`r`n  disabled: []"
+  )
+  $updated = [regex]::Replace($updated, '(?m)^(  nudge_interval:\s*)\d+\s*$', '${1}0')
+  $updated = [regex]::Replace($updated, '(?m)^(  creation_nudge_interval:\s*)\d+\s*$', '${1}0')
+  if ($updated -notmatch '(?ms)^mcp_servers:\s*\r?\n.*?^  daystrom_dml:\s*$') {
+    $dml = "$env:LOCALAPPDATA/hermes/integrations/daystrom-dml/bin/dml_mcp_server_cliff_hero.cmd"
+    $block = "  daystrom_dml:`r`n    command: cmd`r`n    args:`r`n    - /c`r`n    - $dml`r`n    connect_timeout: 30`r`n    timeout: 180`r`n"
+    $updated = [regex]::Replace($updated, '(?m)^mcp_servers:\s*$', "mcp_servers:`r`n$block", 1)
+  }
+  if ($updated -notmatch '(?m)^  cma:\s*$') {
+    $cma = "$env:LOCALAPPDATA/hermes/integrations/daystrom-dml/bin/cma_mcp_server_cliff_hero.cmd"
+    $block = "  cma:`r`n    command: cmd`r`n    args:`r`n    - /c`r`n    - $cma`r`n    connect_timeout: 30`r`n    timeout: 180`r`n"
+    $updated = [regex]::Replace($updated, '(?m)^mcp_servers:\s*$', "mcp_servers:`r`n$block", 1)
+  }
+  if ($updated -eq $content) { return }
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Pin Cliff HERO to local Qwen/Nemotron and isolated memory MCPs')) {
+    $backup = "$ProfileConfig.bak-cliff-hero-local-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Copy-Item -LiteralPath $ProfileConfig -Destination $backup
+    Write-Utf8Text $ProfileConfig $updated
+    Write-Host "Pinned Cliff HERO to local models and memory MCPs; backup: $backup"
   }
 }
 
@@ -305,13 +508,18 @@ function Repair-RTXProDmlIsolation {
 }
 
 function Repair-DemoApplicationMcps {
-  param([string]$ProfileConfig)
+  param([string]$ProfileConfig, [bool]$IncludeRhino = $true)
   if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
   $content = Read-Utf8Text $ProfileConfig
   if ($content -notmatch '(?m)^mcp_servers:\s*$') {
     Write-Warning "Cannot add application MCPs because mcp_servers is absent: $ProfileConfig"
     return
   }
+  $withoutRhino = if ($IncludeRhino) { $content } else {
+    [regex]::Replace($content, '(?ms)^  rhino:\s*\r?\n.*?(?=^  \S|\z)', '')
+  }
+  $removedRhino = $withoutRhino -ne $content
+  $content = $withoutRhino
   # Hermes requires args to be a YAML sequence. `hermes config set` can
   # accidentally serialize a JSON array as one scalar string, which prevents
   # every affected MCP from starting even though the text looks list-like.
@@ -338,7 +546,7 @@ function Repair-DemoApplicationMcps {
   $repairedEnvTypes = $typedEnv -ne $content
   $content = $typedEnv
   $blocks = [System.Collections.Generic.List[string]]::new()
-  if ($content -notmatch '(?m)^  rhino:\s*$') {
+  if ($IncludeRhino -and $content -notmatch '(?m)^  rhino:\s*$') {
     $router = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform') `
       -Filter rhino-mcp-router.exe -File -Recurse -ErrorAction SilentlyContinue |
       Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
@@ -350,13 +558,13 @@ function Repair-DemoApplicationMcps {
   if ($content -notmatch '(?m)^  blender:\s*$') {
     $blocks.Add("  blender:`n    command: cmd`n    args:`n    - /c`n    - uvx`n    - blender-mcp`n    connect_timeout: 30`n    env:`n      BLENDER_HOST: localhost`n      BLENDER_PORT: '9876'`n      DISABLE_TELEMETRY: 'true'`n    timeout: 180")
   }
-  if ($blocks.Count -eq 0 -and -not $repairedSerializedArgs -and -not $repairedEnvTypes) { return }
+  if ($blocks.Count -eq 0 -and -not $repairedSerializedArgs -and -not $repairedEnvTypes -and -not $removedRhino) { return }
   $updated = $content
   if ($blocks.Count -gt 0) {
     $insert = ($blocks -join "`n") + "`n"
     $updated = [regex]::Replace($content, '(?m)^mcp_servers:\s*$', "mcp_servers:`n$insert", 1)
   }
-  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Add missing Rhino/Blender MCP registrations and repair MCP argument types')) {
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Repair demo-specific Blender/Rhino MCP registrations and MCP argument types')) {
     $backup = "$ProfileConfig.bak-app-mcp-$(Get-Date -Format 'yyyyMMddHHmmss')"
     Copy-Item -LiteralPath $ProfileConfig -Destination $backup
     Write-Utf8Text $ProfileConfig $updated
@@ -666,7 +874,9 @@ if (Test-Path -LiteralPath $dmlBin -PathType Container) {
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\bac-teapot-profile\cma_mcp_server_teapot.cmd') (Join-Path $dmlBin 'cma_mcp_server_teapot.cmd')
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\aec-cptx-profile\dml_mcp_server_cliff_house.cmd') (Join-Path $dmlBin 'dml_mcp_server_cliff_house.cmd')
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\aec-cptx-profile\cma_mcp_server_cliff_house.cmd') (Join-Path $dmlBin 'cma_mcp_server_cliff_house.cmd')
-  foreach ($store in @('vp-studio-01-runtime-store', 'cma-vp-studio-01', 'teapot-01-runtime-store', 'cma-teapot-01', 'cliff-house-01-runtime-store', 'cma-cliff-house-01')) {
+  Install-ManagedFile (Join-Path $RepoRoot 'deployment\cliff-hero-profile\dml_mcp_server_cliff_hero.cmd') (Join-Path $dmlBin 'dml_mcp_server_cliff_hero.cmd')
+  Install-ManagedFile (Join-Path $RepoRoot 'deployment\cliff-hero-profile\cma_mcp_server_cliff_hero.cmd') (Join-Path $dmlBin 'cma_mcp_server_cliff_hero.cmd')
+  foreach ($store in @('vp-studio-01-runtime-store', 'cma-vp-studio-01', 'teapot-01-runtime-store', 'cma-teapot-01', 'cliff-house-01-runtime-store', 'cma-cliff-house-01', 'cliff-house-hero-runtime-store', 'cma-cliff-house-hero-01')) {
     New-Item -ItemType Directory -Path (Join-Path $HermesHome "integrations\daystrom-dml\stores\$store") -Force | Out-Null
   }
 }
@@ -681,7 +891,8 @@ if (-not $SkipProfiles) {
     $profiles = @(
       @{ Name = 'aec-cptx'; Description = 'AEC CPTX architectural visualization operator.' },
       @{ Name = 'bac_teapot'; Description = 'BAC Teapot local-model demo operator.' },
-      @{ Name = 'rtx_pro'; Description = 'RTX Pro virtual production local-model operator.' }
+      @{ Name = 'rtx_pro'; Description = 'RTX Pro virtual production local-model operator.' },
+      @{ Name = 'cliff_hero'; Description = 'Cliff House HERO Blender-to-Comfy quick demo.' }
     )
     foreach ($profile in $profiles) {
       $profilePath = Join-Path $HermesHome ("profiles\" + $profile.Name)
@@ -690,14 +901,27 @@ if (-not $SkipProfiles) {
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
+        Disable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
+        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml') ($profile.Name -ne 'bac_teapot')
         if ($profile.Name -eq 'rtx_pro') {
-          Sync-AecDemoControllerPlugin $profilePath
-          Enable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
+          Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml')
+          Sync-VpExecutionRails $profilePath
         }
-        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml')
-        if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
-        if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }
+        if ($profile.Name -eq 'bac_teapot') {
+          Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd'
+          Repair-TeapotDemoRuntime (Join-Path $profilePath 'config.yaml')
+          Ensure-DemoMemoryMcps (Join-Path $profilePath 'config.yaml') 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd'
+          Sync-TeapotExecutionRails $profilePath
+        }
         if ($profile.Name -eq 'aec-cptx') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-01' 'cliff-house-01-runtime-store' 'cma-cliff-house-01' 'dml_mcp_server_cliff_house.cmd' 'cma_mcp_server_cliff_house.cmd' }
+        if ($profile.Name -eq 'cliff_hero') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-hero-01' 'cliff-house-hero-runtime-store' 'cma-cliff-house-hero-01' 'dml_mcp_server_cliff_hero.cmd' 'cma_mcp_server_cliff_hero.cmd' }
+        if ($profile.Name -eq 'cliff_hero') {
+          Repair-CliffHeroLocalRuntime (Join-Path $profilePath 'config.yaml')
+          Ensure-DemoMemoryMcps (Join-Path $profilePath 'config.yaml') 'dml_mcp_server_cliff_hero.cmd' 'cma_mcp_server_cliff_hero.cmd'
+        }
+        $workingDirectory = if ($profile.Name -eq 'aec-cptx') { $RepoRoot } elseif ($profile.Name -eq 'rtx_pro') { Join-Path $RepoRoot 'demos\virtual_production_studio' } elseif ($profile.Name -eq 'cliff_hero') { Join-Path $RepoRoot 'demos\cliff_house\hero' } else { Join-Path $RepoRoot 'demos\teapot' }
+        Repair-CliffStyleProfileRuntime (Join-Path $profilePath 'config.yaml') $workingDirectory
+        Sync-CliffStyleProfileFiles $profile.Name $profilePath
         continue
       }
       if ($PSCmdlet.ShouldProcess($profile.Name, 'Create Hermes profile by cloning default')) {
@@ -705,14 +929,27 @@ if (-not $SkipProfiles) {
         Repair-DaystromRetrievalPolicy (Join-Path $profilePath 'config.yaml')
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
+        Disable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
+        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml') ($profile.Name -ne 'bac_teapot')
         if ($profile.Name -eq 'rtx_pro') {
-          Sync-AecDemoControllerPlugin $profilePath
-          Enable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
+          Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml')
+          Sync-VpExecutionRails $profilePath
         }
-        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml')
-        if ($profile.Name -eq 'rtx_pro') { Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml') }
-        if ($profile.Name -eq 'bac_teapot') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd' }
+        if ($profile.Name -eq 'bac_teapot') {
+          Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'teapot-01' 'teapot-01-runtime-store' 'cma-teapot-01' 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd'
+          Repair-TeapotDemoRuntime (Join-Path $profilePath 'config.yaml')
+          Ensure-DemoMemoryMcps (Join-Path $profilePath 'config.yaml') 'dml_mcp_server_teapot.cmd' 'cma_mcp_server_teapot.cmd'
+          Sync-TeapotExecutionRails $profilePath
+        }
         if ($profile.Name -eq 'aec-cptx') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-01' 'cliff-house-01-runtime-store' 'cma-cliff-house-01' 'dml_mcp_server_cliff_house.cmd' 'cma_mcp_server_cliff_house.cmd' }
+        if ($profile.Name -eq 'cliff_hero') { Repair-DemoDmlIsolation (Join-Path $profilePath 'config.yaml') 'cliff-house-hero-01' 'cliff-house-hero-runtime-store' 'cma-cliff-house-hero-01' 'dml_mcp_server_cliff_hero.cmd' 'cma_mcp_server_cliff_hero.cmd' }
+        if ($profile.Name -eq 'cliff_hero') {
+          Repair-CliffHeroLocalRuntime (Join-Path $profilePath 'config.yaml')
+          Ensure-DemoMemoryMcps (Join-Path $profilePath 'config.yaml') 'dml_mcp_server_cliff_hero.cmd' 'cma_mcp_server_cliff_hero.cmd'
+        }
+        $workingDirectory = if ($profile.Name -eq 'aec-cptx') { $RepoRoot } elseif ($profile.Name -eq 'rtx_pro') { Join-Path $RepoRoot 'demos\virtual_production_studio' } elseif ($profile.Name -eq 'cliff_hero') { Join-Path $RepoRoot 'demos\cliff_house\hero' } else { Join-Path $RepoRoot 'demos\teapot' }
+        Repair-CliffStyleProfileRuntime (Join-Path $profilePath 'config.yaml') $workingDirectory
+        Sync-CliffStyleProfileFiles $profile.Name $profilePath
       }
     }
     Write-Host 'Sanitized config examples were not copied over live config.yaml files; only the required DML retrieval policy is migrated.'
@@ -726,6 +963,7 @@ if (-not $SkipLaunchers) {
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\rtx-pro-profile\Start-RTX-Pro.ps1') (Join-Path $bin 'Start-RTX-Pro.ps1')
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1') (Join-Path $bin 'Test-RTX-Pro-Preflight.ps1')
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\aec-cptx-profile\Start-Hermes-AEC-Rhino-DML.ps1') (Join-Path $bin 'Start-Hermes-AEC-Rhino-DML.ps1')
+  Install-ManagedFile (Join-Path $RepoRoot 'deployment\cliff-hero-profile\Start-Cliff-Hero-Quick.ps1') (Join-Path $bin 'Start-Cliff-Hero-Quick.ps1')
 
   Install-ManagedText (Join-Path $LauncherDirectory 'BAC_Teapot.bat') @'
 @echo off
@@ -741,6 +979,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\hermes\b
 @echo off
 title AEC CPTX - Hermes Rhino DML
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\hermes\bin\Start-Hermes-AEC-Rhino-DML.ps1"
+'@
+  Install-ManagedText (Join-Path $LauncherDirectory 'Cliff_HERO_Quick.bat') @'
+@echo off
+title Cliff House HERO - Blender to ComfyUI Quick Demo
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\hermes\bin\Start-Cliff-Hero-Quick.ps1"
 '@
 }
 
@@ -758,6 +1001,7 @@ if ($PortableBundle) {
 Write-Step 'Seed repository-owned knowledge into demo DML stores'
 Seed-DemoDmlKnowledge 'virtual_production_studio' 'vp-studio-01-runtime-store' 'project:vp-studio-01'
 Seed-DemoDmlKnowledge 'cliff_house' 'cliff-house-01-runtime-store' 'project:cliff-house-01'
+Seed-DemoDmlKnowledge 'cliff_house' 'cliff-house-hero-runtime-store' 'project:cliff-house-hero-01'
 Seed-DemoDmlKnowledge 'teapot' 'teapot-01-runtime-store' 'project:teapot-01'
 
 if ($ProvisionVllm -and $PSCmdlet.ShouldProcess($wslRepo.Distro, 'Provision Docker and NVIDIA vLLM runtime')) {

@@ -1,136 +1,54 @@
-# VP Studio 01 workflow and acceptance gates
+# VP Studio session startup
 
-## Phase 0: preflight
+The active project is `vp-studio-01`. The working directory is this demo root.
+All paths in the VP prompt suite are relative to this directory.
 
-Run `deployment/rtx-pro-profile/Test-RTX-Pro-Preflight.ps1`. Required checks must pass for the local chat/vision APIs, Rhino MCP, Blender MCP, Daystrom DML, CMA, DML project identity, synchronized turns, and active-read retrieval. ComfyUI may remain stopped until stylization, but its installation must exist.
+## Session startup
 
-The required Rhino application bridge is `127.0.0.1:10500`. Confirm `mcp_rhino_list_slots` returns a ready slot. One failed check ends phase 0: do not repair profile configuration from inside the agent, install a substitute MCP, loop on `spawn_slot`, or proceed to Blender.
+1. Read `skills/INDEX.md` and `skills/session_state.md`.
+2. Read `user_prompts/project_prompt.md`.
+3. Confirm Rhino, Blender, ComfyUI, DML, and CMA status once.
+4. Open `source/vp_studio_01_template.3dm` only if the launcher-owned Rhino
+   document is not already that file.
+5. Read only the current numbered phase prompt.
 
-Open `source/vp_studio_01_template.3dm` with `mcp_rhino_open_doc` and inspect it
-before modeling. It must be inches-based, contain four locked
-`VP00_TEMPLATE_*` layers and reference curves/text only, and contain no Breps,
-Extrusions, Meshes, or exportable design geometry. Never invoke `_New`,
-`_NewSmall`, `New`, or Rhino's interactive template chooser. Never substitute
-the completed meter-based `vp_studio_01_base_model.3dm` reference artifact.
+Determine that phase only from live Rhino object names and numeric bounds, using
+the ordered table in `system_prompts/00_session_startup.md`. Ignore existing
+checkpoint files from previous runs. A user request such as "next phase" means
+"run the first incomplete live-document phase," not "increment a remembered
+phase number."
 
-Use the tools that Hermes actually exposes. Rhino and Blender are MCP applications; ComfyUI is a local REST application in this installation.
+## Phase execution
 
-## Phase 1: Rhino design model
+Each phase uses the Cliff House rhythm:
 
-Rhino owns all architectural and spatial geometry. Follow
-`02_rhino_modeling_contract.md` and its four Cliff-House-style execution prompts.
-The agent authors the geometry code directly in bounded MCP calls and validates
-between element groups; it does not execute a complete checked-in builder. Save
-only once to a timestamped working copy after the full Rhino gate passes.
+1. inspect the active scene and read-only reference geometry;
+2. explain the immediate design move briefly;
+3. create coherent manifest assemblies with the tested phase C# scaffold;
+4. run the phase numeric validator after the meaningful group is complete;
+5. only after `NUMERIC_PASS`, capture the current viewport, ask local vision a focused design question, and
+   correct concrete visible defects;
+6. present the review gate and save one checkpoint after acceptance.
 
-Gate:
+Do not create later-phase objects early. Do not generate or replay a monolithic
+studio builder. Small helper code may be reused inside a call, and one bounded
+call may create all named constituents or repeated instances of one assembly.
+Rhino geometry mutations execute only through `mcp_rhino_run_csharp` with the
+current phase's embedded scaffold. Python is read-only.
 
-- Correct units and model tolerance.
-- Required layers, named objects, and User Text exist.
-- Building shell, stage floor, LED volume/support zones, rigging grid, rooms,
-  circulation, loading access, named camera positions, chairs, workstations,
-  road cases, and major physical equipment zones are present.
-- No electrical-distribution, conduit, panelboard, transformer, UPS, generator,
-  HVAC, ductwork, fire-protection, or data-cabling geometry was created.
-- `work/vp_studio_01_estimated_load.md` records transparent maximum and
-  representative operating-load assumptions without claiming engineering design.
-- Object/layer counts and viewport captures are recorded.
-- Each major Rhino phase has post-mutation object-list evidence plus vision-model
-  review of its required viewport captures. Numerical audits alone do not pass.
-- Any visible defect is either corrected and recaptured or explicitly retained
-  with objective evidence and an unresolved-issue status.
-- `.3dm` saved successfully and the artifact path ingested into DML.
+Use direct metadata-preserving `.3dm` handoff. OBJ and FBX are prohibited.
+ComfyUI stylizes an approved Blender render and does not replace modeled design.
 
-## Phase 2: Rhino-to-Blender handoff
+At Blender handoff, remain in the launcher-owned generic scene. Do not open,
+append, or reuse any `.blend`. Call the checked-in current-handoff helper; it
+clears generic/stale scene data, imports exactly `rhino/vp_studio_01.3dm`, and
+fingerprints that source before production work begins.
 
-Import only the approved `.3dm`. Compare source and destination counts by classification; do not accept an empty or partial import. Preserve Rhino names, layer paths, material intent, phase, system, and assumption-status metadata.
+The handoff is a one-way phase boundary. After `VP_HANDOFF_PASS`, never call
+any `mcp_rhino_*` tool again in that run. Blender MCP exclusively owns import,
+assets, materials, lighting, cameras, and rendering. After a composition-gated
+`VP_RENDER_PASS`, the registered terminal tool exclusively runs the checked-in
+ComfyUI helper. Rhino is never an execution path for Blender or ComfyUI.
 
-Before the handoff, read `07_phase_export_blender.md`, then the repository-root
-`../../system_prompts/07_phase_export_blender.md`,
-`../../skills/import_with_metadata.py`, and
-`../../skills/validate_blender_scene.py`. The current working directory is this
-demo directory; do not look for a demo-local `skills/` directory. Query DML for `project:vp-studio-01`,
-`phase:rhino-to-blender`, the intended format, prior failures, unit conversion,
-axis conversion, object counts, and bounding-box validation. Augment the exact
-handoff plan through CMA.
-
-Use the original direct `.3dm` path. In Rhino, generate render meshes for every
-managed Brep and save a new handoff file with User Text and render meshes included.
-In Blender, first audit that file with `rhino3dm`, then execute the checked-in
-metadata importer with `mcp_blender_execute_blender_code(code=...)`. There is no
-tool named `run`; never call it. OBJ and FBX are prohibited for this phase,
-including checked-in or improvised writers, because they discard the metadata
-contract.
-
-Gate:
-
-- No silent skipped Breps, Meshes, or Extrusions.
-- Every per-object render mesh matches its source Brep bounding box on all axes;
-  no `Mesh.CreateFromBrep` result may keep only the first returned part.
-- Required architectural objects are present in Blender.
-- Scale and world origin match Rhino.
-- Missing materials, duplicate names, and critical overlaps fail validation.
-- Every managed Rhino object from the accepted dynamic source count remains
-  individually identifiable in Blender by stable name/collection; one flattened
-  anonymous mesh or a source/destination count mismatch fails.
-- Expected bounds are approximately `121.92 m x 91.44 m x 16.00 m`, with +Z up.
-  Convert inches to meters exactly once.
-- Face indices, non-degenerate faces, and connected-component/object counts pass
-  before materials, lighting, cameras, or renders are created.
-- Plan and axonometric viewport screenshots visibly show the full studio rather
-  than edge-on or flattened sheets. The agent inspects both images before passing.
-- The handoff gate checks `material` custom-property metadata. Empty Blender
-  material slots are informational until the dedicated material phase.
-
-## Phase 3: Blender production scene
-
-Blender owns render-specific work: mesh cleanup, UVs, materials, emissive LED content, practical fixtures, camera bodies and lenses, tracking markers, lighting, animation, and render passes. Keep architectural dimensions synchronized with Rhino; architectural changes go back to Rhino first.
-
-The first Blender production task is mandatory proxy replacement using the
-approved cache. A technically correct `.3dm` import is not presentation-ready.
-No visible required camera, tripod, chair, workstation/monitor, practical light,
-or road case may remain a generic box in the beauty scene. Require a smooth
-emissive LED wall, actual material slots, and deliberate key/fill/rim/practical
-lighting before advancing to ComfyUI.
-
-Produce at least:
-
-- Exterior establishing camera.
-- Stage-wide hero camera.
-- LED-volume interior camera.
-- Dolly/tracking camera.
-- Crane/jib camera envelope.
-- Control-room witness camera.
-- Beauty, diffuse/albedo, normal, depth, object-ID, and cryptomatte outputs where supported.
-
-## Phase 4: ComfyUI stylization
-
-Follow `04_comfyui_stylization_contract.md`. Use the REST API and a versioned workflow JSON. Begin from an approved Blender beauty render and its depth/control passes. Before prompting, read the cached-model evidence and inventory the visible `ASSET_<ASSET_KEY>` Blender collections; include only assets actually present in the render. Use low denoise by default so stylization preserves the modeled building, LED-wall curvature, camera perspective, openings, and equipment locations. Save the source render, workflow, seed, checkpoint/control-model names, prompt, denoise value, visible asset keys, control-pass paths, and output together.
-
-Gate:
-
-- No major geometry drift relative to the Blender source.
-- No invented doors, columns, truss, LED seams, cameras, or unsafe rigging.
-- Cached production equipment visible in Blender remains present, recognizable, and in the same location.
-- The user can compare source and stylized images side by side.
-
-## DML phase loop
-
-Every phase follows `query -> augment -> act -> validate -> ingest -> reinforce`.
-For Rhino phases, `validate` includes fresh `list_objects` plus viewport captures
-reviewed by the configured vision model after the latest mutation. CMA must not
-reinforce Rhino success and Blender import must not begin without that evidence
-and the subsequent gated save.
-
-- Query before deciding.
-- Augment before consequential tool use.
-- Act only in the application assigned to the phase.
-- Validate with objective tool output.
-- Ingest durable, attributable facts.
-- Reinforce only validated successes or user-approved preferences.
-
-Every consequential attempt also follows the event-level loop in
-`05_dml_learning_contract.md`: `query failures -> augment -> attempt -> validate ->
-write event -> ingest event`. Failed attempts are learned, not reinforced. A retry
-with the same approach signature is forbidden unless new evidence changes the
-approach or invalidates the earlier diagnosis.
+Daystrom active-read provides continuity automatically. Use memory sparingly at
+phase boundaries; never insert DML/CMA ceremony between visible modeling calls.

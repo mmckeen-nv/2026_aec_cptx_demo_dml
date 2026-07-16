@@ -63,7 +63,15 @@ class SetupTests(unittest.TestCase):
         self.assertIn("RhinoTemplatePath", preflight)
 
     def test_vp_studio_uses_datum_template_without_interactive_new(self):
-        contract = (REPO_ROOT / "demos" / "virtual_production_studio" / "AGENTS.md").read_text()
+        demo = REPO_ROOT / "demos" / "virtual_production_studio"
+        contract = "\n".join(
+            (demo / path).read_text()
+            for path in (
+                "AGENTS.md",
+                "system_prompts/00_session_startup.md",
+                "prompts/02_rhino_modeling_contract.md",
+            )
+        )
         launcher = (REPO_ROOT / "deployment" / "rtx-pro-profile" / "Start-RTX-Pro.ps1").read_text()
         generator = (REPO_ROOT / "tools" / "create_vp_studio_template.py").read_text()
         template = (
@@ -75,8 +83,8 @@ class SetupTests(unittest.TestCase):
         )
         self.assertTrue(template.is_file())
         self.assertIn("mcp_rhino_open_doc", contract)
-        self.assertIn("never invoke `_New`", contract)
-        self.assertIn("vp_studio_01_base_model.3dm", contract)
+        self.assertIn("invoke `_New`", contract)
+        self.assertIn("vp_studio_01_template.3dm", contract)
         self.assertIn("vp_studio_01_template.3dm", launcher)
         self.assertIn("-RhinoTemplatePath $rhinoTemplate", launcher)
         self.assertIn("UnitSystem.Inches", generator)
@@ -99,29 +107,28 @@ class SetupTests(unittest.TestCase):
             self.assertNotIn("Stop-Process", text)
 
     def test_vp_studio_contract_enforces_pipeline_and_agentic_dml(self):
-        contract = (REPO_ROOT / "demos" / "virtual_production_studio" / "AGENTS.md").read_text()
-        self.assertIn("Rhino 8", contract)
+        demo = REPO_ROOT / "demos" / "virtual_production_studio"
+        active_files = [demo / "AGENTS.md", demo / "system_prompts" / "00_session_startup.md"]
+        active_files.extend(sorted((demo / "prompts").glob("*.md")))
+        active_files.extend(sorted((demo / "skills").glob("*.md")))
+        contract = "\n".join(path.read_text() for path in active_files)
+        self.assertIn("Hermes designs and models the studio in Rhino", contract)
         self.assertIn("Blender", contract)
         self.assertIn("ComfyUI", contract)
-        self.assertIn("mcp_daystrom_dml_query", contract)
-        self.assertIn("mcp_cma_augment", contract)
-        self.assertIn("mcp_cma_reinforce", contract)
+        self.assertIn("Automatic active-read", contract)
+        self.assertIn("never control or gate", contract)
         self.assertIn("asset_manifest.yaml", contract)
         self.assertIn("04_comfyui_stylization_contract.md", contract)
-        self.assertIn("05_dml_learning_contract.md", contract)
-        self.assertIn("FAILURE_PARTIAL_MUTATION", contract)
-        self.assertIn("Do not repeat an unchanged approach", contract)
-        self.assertIn("127.0.0.1:10500", contract)
-        self.assertIn("Do not edit Hermes MCP configuration", contract)
-        self.assertIn("06_mcp_operations_contract.md", contract)
-        self.assertIn("The agent must design and generate the Rhino geometry itself", contract)
-        self.assertIn("Never call a generic tool named", contract)
+        self.assertIn("there is no checked-in geometry", contract)
+        self.assertIn("No generic tool named `run`", contract)
         self.assertIn("../../skills/import_with_metadata.py", contract)
         self.assertNotIn("build_rhino_massing.py", contract)
-        self.assertIn("same execution pattern and generic phase prompts as the working Cliff", contract)
-        self.assertIn("Do not impose arbitrary", contract)
+        self.assertIn("same visible, phase-driven cadence as the pristine", contract)
+        self.assertIn("one coherent manifest-defined assembly", contract)
+        self.assertIn("Do not write a whole-studio builder", contract)
+        self.assertIn("read only the current numbered phase prompt", contract)
 
-    def test_vp_phase_controller_is_packaged_and_enabled(self):
+    def test_vp_uses_agent_led_workflow_with_controller_disabled(self):
         plugin = REPO_ROOT / "deployment" / "plugins" / "aec_demo_controller"
         controller = (plugin / "__init__.py").read_text()
         installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
@@ -129,18 +136,34 @@ class SetupTests(unittest.TestCase):
         self.assertTrue((plugin / "plugin.yaml").is_file())
         self.assertIn('ctx.register_hook("pre_tool_call"', controller)
         self.assertIn('ctx.register_hook("post_tool_call"', controller)
-        self.assertIn("does not impose mutation quotas", controller)
-        self.assertNotIn("three Rhino mutations occurred", controller)
-        self.assertIn("Sync-AecDemoControllerPlugin", installer)
-        self.assertIn("Enable-HermesProfilePlugin", installer)
-        self.assertIn("aec_demo_controller", config)
-        self.assertIn("threshold: 0.65", config)
+        self.assertIn("Disable-HermesProfilePlugin", installer)
+        self.assertNotIn("Sync-AecDemoControllerPlugin", installer)
+        self.assertNotIn("aec_demo_controller", config)
+        self.assertIn("threshold: 0.5", config)
+        self.assertIn("target_ratio: 0.2", config)
         self.assertIn("protect_last_n: 4", config)
         self.assertIn("dml_first: true", config)
         self.assertIn("dml_first_tail_ratio: 0.02", config)
         self.assertIn("Repair-HermesDmlContinuation", installer)
         self.assertIn("Continue from the Daystrom DML checkpoint. First inspect", installer)
         self.assertIn("No user query found in messages", installer)
+
+    def test_installer_syncs_neutral_soul_and_cliff_style_runtime(self):
+        installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
+        self.assertIn("Sync-CliffStyleProfileFiles", installer)
+        self.assertIn("Repair-CliffStyleProfileRuntime", installer)
+        self.assertIn("'${1}0.5'", installer)
+        self.assertIn("'${1}0.2'", installer)
+        for profile in ("aec-cptx-profile", "bac-teapot-profile", "rtx-pro-profile"):
+            soul = (REPO_ROOT / "deployment" / profile / "SOUL.md").read_text()
+            self.assertIn("Keep this persona layer neutral", soul)
+            self.assertNotIn("one coherent", soul)
+
+        launcher = (
+            REPO_ROOT / "deployment" / "aec-cptx-profile" / "Start-Hermes-AEC-Rhino-DML.ps1"
+        ).read_text()
+        self.assertIn("Set-Location $projectRoot", launcher)
+        self.assertNotIn("Set-Location $demoRoot", launcher)
 
     def test_all_demo_profiles_have_isolated_dml_and_mcp_contracts(self):
         demos = {
@@ -149,25 +172,27 @@ class SetupTests(unittest.TestCase):
             "teapot": "project:teapot-01",
         }
         for demo, project_id in demos.items():
-            contract = (REPO_ROOT / "demos" / demo / "AGENTS.md").read_text()
+            demo_root = REPO_ROOT / "demos" / demo
+            contract = (demo_root / "AGENTS.md").read_text()
             self.assertIn(project_id, contract)
-            self.assertIn("mcp_daystrom_dml", contract)
-            self.assertIn("mcp_cma_augment", contract)
-            self.assertIn("mcp_cma_reinforce", contract)
-            self.assertIn("mcp_blender_execute_blender_code", contract)
-            self.assertIn("screenshot", contract.lower())
-            self.assertIn("../../skills/import_with_metadata.py", contract)
+            self.assertIn("DML", contract)
+            if demo != "cliff_house":
+                self.assertTrue((demo_root / "system_prompts" / "00_session_startup.md").is_file())
+                self.assertTrue((demo_root / "skills" / "INDEX.md").is_file())
+                self.assertTrue((demo_root / "skills" / "session_state.md").is_file())
+                self.assertTrue((demo_root / "user_prompts" / "project_prompt.md").is_file())
         operations = (
             REPO_ROOT / "demos" / "virtual_production_studio" / "prompts" / "06_mcp_operations_contract.md"
         ).read_text()
         self.assertIn("127.0.0.1:10500", operations)
         self.assertIn("127.0.0.1:9876", operations)
         self.assertIn("Never call `mcp_rhino_run_command`", operations)
-        self.assertIn("vision_analyze(image_url=image_path", operations)
+        self.assertIn("mcp_rhino_get_viewport_image", operations)
+        self.assertIn("Hermes routes that fresh image", operations)
         self.assertIn("CaptureToBitmap", operations)
-        self.assertIn("nested base64", operations)
+        self.assertIn("never by opening", operations)
         self.assertIn("capped at 1,200 characters", operations)
-        self.assertIn("Do not request a general description", operations)
+        self.assertIn("Ask for concrete current-phase defects", operations)
 
     def test_teapot_reference_builder_enforces_visual_acceptance_geometry(self):
         builder = (REPO_ROOT / "demos" / "teapot" / "build_teapot_demo.py").read_text()
@@ -186,12 +211,11 @@ class SetupTests(unittest.TestCase):
             / "prompts"
             / "05_dml_learning_contract.md"
         ).read_text()
-        self.assertIn("approach_signature", contract)
-        self.assertIn("SUCCESS_VALIDATED", contract)
-        self.assertIn("FAILURE_VALIDATED", contract)
-        self.assertIn("FAILURE_PARTIAL_MUTATION", contract)
-        self.assertIn("files >= 1", contract)
-        self.assertIn("Two failures with the same approach signature", contract)
+        self.assertIn("does not control the modeling loop", contract)
+        self.assertIn("automatic active-read", contract)
+        self.assertIn("Never require stats, query, augmentation, ingestion, or reinforcement", contract)
+        self.assertIn("objective evidence and artifact paths", contract)
+        self.assertIn("Failures remain retrieval knowledge", contract)
 
         knowledge = REPO_ROOT / "demos" / "virtual_production_studio" / "knowledge" / "dml"
         success = (knowledge / "rhino_massing_success_20260713.md").read_text()
@@ -202,13 +226,11 @@ class SetupTests(unittest.TestCase):
 
     def test_vp_uses_original_direct_3dm_handoff(self):
         demo = REPO_ROOT / "demos" / "virtual_production_studio"
-        contract = (demo / "AGENTS.md").read_text()
         workflow = (demo / "prompts" / "00_workflow_and_dml.md").read_text()
         importer = (REPO_ROOT / "skills" / "import_with_metadata.py").read_text()
-        self.assertIn("system_prompts/07_phase_export_blender.md", contract)
-        self.assertIn("IncludeRenderMeshes=true", contract)
         self.assertIn("OBJ and FBX are prohibited", workflow)
         handoff = (demo / "prompts" / "07_phase_export_blender.md").read_text()
+        self.assertIn("direct metadata-preserving `.3dm` handoff", workflow)
         self.assertIn("mcp_blender_execute_blender_code", handoff)
         self.assertIn("No tool named `run` exists", handoff)
         self.assertIn("../../skills/import_with_metadata.py", handoff)
@@ -233,12 +255,69 @@ class SetupTests(unittest.TestCase):
             / "prompts"
             / "04_comfyui_stylization_contract.md"
         ).read_text()
-        self.assertIn("blender_import_smoke_test.json", contract)
-        self.assertIn("ASSET_<ASSET_KEY>", contract)
-        self.assertIn("camera_cinema_body_re1monsen", contract)
-        self.assertIn("cables_modular_simon_laisne", contract)
-        self.assertIn("object-ID or cryptomatte", contract)
-        self.assertIn("ComfyUI stylizes approved Blender renders", contract)
+        self.assertIn("approved Blender render", contract)
+        self.assertIn("COMFY_PREFLIGHT_PASS", contract)
+        self.assertIn("seed `42`, denoise `0.28`", contract)
+        self.assertIn("geometry-preservation", contract)
+        self.assertIn("skills/comfyui_vp_stylize.py", contract)
+        self.assertIn("skills/COMFYUI_COOKBOOK.md", contract)
+        self.assertIn("COMFY_SOURCE_FAIL", contract)
+        self.assertIn("user_prompts/comfy_style_prompt.txt", contract)
+
+        skill = (
+            REPO_ROOT
+            / "demos"
+            / "virtual_production_studio"
+            / "skills"
+            / "comfyui"
+            / "comfyui-cookbook"
+            / "SKILL.md"
+        ).read_text()
+        installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
+        self.assertIn("name: comfyui-cookbook", skill)
+        self.assertIn("python skills/comfyui_vp_stylize.py --dry-run", skill)
+        self.assertIn("COMFY_OUTPUT_PASS", skill)
+        self.assertIn("user_prompts/comfy_style_prompt.txt", skill)
+        self.assertIn("skills\\comfyui\\comfyui-cookbook", installer)
+
+        helper = (
+            REPO_ROOT
+            / "demos"
+            / "virtual_production_studio"
+            / "skills"
+            / "comfyui_vp_stylize.py"
+        ).read_text()
+        self.assertIn("def source_quality", helper)
+        self.assertIn("foreground_fraction < 0.03", helper)
+        self.assertIn('"--prompt-file"', helper)
+        self.assertIn('"--prompt"', helper)
+        self.assertIn("prompt_sha256", helper)
+        prompt_file = (
+            REPO_ROOT
+            / "demos"
+            / "virtual_production_studio"
+            / "user_prompts"
+            / "comfy_style_prompt.txt"
+        )
+        self.assertTrue(prompt_file.is_file())
+        self.assertGreater(len(prompt_file.read_text().strip()), 40)
+
+    def test_vp_stage_dressing_is_locked_into_rhino_and_blender_phases(self):
+        demo = REPO_ROOT / "demos" / "virtual_production_studio"
+        manifest = (demo / "prompts" / "01a_locked_scene_manifest.md").read_text()
+        rhino_phase = (demo / "prompts" / "02d_phase_rigging_cameras.md").read_text()
+        blender_phase = (demo / "prompts" / "07_phase_export_blender.md").read_text()
+        for name in (
+            "STAGE_DIRECTOR_CHAIR_01",
+            "HERO_ROAD_CASE_01",
+            "FLOOR_LIGHT_01",
+            "SERVER_RACK_01",
+        ):
+            self.assertIn(name, manifest)
+            self.assertIn(name, rhino_phase)
+        self.assertIn("apply_required_set_dressing(root)", blender_phase)
+        self.assertIn("VP_SET_DRESSING_PASS categories=6 placements=27", blender_phase)
+        self.assertIn("bare C-stand is prohibited", blender_phase)
 
     def test_vp_asset_manifest_excludes_restricted_license_classes(self):
         manifest = (REPO_ROOT / "demos" / "virtual_production_studio" / "assets" / "asset_manifest.yaml").read_text()
@@ -270,7 +349,7 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Sanitized config examples were not copied", installer)
         self.assertIn("Repair-DaystromRetrievalPolicy", installer)
         self.assertIn("Repair-DemoApplicationMcps", installer)
-        self.assertIn("Add missing Rhino/Blender MCP registrations", installer)
+        self.assertIn("Repair demo-specific Blender/Rhino MCP registrations", installer)
         self.assertIn("BLENDER_PORT", installer)
         self.assertIn("DISABLE_TELEMETRY", installer)
         self.assertIn("Blender MCP environment values are strings", rtx_preflight)

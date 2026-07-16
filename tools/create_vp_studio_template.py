@@ -1,13 +1,15 @@
-"""Create the datum-only Rhino starting file for the VP Studio demo.
+"""Create the minimal datum-only Rhino starting file for the VP Studio demo.
 
-This is deliberately not a studio builder. It writes reference curves and text
-dots only: no Breps, Extrusions, Meshes, rooms, walls, LED volume, or equipment.
-Hermes must author all design geometry through bounded Rhino MCP calls.
+This is deliberately not a studio builder. It writes four reference curves
+only: no Breps, Extrusions, Meshes, rooms, walls, LED volume, circulation,
+or equipment. Every guide uses the same centered world datum as the locked
+manifest. Hermes authors all design geometry through Rhino MCP C# calls.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 from pathlib import Path
 
 import rhino3dm
@@ -71,6 +73,18 @@ def add_line(
     )
 
 
+def add_circle(
+    model: rhino3dm.File3dm,
+    layer_index: int,
+    name: str,
+    center: tuple[float, float, float],
+    radius: float,
+    guide_type: str,
+) -> None:
+    circle = rhino3dm.Circle(rhino3dm.Point3d(*center), radius)
+    model.Objects.AddCircle(circle, attributes(layer_index, name, guide_type))
+
+
 def add_note(
     model: rhino3dm.File3dm,
     layer_index: int,
@@ -85,6 +99,44 @@ def add_note(
     )
 
 
+def add_named_view(
+    model: rhino3dm.File3dm,
+    name: str,
+    location: tuple[float, float, float],
+    target: tuple[float, float, float],
+    parallel: bool = False,
+) -> None:
+    viewport = (
+        rhino3dm.ViewportInfo.DefaultTop()
+        if parallel
+        else rhino3dm.ViewportInfo.DefaultPerspective()
+    )
+    viewport.SetCameraLocation(rhino3dm.Point3d(*location))
+    viewport.SetCameraDirection(
+        rhino3dm.Vector3d(
+            target[0] - location[0],
+            target[1] - location[1],
+            target[2] - location[2],
+        )
+    )
+    viewport.SetCameraUp(rhino3dm.Vector3d(0, 0, 1))
+    if parallel:
+        viewport.ChangeToParallelProjection(True)
+    else:
+        viewport.ChangeToPerspectiveProjection(3600.0, True, 35.0)
+    viewport.DollyExtents(
+        rhino3dm.BoundingBox(
+            rhino3dm.Point3d(-2400, -1800, 0),
+            rhino3dm.Point3d(2400, 1800, 630),
+        ),
+        1.1,
+    )
+    view = rhino3dm.ViewInfo()
+    view.Name = name
+    view.Viewport = viewport
+    model.NamedViews.Add(view)
+
+
 def build_template(output: Path) -> None:
     model = rhino3dm.File3dm()
     model.Settings.ModelUnitSystem = rhino3dm.UnitSystem.Inches
@@ -92,39 +144,28 @@ def build_template(output: Path) -> None:
     model.Settings.ModelAngleToleranceDegrees = 0.1
     model.Settings.ModelRelativeTolerance = 0.01
 
-    property_layer = add_layer(model, "VP00_TEMPLATE_PROPERTY")
-    planning_layer = add_layer(model, "VP00_TEMPLATE_PLANNING_ENVELOPES")
     datum_layer = add_layer(model, "VP00_TEMPLATE_DATUMS")
-    notes_layer = add_layer(model, "VP00_TEMPLATE_NOTES")
 
-    # 400 ft x 300 ft concept lot. The southwest property corner is the origin.
-    add_closed_rectangle(model, property_layer, "GUIDE_PROPERTY_400FT_X_300FT", 0, 0, 4800, 3600)
+    # Four locked curves, all on the manifest's single centered world datum.
+    # They communicate scale only and are never accepted design geometry.
+    add_closed_rectangle(model, datum_layer, "GUIDE_PROPERTY_ENVELOPE", -2400, -1800, 2400, 1800)
+    add_closed_rectangle(model, datum_layer, "GUIDE_BUILDING_ENVELOPE", -1080, -900, 1080, 900)
+    add_closed_rectangle(model, datum_layer, "GUIDE_STAGE_ENVELOPE", -720, -600, 720, 600)
+    add_circle(model, datum_layer, "GUIDE_LED_ACTIVE_RADIUS", (-120, 0, 0), 480, "curvature_datum")
 
-    # Movable planning envelopes, not accepted building or stage geometry.
-    add_closed_rectangle(model, planning_layer, "GUIDE_BUILDING_180FT_X_150FT_MOVE_BEFORE_USE", 1320, 900, 3480, 2700)
-    add_closed_rectangle(model, planning_layer, "GUIDE_STAGE_MIN_120FT_X_100FT_MOVE_BEFORE_USE", 1680, 1200, 3120, 2400)
-
-    # Origin, north, and representative vertical datum rack.
-    add_line(model, datum_layer, "GUIDE_ORIGIN_X", (-240, 0, 0), (600, 0, 0), "axis")
-    add_line(model, datum_layer, "GUIDE_ORIGIN_Y", (0, -240, 0), (0, 600, 0), "axis")
-    add_line(model, datum_layer, "GUIDE_NORTH", (240, 240, 0), (240, 720, 0), "north")
-    add_line(model, datum_layer, "DATUM_GROUND_0IN", (-480, -480, 0), (720, -480, 0), "elevation")
-    add_line(model, datum_layer, "DATUM_STAGE_CLEAR_480IN", (-480, -480, 480), (720, -480, 480), "elevation")
-    add_line(model, datum_layer, "DATUM_EXPECTED_MAX_630IN", (-480, -480, 630), (720, -480, 630), "elevation")
-
-    # Three scale bars make unit mistakes obvious in plan and axonometric views.
-    add_line(model, datum_layer, "SCALE_1FT", (0, 3840, 0), (12, 3840, 0), "scale_bar")
-    add_line(model, datum_layer, "SCALE_10FT", (0, 3900, 0), (120, 3900, 0), "scale_bar")
-    add_line(model, datum_layer, "SCALE_100FT", (0, 3960, 0), (1200, 3960, 0), "scale_bar")
-
-    add_note(model, notes_layer, "NOTE_TEMPLATE", "VP STUDIO 01 — DATUM TEMPLATE ONLY", (120, 3480, 0))
-    add_note(model, notes_layer, "NOTE_UNITS", "MODEL UNITS: INCHES | ABS TOL: 0.01 IN | ANGLE: 0.1 DEG", (120, 3390, 0))
-    add_note(model, notes_layer, "NOTE_AGENT_AUTHORITY", "GUIDES ARE LOCKED REFERENCES. AGENT MUST AUTHOR ALL DESIGN GEOMETRY.", (120, 3300, 0))
-    add_note(model, notes_layer, "NOTE_NO_EXPORT", "VP00_TEMPLATE_* OBJECTS: export_to_blender=false", (120, 3210, 0))
+    # Standard review compositions prevent the agent from spending turns
+    # rediscovering useful cameras. They contain no design geometry.
+    add_named_view(model, "VP_PLAN", (0, 0, 7200), (0, 0, 0), parallel=True)
+    add_named_view(model, "VP_EXTERIOR_AXON", (3600, -3600, 2400), (0, 0, 240))
+    add_named_view(model, "VP_STAGE_INTERIOR", (0, -720, 180), (-120, 0, 180))
 
     output.parent.mkdir(parents=True, exist_ok=True)
     if not model.Write(str(output), 8):
         raise RuntimeError(f"Rhino failed to write template: {output}")
+    digest = hashlib.sha256(output.read_bytes()).hexdigest()
+    output.with_suffix(output.suffix + ".sha256").write_text(
+        digest + "  " + output.name + "\n", encoding="ascii"
+    )
 
 
 def main() -> None:

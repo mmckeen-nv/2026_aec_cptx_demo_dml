@@ -1,146 +1,73 @@
-# Rhino MCP agent-authored modeling contract
+# VP Studio Rhino construction contract
 
-## Purpose
+Hermes designs and models the studio in Rhino; there is no checked-in geometry
+builder and no fixed target model to replay.
 
-Hermes designs and models the studio in Rhino from the brief. The repository
-does not contain a complete geometry builder or object-by-object schedule. Treat
-the dimensions in `01_standard_vp_studio_brief.md` as requirements and planning
-envelopes; make and document the actual spatial decisions needed to satisfy them.
+## Execution discipline
 
-## Tool discipline
+- Read the current phase prompt immediately before work.
+- Read the locked template references silently before building.
+- Read `prompts/01a_locked_scene_manifest.md` before geometry. Treat every
+  scheduled coordinate, dimension, name, and envelope as immutable.
+- Create one manifest-defined assembly per
+  `mcp_rhino_run_csharp(script=...)` call using the exact helper implementation
+  embedded in the current phase prompt. Python is read-only inspection/capture
+  only; it is never a geometry mutation path.
+  A call may create all named components of that assembly, but never geometry
+  from a different phase. Use a few coherent assembly mutation calls per phase,
+  followed by targeted corrections when inspection finds a real problem. Do
+  not enforce a turn count; recover naturally as in the original Cliff House.
+- Copy the phase C# scaffold literally. Replace only its scheduled call list
+  when the prompt explicitly instructs you to do so. Never probe constructors,
+  layer methods, return types, or object-table indexing.
+- Never invoke interactive commands, Rhino's script editor, `_New`, `_SaveAs`,
+  `_RunPythonScript`, document close/reopen, or slot lifecycle tools.
+- Never write a complete phase or studio builder to disk and replay it.
+- Never execute Python or C# through terminal, execute_code, Rhino commands,
+  editors, or file associations. Once the first mutation of a phase begins,
+  compose subsequent scripts inline in MCP calls; do not patch local scripts.
+- Add required User Text as the object is created, using
+  `Attributes.SetUserString(key, value)`.
+- Always treat every `Objects.Add*` result as a `Guid`, never an integer ObjectTable
+  index. Do not translate or move geometry after constructing it from absolute
+  WorldXY intervals.
 
-Use only registered `mcp_rhino_*` tools for architectural modeling. Begin with
-`mcp_rhino_list_slots`, attach to the existing ready Rhino 8 slot, inspect the
-active document, and establish units/tolerances. A fresh-build run requires zero
-objects tagged `project=vp-studio-01`; if any exist, stop and request a new blank
-document rather than reusing or deleting them. Author the Python or C# for each
-bounded modeling operation yourself and send it directly to
-`mcp_rhino_run_python` or `mcp_rhino_run_csharp`.
+## Phase boundaries
 
-Before the first mutation, read the installation-specific Rhino 8 ABI and
-viewport handoff in `06_mcp_operations_contract.md`. Do not use nonexistent
-`rs.LayerIndex` or `rs.ObjectAttributes`, treat `FindByFullPath` as a Layer
-object, or invent a remote URL for Rhino MCP 0.1.5 viewport bytes.
+The four Rhino phases are:
 
-Prohibited shortcuts:
+1. site and shell;
+2. stage and smooth LED volume;
+3. rooms, doors, loading, and circulation;
+4. rigging, camera envelopes, lighting positions, and named equipment proxies.
 
-- Do not read or execute a checked-in geometry builder; none is authoritative.
-- Do not use `exec(open(...))`, a JSON geometry plan, or a generated disk script.
-- Do not create the whole building or all required systems in one MCP call.
-- Do not copy geometry from an earlier `.3dm` as a substitute for designing it.
-- Do not move architectural modeling to Blender.
+## Shared C# prelude for Phases 2-4
 
-One mutation call handles one coherent element group and should normally create
-no more than 20 objects. Keep helpers local to that call. Numerical inspection
-may occur between element groups, but visual correction is mandatory at each
-major phase boundary. A successful script return or numerical audit alone is
-not a passed phase.
+Copy this block at the start of every Phase 2-4 mutation call. Do not shorten,
+translate, or replace it.
 
-## Visual correction protocol
+```csharp
+var rdoc=doc;
+System.Func<string,System.Drawing.Color,int> GL=(name,color)=>{for(int i=0;i<rdoc.Layers.Count;i++){var l=rdoc.Layers[i];if(l!=null&&!l.IsDeleted&&l.Name==name)return i;}var n=new Rhino.DocObjects.Layer();n.Name=name;n.Color=color;int k=rdoc.Layers.Add(n);if(k<0)throw new System.Exception("Layer add failed: "+name);return k;};
+System.Func<string,int,Rhino.DocObjects.ObjectAttributes> A=(name,li)=>{var a=new Rhino.DocObjects.ObjectAttributes();a.Name=name;a.LayerIndex=li;a.SetUserString("project","vp-studio-01");a.SetUserString("discipline","ARCHITECTURE");a.SetUserString("system","VP_STUDIO_PHYSICAL");a.SetUserString("agentic_phase","CURRENT_RHINO_PHASE");a.SetUserString("phase","SCHEMATIC");a.SetUserString("assumption_status","LOCKED_MANIFEST");a.SetUserString("source_basis","01a_locked_scene_manifest.md");a.SetUserString("export_to_blender","yes");return a;};
+System.Func<string,int,double,double,double,double,double,double,System.Guid> SB=(name,li,x0,x1,y0,y1,z0,z1)=>{var b=new Rhino.Geometry.Box(Rhino.Geometry.Plane.WorldXY,new Rhino.Geometry.Interval(x0,x1),new Rhino.Geometry.Interval(y0,y1),new Rhino.Geometry.Interval(z0,z1));var id=rdoc.Objects.AddBrep(b.ToBrep(),A(name,li));if(id==System.Guid.Empty)throw new System.Exception("Box add failed: "+name);return id;};
+```
 
-At the end of every numbered Rhino phase, after its latest mutation:
+The current phase explicitly excludes all later phases. If an object belongs to
+a later phase, do not create it yet.
 
-1. Call `mcp_rhino_list_objects` and verify the phase's names, layers, metadata,
-   types, counts, and measured bounds.
-2. Compose the phase's required plan, axonometric, interior, or services view
-   using dedicated camera/zoom tools. Never use `mcp_rhino_run_command`; Rhino
-   command macros can wait for UI input and deadlock MCP.
-3. Follow the Rhino MCP 0.1.5 viewport handoff in
-   `06_mcp_operations_contract.md`: save the active view directly to a local PNG
-   with the verified read-only `ActiveView.CaptureToBitmap` recipe, then call
-   `vision_analyze` with that absolute path and a phase-specific defect
-   question. Never invent a URL or decode nested base64 with `execute_code`. A
-   captured viewport without a successful `vision_analyze` is not validation.
-4. Use only a literal PASS verdict to satisfy the visual gate. Use the result to assess visible massing,
-   proportion and scale, access/circulation, LED curvature, camera sightlines,
-   collisions, disconnected/floating geometry, and missing required elements.
-5. If vision reports REVISE or a plausible defect, inspect it numerically, revise it in a
-   bounded MCP mutation, then repeat the object-list and affected viewport check.
-6. Record the images, vision result, and disposition of every issue in the phase evidence.
+## Review and checkpoints
 
-Do not substitute bounding-box text, object counts, metadata, or a Python audit
-for viewport evidence. No checkpoint save, `SUCCESS_VALIDATED` DML record, CMA
-reinforcement, final Rhino acceptance, or Blender import may occur until this
-post-mutation object-and-vision pair passes. There is no fixed mutation-count
-gate between these phase boundaries.
+Save useful checkpoints only after the current phase passes both numeric and
+visual review.
 
-## Phase sequence
+After each phase group, run one read-only MCP validator that prints document
+units/tolerances, every new object's bounds, its manifest comparison, and the
+literal token `NUMERIC_PASS`. Stop immediately on the first mismatch. Only after
+that pass, capture one fresh Rhino viewport PNG and ask local Nemotron vision for
+focused feedback. Make targeted corrections, re-run numeric
+validation, and save with `mcp_rhino_save_doc`. Every physical object carries
+`project=vp-studio-01` and the metadata required by the project prompt.
 
-Read and execute only these four Cliff-House-style phase prompts in order:
-
-1. `02a_phase_site_shell.md`
-2. `02b_phase_stage_led.md`
-3. `02c_phase_rooms_access.md`
-4. `02d_phase_rigging_cameras.md`
-
-After phase 4 passes, write `work/vp_studio_01_estimated_load.md` from the brief's
-transparent arithmetic. This is a documentation task, not a Rhino phase, and
-must not create electrical, mechanical, data, or fire-protection geometry.
-
-Before every phase, query DML once for prior geometry decisions, failures, and
-acceptance evidence, then call CMA augment once with the proposed phase plan.
-Ingest one compact record when the phase passes, or immediately after a real
-failure/partial mutation. Do not insert DML calls or records between ordinary
-successful geometry groups. Reinforce only validated phase success.
-
-## Coordinate and units contract
-
-- Units: inches.
-- Origin: southwest lot corner at `(0,0,0)`.
-- +X: east; +Y: north; +Z: up.
-- Finished stage floor elevation: 0 in local building datum.
-- Absolute tolerance: 0.01 in; angle tolerance: 0.1 degrees.
-- Keep geometry within a numerically stable distance of the origin.
-
-## Required layer tree
-
-Create layers as they become necessary; do not create empty layers merely to
-inflate a checklist. Use these canonical paths:
-
-- `00_REFERENCE::Lot_Datum`, `00_REFERENCE::Clearances`
-- `01_SITE::Property`, `01_SITE::Drives_Loading`, `01_SITE::Parking_Service`
-- `02_ARCH::Shell`, `02_ARCH::Stage_Floor`, `02_ARCH::Interior_Partitions`
-- `02_ARCH::Doors_Loading`, `02_ARCH::Rooms_Ancillary`
-- `03_LED::Main_Wall`, `03_LED::Ceiling`, `03_LED::Floor_Alternate`, `03_LED::Support_ServiceZone`
-- `04_RIGGING::Grid_Catwalks`, `04_RIGGING::Hoist_Envelopes`
-- `05_CAMERA::Bodies`, `05_CAMERA::Frustums`, `05_CAMERA::Movement_Envelopes`, `05_CAMERA::Tracking_Sensors`
-- `06_EQUIPMENT::Furniture`, `06_EQUIPMENT::Workstations`,
-  `06_EQUIPMENT::Carts_Cases`, `06_EQUIPMENT::Practical_Lights`
-- `08_CIRCULATION::Egress_Clear`, `90_ANNOTATION::Room_Tags`,
-  `99_VALIDATION::Issues`
-
-## Object identity and metadata
-
-Choose stable uppercase names that communicate design intent, such as
-`ARCH_STAGE_FLOOR`, `LED_MAIN_WALL_SEGMENT_01`, `CHAIR_CONTROL_01`, and
-`CAM_A_HERO_TRACKED`. Do not rely on autogenerated names.
-
-Every modeled object receives User Text for `project=vp-studio-01`, `discipline`,
-`system`, `agentic_phase`, `phase=SCHEMATIC`, `assumption_status`, `source_basis`,
-and `export_to_blender`. Do not create modeled electrical or HVAC objects.
-
-## Save discipline
-
-Never invoke interactive Save/SaveAs commands and do not save periodically. The
-model remains live in Rhino while the four phases are developed. After the final
-audit passes, call `mcp_rhino_save_doc` exactly once to a new timestamped path
-under `work/`. If the save fails, stop; do not retry through a command macro.
-
-## Final Rhino acceptance gate
-
-Before claiming completion:
-
-- Report dynamic object counts by agentic phase and layer; no fixed count is a
-  design target.
-- Confirm the 300 ft x 400 ft lot, approximately 180 ft x 150 ft building,
-  minimum 120 ft x 100 ft x 40 ft clear stage, and 80 ft diameter x 24 ft high
-  180-degree LED volume numerically.
-- Confirm required rooms, loading path, camera names/envelopes, rigging zones,
-  chairs, workstations, production equipment, and clear circulation.
-- Confirm there is no electrical, mechanical, data-distribution, or
-  fire-protection geometry and that the separate estimated-load note exists.
-- Confirm stable unique names, required User Text, valid geometry, intended
-  closed solids, and no accidental duplicates.
-- Capture plan, stage interior, exterior axonometric, and equipment-layout views.
-- Save once, re-query the document, and ingest the artifact path plus objective
-  evidence into DML.
+Do not model electrical, HVAC, data, fire-protection, or utility distribution.
+After the physical model passes, write only `work/vp_studio_01_estimated_load.md`.

@@ -1,0 +1,61 @@
+model:
+  provider: custom:vllm_local
+  default: nvidia/Qwen3.6-35B-A3B-NVFP4
+  base_url: http://localhost:8000/v1
+  api_key: ${AEC_DEMO_MODEL_API_KEY}
+
+agent:
+  max_turns: 24
+  gateway_timeout: 900
+  max_turns_auto_extend: false
+
+compression:
+  enabled: true
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 4
+  dml_first: true
+
+auxiliary:
+  vision:
+    provider: custom:vllm_vision
+    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    base_url: http://localhost:8001/v1
+    temperature: 0.2
+    max_tokens: 512
+
+memory:
+  memory_enabled: true
+  nudge_interval: 0
+  provider: daystrom_dml
+  daystrom_dml:
+    retrieval_policy: always
+    top_k: 6
+    max_context_chars: 2400
+    preflight_strict: true
+    dcn:
+      mode: active_read
+
+skills:
+  creation_nudge_interval: 0
+
+plugins:
+  enabled: [daystrom_dml]
+
+mcp_servers:
+  blender:
+    command: cmd
+    args: [/c, uvx, blender-mcp]
+    env:
+      BLENDER_HOST: localhost
+      BLENDER_PORT: "9876"
+      DISABLE_TELEMETRY: "true"
+  rhino:
+    command: C:/Users/USER/AppData/Roaming/McNeel/Rhinoceros/packages/8.0/Rhino-MCP-Platform/VERSION/router/win-x64/rhino-mcp-router.exe
+    args: [--default-version, "8"]
+  daystrom_dml:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/dml_mcp_server_cliff_hero.cmd]
+  cma:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/cma_mcp_server_cliff_hero.cmd]

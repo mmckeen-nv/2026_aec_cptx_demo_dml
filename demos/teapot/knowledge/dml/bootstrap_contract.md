@@ -1,9 +1,10 @@
 # Teapot durable workflow knowledge
 
 - project_id: `project:teapot-01`
-- Blender MCP is the primary scene bridge; Rhino MCP is used for source `.3dm` inspection or regeneration.
-- Inspect through MCP before mutation and validate after one bounded change.
-- Repository root is `../..` from the demo. Prefer the metadata-bearing `.3dm` path through `../../skills/import_with_metadata.py`; do not improvise OBJ/FBX handoffs.
-- Hermes builds through bounded `mcp_blender_execute_blender_code` calls and visually inspects the viewport/render; `build_teapot_demo.py` is an offline smoke-test utility, not the agent workflow.
-- Require one teapot near 0.30 m, ground contact, real material, camera, lighting, a saved work artifact, and visible screenshot evidence.
-- Record validated successes and failures in DML. Reinforce only validated successes into CMA.
+- BAC Teapot is Blender-only; Rhino is never used in this demo.
+- The authoritative geometry is `demos/teapot/utah_teapot.obj`, SHA-256
+  `a447b8936e70678c70438a4155b6ef5310c4d0a647cee362f84d53c8b38baf9f`.
+- Build through `build_canonical_teapot()` loaded inside Blender MCP.
+- Require four named meshes, 0.30 m width, Z=0 ground contact, material,
+  camera, three lights, and visible preview evidence.
+- DML records validated successes and failures; it does not control tool calls.

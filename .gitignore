@@ -110,3 +110,26 @@ aa_demo_versions/cliff_house_02/demo_assets/
 aa_demo_versions/cliff_house_02/work_to_do/
 aa_demo_versions/cliff_house_02/scripts/
 aa_demo_versions/cliff_house_02/screenshots/
+
+# ── Demo runtime outputs and local asset caches ──
+# Keep authored prompts, skills, manifests, and source templates in Git while
+# excluding per-run scenes, renders, downloads, application backups, and auth.
+blender_assets/
+demos/*/work/
+demos/*/renders/
+demos/*/blender_assets/
+demos/*/comfy_output/
+demos/*/comfy_enhanced/
+demos/cliff_house/hero/*.blend1
+demos/cliff_house/hero/comfy_output/
+demos/cliff_house/hero/renders/
+demos/cliff_house/hero/work/
+demos/teapot/rhino/
+demos/virtual_production_studio/assets/cache/
+demos/virtual_production_studio/blender/
+demos/virtual_production_studio/demos/
+demos/virtual_production_studio/nul
+demos/virtual_production_studio/rhino/
+demos/virtual_production_studio/scripts/
+aa_demo_versions/cliff_house_02/rhino_assets/base_model_checkpoint_*.3dm
+*.3dmbak

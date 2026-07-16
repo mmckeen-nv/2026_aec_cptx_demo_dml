@@ -11,6 +11,38 @@ auxiliary:
     provider: custom:vllm_vision
     model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
     base_url: http://localhost:8001/v1
+    temperature: 0.2
+    max_tokens: 512
+    extra_body:
+      top_k: 1
+      chat_template_kwargs:
+        enable_thinking: false
+  # Every non-vision auxiliary task inherits the local Qwen main model. No
+  # external provider/model is permitted in the RTX Pro demo profile.
+  compression:
+    provider: main
+  title_generation:
+    provider: main
+  web_extract:
+    provider: main
+  goal_judge:
+    provider: main
+  approval:
+    provider: main
+  mcp:
+    provider: main
+  skills_hub:
+    provider: main
+  profile_describer:
+    provider: main
+  triage_specifier:
+    provider: main
+  kanban_decomposer:
+    provider: main
+  curator:
+    provider: main
+  tts_audio_tags:
+    provider: main
 
 memory:
   memory_enabled: true
@@ -18,6 +50,8 @@ memory:
   provider: daystrom_dml
   daystrom_dml:
     retrieval_policy: always
+    top_k: 8
+    max_context_chars: 3200
     preflight_strict: true
     timeout_seconds: 20
     dcn:
@@ -28,7 +62,6 @@ memory:
 plugins:
   enabled:
     - daystrom_dml
-    - aec_demo_controller
   disabled: []
 
 # Keep enough recent tool context for correction without protecting entire
@@ -36,8 +69,8 @@ plugins:
 # compression to preserve ~130K tokens and retrigger after nearly every call.
 compression:
   enabled: true
-  threshold: 0.65
-  target_ratio: 0.15
+  threshold: 0.5
+  target_ratio: 0.2
   protect_last_n: 4
   protect_first_n: 0
   # Daystrom writes a compact continuity checkpoint before Hermes rotates its
@@ -46,6 +79,10 @@ compression:
   dml_first: true
   dml_first_tail_ratio: 0.02
   hygiene_hard_message_limit: 400
+  abort_on_summary_failure: true
+
+model_catalog:
+  enabled: false
 
 # Installed paths are machine-specific. The installer/preflight must resolve
 # these rather than copying this sanitized example over a live profile.

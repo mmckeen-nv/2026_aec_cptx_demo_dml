@@ -8,3 +8,4 @@
 *.jpg binary
 *.hdr binary
 *.exr binary
+*.obj -text

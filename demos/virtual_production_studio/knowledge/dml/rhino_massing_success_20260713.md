@@ -16,7 +16,7 @@ observed_evidence: 98 managed closed solids, zero invalid objects, zero open Bre
 error: NONE
 root_cause: NONE
 avoidance_rule: Do not replace the checked-in builder with improvised RhinoCommon or command-macro code
-reusable_recipe: Run scripts/build_rhino_massing.py unchanged once, validate its JSON and independent Rhino counts, then save exactly once through mcp_rhino_save_doc
+reusable_recipe: OBSOLETE FOR NEW RUNS. This record is historical evidence only. Do not run scripts/build_rhino_massing.py, target its object count, or reuse its one-call builder pattern. Follow the current Cliff-style one-visible-object-per-call phase recipe instead.
 reuse_status: OBSOLETE_DO_NOT_REUSE
 superseded_by: rhino_agent_authored_workflow_current_20260713.md
 supersession_reason: The user requires Hermes to design and generate the geometry itself through bounded Rhino MCP operations; this record remains historical evidence only.

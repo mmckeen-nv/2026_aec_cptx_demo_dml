@@ -1,159 +1,31 @@
-# Virtual Production Studio demo operator contract
+# Virtual Production Studio demo
 
-This demo runs as `project:vp-studio-01` with isolated Daystrom DML/CMA.
-Rhino 8 owns architectural geometry, Blender owns visualization, and ComfyUI may
-stylize only approved Blender renders.
+Project memory namespace: `project:vp-studio-01`.
 
-## Authoritative inputs
+This demo follows the pristine Cliff House presentation rhythm. The project
+files, not SOUL or DML, define the workflow. At session start read, in order:
 
-Hermes runs from `demos/virtual_production_studio`; repository root is `../..`.
-Use the same execution pattern and generic phase prompts as the working Cliff
-House demo. Read only:
+1. `system_prompts/00_session_startup.md`
+2. `skills/INDEX.md`
+3. `skills/session_state.md`
+4. `user_prompts/project_prompt.md`
+5. `prompts/01a_locked_scene_manifest.md`
 
-- `prompts/01_standard_vp_studio_brief.md` for what to design
-- `../../system_prompts/00_session_startup.md`
-- the one applicable numbered phase prompt under `../../system_prompts/`
-- `../../skills/import_with_metadata.py` and
-  `../../skills/validate_blender_scene.py` when the Blender handoff begins
+Then read only the current numbered phase prompt. Do not preload later phases,
+legacy prompt files, the whole knowledge directory, or every contract.
 
-Do not preload every VP prompt. The detailed files under `prompts/` are
-references for the applicable phase only. Use `prompts/03_asset_sourcing_contract.md`,
-`assets/asset_manifest.yaml`, and `prompts/04_comfyui_stylization_contract.md`
-only after the Blender scene exists.
+The locked scene manifest is authoritative for units, dimensions, coordinates,
+names, and containment envelopes. Never invent or approximately relocate a
+scheduled item. If a requested object has no scheduled coordinate, stop and
+derive it explicitly from the manifest before creating it.
 
-The immutable Rhino datum is `source/vp_studio_01_template.3dm`. It uses inches
-and absolute tolerance `0.01`, with 16 locked reference curves/text dots and no
-design solids. Open that exact document once with `mcp_rhino_open_doc`; never invoke `_New`,
-`_NewSmall`, an interactive template chooser, or the completed
-`vp_studio_01_base_model.3dm` reference artifact. Work only in new timestamped
-files under `work/`.
+Daystrom DML is the memory harness behind the workflow. Automatic active-read
+may supply a compact relevant lesson. Query it once when prior experience will
+shorten the current phase; record one concise validated success or real failure
+at a meaningful boundary. DML and CMA advise the agent and never control or gate
+ordinary modeling calls.
 
-## Agentic execution
-
-The agent must design and generate the Rhino geometry itself. There is no
-checked-in studio builder, predetermined object schedule, or complete model
-script to replay. Author bounded Python or C# directly in
-`mcp_rhino_run_python(script=...)` or `mcp_rhino_run_csharp(script=...)`. A call
-should create or revise one coherent architectural group, then continue naturally
-through site/shell, stage/LED volume, rooms/access, rigging/cameras,
-and physical production equipment/furniture layout. Do not model electrical,
-mechanical, fire-protection, or data-distribution systems. Their only deliverable
-is the brief's compact estimated-load note.
-
-Finished architectural geometry must be recognizable, dimensionally credible,
-and visually composed; anonymous boxes are not an acceptable final design. The
-LED wall is a thin, smooth, continuous curved assembly. Do not approximate its
-visible face with thick blocks or a faceted ring of square boxes. Rhino may use
-named lightweight proxies only for third-party props that the Blender phase then
-replaces with approved cached assets. No visible proxy may remain in the final
-Blender beauty scene when a required cached asset is available.
-
-Use the working Cliff House rhythm: inspect the application, make a meaningful
-bounded change, and inspect again at design checkpoints. Do not impose arbitrary
-mutation counts. Save useful timestamped checkpoints with `mcp_rhino_save_doc`;
-never use interactive Save, SaveAs, or Export macros and never trigger modal
-dialogs.
-
-Visual correction is core functionality, not optional presentation. At the end
-of each major Rhino phase (site/shell, stage/LED, rooms/access, rigging/cameras,
-and physical equipment/furniture), re-list the modeled objects and
-capture the phase's required Rhino views. Rhino MCP 0.1.5 nests the bytes from
-`mcp_rhino_get_viewport_image` instead of returning a usable URL, so do not loop
-on that tool. Hermes must follow
-`prompts/06_mcp_operations_contract.md` to save the active view with Rhino 8
-`CaptureToBitmap`, then explicitly call the configured auxiliary vision model
-with `vision_analyze(image_url=<absolute local PNG>, question=<phase defect review>)`. Identify visible proportion, massing, circulation,
-collision, sightline, and omission defects, revise the geometry when needed,
-and recapture the affected view. The required review views are explicit workflow
-requests, so camera/zoom tools may compose them without altering geometry.
-
-Never use `mcp_rhino_run_command`; command macros can enter an interactive state
-and deadlock the MCP request. Use the dedicated Rhino camera, zoom, selection,
-document, and save tools, or direct bounded Python/C# with complete arguments.
-
-Do not save a checkpoint, declare a Rhino phase complete, reinforce success in
-CMA, or begin Blender import unless both fresh object-list evidence and fresh
-viewport evidence and a successful `vision_analyze` were produced after the latest Rhino mutation. This is
-a phase-boundary gate, not a fixed mutation or token quota.
-
-## Daystrom memory harness
-
-Daystrom DML is the always-on continuity and learning layer behind the work.
-Hermes already loads `memory.provider: daystrom_dml` with retrieval enabled and
-DCN active-read iteration decisions. Do not turn memory into per-tool ceremony.
-
-At session start and meaningful phase boundaries, use `mcp_daystrom_dml_stats`,
-`mcp_daystrom_dml_query`, and `mcp_cma_augment` to retrieve relevant decisions,
-validated dimensions, failures, and preferences. After a meaningful validated
-phase or a real failure, ingest one concise structured record. Use
-`mcp_cma_reinforce` only for objectively validated success. A partial application
-mutation is `FAILURE_PARTIAL_MUTATION`; inspect its actual state before retrying.
-Do not repeat an unchanged approach that already failed.
-
-When recording the first meaningful success or failure in a session, read
-`prompts/05_dml_learning_contract.md` for the compact record schema. Do not load
-that file repeatedly between geometry calls.
-
-DML may grant additional iterations when measurable progress continues and deny
-them when the agent is repeating an unchanged failure. Memory activity must not
-interrupt a coherent geometry operation merely because a fixed tool-call count
-was reached.
-
-## MCP and application state
-
-The launcher owns the ready Rhino listener at `127.0.0.1:10500`. Confirm it with
-`mcp_rhino_list_slots`. Do not edit Hermes MCP configuration, spawn or close
-slots, close the document, or replace a healthy listener. Blender uses
-`127.0.0.1:9876`.
-
-If Rhino or Blender MCP registration/connection fails, stop the application
-phase and report the exact preflight blocker. Do not use terminal/config commands
-to repair Hermes from inside the run or launch another Rhino process. Never invoke
-`RunPythonScript` or `EditPythonScript` through Rhino UI. For substantial bounded
-geometry batches, write generated Python under `work/generated_scripts/`, then
-load and execute it from the direct `script=`/`code=` argument of the registered
-Rhino or Blender MCP tool. This avoids giant inline tool calls without opening an
-editor or file chooser. Keep viewport-capture code inline so the controller can
-classify it as read-only evidence.
-Do not launch Blender, enable or patch add-ons, write add-on bootstrap scripts, inspect
-ports through browser fallback, or alter application installations from inside a
-demo run. Application recovery is a host-side preflight responsibility.
-
-Use exact registered tool names. Blender Python is
-`mcp_blender_execute_blender_code(code=...)`. Never call a generic tool named
-`run`; it does not exist.
-Do not build the studio architecture directly in Blender. If a tool fails, inspect
-the error and change the approach instead of trying unrelated browser, shell, or
-application-lifecycle recovery.
-
-Consult `prompts/06_mcp_operations_contract.md` only when an MCP operation or
-argument is unclear; do not preload it during ordinary geometry work.
-
-## Rhino-to-Blender handoff
-
-Use the metadata-preserving direct `.3dm` handoff described by
-`../../system_prompts/07_phase_export_blender.md`. OBJ and FBX are prohibited.
-Rhino must create render meshes for managed Breps and save with
-`WriteUserData=true` and `IncludeRenderMeshes=true`. Join every part returned by
-`Mesh.CreateFromBrep`; using only `parts[0]` is a known failure. Require names,
-metadata, nonempty vertices/faces, and source/mesh bounding-box parity on X/Y/Z.
-
-Import through `../../skills/import_with_metadata.py`, validate with
-`validate(require_material_slots=False)`, and capture plan plus axonometric
-screenshots. Require actual material slots after the material phase. Flat sheets,
-missing mass, scale drift, or bounds inconsistent with Rhino fail the handoff.
-
-## Assets, ComfyUI, and safety
-
-Detailed Creative Commons equipment enters only in Blender from
-`assets/asset_manifest.yaml`; Rhino uses proxy volumes. Preserve attribution and
-license metadata. Blender must replace visible camera, tripod, chair, light,
-monitor, cart/case, and workstation proxies with approved cached assets before
-the beauty-render gate. Blender also owns a deliberate studio-lighting pass with
-motivated key/fill/rim/practical fixtures and an emissive LED volume. ComfyUI uses approved Blender renders as geometry authority and
-does not replace the modeled design.
-
-The estimated electrical load, rigging, structural, fire/life-safety,
-accessibility, HVAC, and egress assumptions remain `PLANNING_ASSUMPTION` until
-reviewed by qualified professionals and the authority having jurisdiction. The
-estimate is documentation only and must not trigger electrical or HVAC geometry.
+The launcher owns Rhino, Blender, and their MCP bridges. Never call Rhino slot
+spawn/close tools, close or reopen the active document, launch duplicate
+applications, repair add-ons, or replace a healthy service. If a bridge is
+missing, report the blocker.

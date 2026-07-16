@@ -6,6 +6,30 @@ if (Test-Path (Join-Path $dmlSource 'pyproject.toml')) { $env:DML_SOURCE_DIR = $
 $hermesScripts = Join-Path $env:HERMES_HOME 'hermes-agent\venv\Scripts'
 $env:Path = $hermesScripts + ';' + (Join-Path $env:HERMES_HOME 'bin') + ';' + $env:Path
 
+function Resolve-AecDemoRoot {
+  $candidates = @(
+    $env:AEC_DEMO_ROOT,
+    [Environment]::GetEnvironmentVariable('AEC_DEMO_ROOT', 'User'),
+    [Environment]::GetEnvironmentVariable('AEC_DEMO_ROOT', 'Machine'),
+    (Join-Path $PSScriptRoot '..\..'),
+    (Join-Path $HOME '2026_aec_cptx_demo_dml'),
+    'G:\AEC-CPTX'
+  )
+  foreach ($candidate in $candidates) {
+    if (-not $candidate) { continue }
+    try { $resolved = (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path } catch { continue }
+    if (Test-Path -LiteralPath (Join-Path $resolved 'demos\teapot') -PathType Container) {
+      return $resolved
+    }
+  }
+  throw 'AEC demo root not found. Set the user environment variable AEC_DEMO_ROOT to the installed project directory.'
+}
+
+$projectRoot = Resolve-AecDemoRoot
+$env:AEC_DEMO_ROOT = $projectRoot
+$env:AEC_DEMO_ID = 'teapot-01'
+$env:AEC_DEMO_RUN_ID = 'teapot-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
+
 function Test-LocalModel($port) {
   try {
     $response = Invoke-WebRequest -Uri "http://127.0.0.1:$port/v1/models" -TimeoutSec 3 -UseBasicParsing
@@ -26,12 +50,13 @@ if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
   if ($LASTEXITCODE -ne 0) { throw "Unable to start the local model backend (exit code $LASTEXITCODE)." }
 }
 
-if (-not $env:AEC_DEMO_ROOT) { throw 'Set AEC_DEMO_ROOT to the local repository path.' }
-$projectRoot = $env:AEC_DEMO_ROOT
 $demoRoot = Join-Path $projectRoot 'demos\teapot'
+foreach ($relative in @('work', 'renders', 'blender_assets')) {
+  New-Item -ItemType Directory -Force -Path (Join-Path $demoRoot $relative) | Out-Null
+}
 $preflight = Join-Path $env:HERMES_HOME 'bin\Test-RTX-Pro-Preflight.ps1'
 if (-not (Test-Path $preflight)) { $preflight = Join-Path $projectRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1' }
-& $preflight -StartServices -SkipComfyUI -ProfileName 'bac_teapot' -ProjectId 'teapot-01' `
+& $preflight -StartServices -SkipRhino -SkipComfyUI -ProfileName 'bac_teapot' -ProjectId 'teapot-01' `
   -DmlStoreName 'teapot-01-runtime-store' -CmaStoreName 'cma-teapot-01' `
   -DmlLauncherName 'dml_mcp_server_teapot.cmd' -CmaLauncherName 'cma_mcp_server_teapot.cmd' `
   -DisplayName 'BAC Teapot'
@@ -39,11 +64,14 @@ if ($LASTEXITCODE -ne 0) { throw "BAC Teapot preflight failed (exit code $LASTEX
 Set-Location $demoRoot
 Write-Host ''
 Write-Host '============================================================'
-Write-Host ' BAC_Teapot - Hermes Profile'
+Write-Host ' BAC_Teapot - Blender Interactive Demo'
 Write-Host ' Profile: bac_teapot'
 Write-Host ' Model: nvidia/Qwen3.6-35B-A3B-NVFP4 (local vLLM, Docker/WSL2)'
 Write-Host ' Vision: Nemotron-3-Nano-Omni-30B-A3B (local vLLM, Docker/WSL2)'
 Write-Host ' Endpoint: http://localhost:8000/v1 (chat), :8001 (vision)'
+Write-Host ' Flow: official 1987 Utah data -> Blender canonical build -> material interaction'
+Write-Host ' Target: first material interaction in under five minutes'
+Write-Host ' Start gate: waiting for you to say "let''s build a Utah teapot"'
 Write-Host '============================================================'
 Write-Host ''
 $hermesExe = Join-Path $hermesScripts 'hermes.exe'
