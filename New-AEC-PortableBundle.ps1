@@ -194,6 +194,7 @@ if (-not $SkipDmlStores) {
     'vp-studio-01-runtime-store', 'cma-vp-studio-01',
     'teapot-01-runtime-store', 'cma-teapot-01',
     'cliff-house-01-runtime-store', 'cma-cliff-house-01',
+    'cliff-house-hero-runtime-store', 'cma-cliff-house-hero-01',
     'aec-cptx-runtime-store', 'cma-store'
   )
   foreach ($storeName in $storeNames) {
@@ -295,6 +296,13 @@ if (-not $SkipDmlStores) {
 }
 
 $commit = Get-SourceCommit $RepoRoot
+$vpAssetCacheRoot = Join-Path $Destination 'demos\virtual_production_studio\assets\cache'
+$vpAssetCacheFiles = @()
+if (Test-Path -LiteralPath $vpAssetCacheRoot -PathType Container) {
+  $vpAssetCacheFiles = @(Get-ChildItem -LiteralPath $vpAssetCacheRoot -File -Recurse -Force | Where-Object {
+    $_.Name -ne '.sketchfab_cookies'
+  })
+}
 $assetInfo = @()
 foreach ($asset in $assets) {
   if (-not (Test-Path -LiteralPath $asset)) { continue }
@@ -316,6 +324,9 @@ $manifest = [ordered]@{
   includes_ollama_models = [bool]$IncludeOllamaModels
   includes_daystrom_stores = -not [bool]$SkipDmlStores
   daystrom_stores = @($bundledDaystromStores)
+  includes_vp_asset_cache = $vpAssetCacheFiles.Count -gt 0
+  vp_asset_cache_files = $vpAssetCacheFiles.Count
+  vp_asset_cache_bytes = [long](($vpAssetCacheFiles | Measure-Object -Property Length -Sum).Sum)
   assets = $assetInfo
   notes = 'Project DML/CMA state is bundled by default. Windows, WSL2, the NVIDIA host driver, and private Daystrom source are not bundled.'
 }

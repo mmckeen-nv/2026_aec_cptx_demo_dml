@@ -425,6 +425,10 @@ class SetupTests(unittest.TestCase):
         self.assertIn("SkipDmlStores", builder)
         self.assertIn("offline\\daystrom\\stores", builder)
         self.assertIn("includes_daystrom_stores", builder)
+        self.assertIn("cliff-house-hero-runtime-store", builder)
+        self.assertIn("cma-cliff-house-hero-01", builder)
+        self.assertIn("includes_vp_asset_cache", builder)
+        self.assertIn(".sketchfab_cookies", builder)
         self.assertIn("Project DML/CMA state is bundled by default", builder)
         self.assertIn("Close all Hermes demo sessions", builder)
 
