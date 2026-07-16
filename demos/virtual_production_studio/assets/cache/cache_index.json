@@ -1,0 +1,714 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-07-13T17:41:43.044144+00:00",
+  "manifest": "../asset_manifest.yaml",
+  "cache_root": ".",
+  "cached": [
+    {
+      "asset": {
+        "key": "camera_cinema_body_re1monsen",
+        "role": "hero cinema camera body",
+        "source": "sketchfab",
+        "asset_id": "e1fec87c8ae0487f964d20de2559aa62",
+        "title": "Cinema Camera",
+        "creator": "re1monsen",
+        "url": "https://sketchfab.com/3d-models/cinema-camera-e1fec87c8ae0487f964d20de2559aa62",
+        "license": "CC-BY-4.0",
+        "triangles": 35900,
+        "noai_flag_seen": false,
+        "priority": "high",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\cinema-camera.zip",
+          "size": 76602852,
+          "sha256": "2e7ec63e6ab586410c6fb98d4c8a940422f35960ed111009eae09941ac479a5f"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\cinema_camera.glb",
+          "size": 7227512,
+          "sha256": "25ec29803d0af9ee2ae82417c696ae5df16cc4bad5a5886cae1cbe2b2b1a92cc"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\source\\present_24_Blackmagic_sf.blend",
+          "size": 5185204,
+          "sha256": "186bf894a08ba4e368f61beb6d5c245a0c6fecd3772eb9d4d126804dfd3a654c"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\ground_ao.jpeg",
+          "size": 135711,
+          "sha256": "e9f996a55f71b561d89e02f973038b45262352e9e4b7db42abbaa98954b322ad"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_body_Base.jpeg",
+          "size": 4584122,
+          "sha256": "3867bc90ec67b79f264e47711b70023c4184470b20b8fd154c74693dbcfe82b9"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_body_Emis.jpeg",
+          "size": 796952,
+          "sha256": "ec5ee4c6b43c374167f3411c108966b1f09dbea3bc1f9d839fad1f78f18bb752"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_body_Meta.jpeg",
+          "size": 2301290,
+          "sha256": "e0c8bdd1910fc8384ac49ddf3242b87a2adcb4289ebc5cb0cf5b222c092d0798"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_body_Norm.jpeg",
+          "size": 8592677,
+          "sha256": "38cc0b19d4d11056b7a02c8a131c8dcb50f8076cd1e30afc361ecc5d63b53bf7"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_body_Roug.jpeg",
+          "size": 5620900,
+          "sha256": "6af4a0d43b8b2abf106fbe44dd5d313777d8146bd96a8a67a0e518eca0bfb1b9"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_case_Base.jpeg",
+          "size": 2495992,
+          "sha256": "39d565b3d185384bfed4570e81c2441554ffb2a210b9f5cbab7fda06a8da360e"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_case_Meta.jpeg",
+          "size": 1592294,
+          "sha256": "3b8da44d7a34fb2f2098eecd10d53c5cdb94cf3f94f41a06ec13be46de77815d"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_case_Norm.jpeg",
+          "size": 5767332,
+          "sha256": "c6a11f44a327d617dd2323f37fafd880f7cf7dbe5f76fd00769370ecd236b165"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_case_Roug.jpeg",
+          "size": 4154012,
+          "sha256": "ca47010abccaae204e281250444809c5700df9c61eb2c523da0ec727a2a275a8"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_lense_Bas.jpeg",
+          "size": 6351573,
+          "sha256": "499271a4cf9d6c060f4c7c5a1a74c51d5577ee34dae48a3d37e4193526197889"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_lense_Met.jpeg",
+          "size": 3848363,
+          "sha256": "9f79e508c53003b1281b7af29e2a7ce50dd448da3fc5fb7f74b3a13d8b535b7a"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_lense_Nor.jpeg",
+          "size": 15450364,
+          "sha256": "af981cea272fa5ad5c433fee7365887f6362706c08333d1c353a9b8d39a5cd04"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\source\\extracted\\textures\\present_24_Blackmagic_low_camera_lense_Rou.jpeg",
+          "size": 9723328,
+          "sha256": "fe1b449fd1e88a387949e68b13792bf7294193d89541cae0e9a8ac387332d9b9"
+        },
+        {
+          "path": "camera_cinema_body_re1monsen\\metadata\\sketchfab_model.json",
+          "size": 7502,
+          "sha256": "2023aaaf41ddac4581d0e6a1576cf3a31fcf76a6cc139606eca4f786586f5831"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "camera_tripod_silver_key",
+        "role": "cinema camera with tripod",
+        "source": "sketchfab",
+        "asset_id": "1268b1dafe1c4aafb25e0d6be044da0b",
+        "title": "cinema camera with simple tripod",
+        "creator": "SILVER KEY",
+        "url": "https://sketchfab.com/3d-models/cinema-camera-with-simple-tripod-1268b1dafe1c4aafb25e0d6be044da0b",
+        "license": "CC-BY-4.0",
+        "triangles": 15400,
+        "noai_flag_seen": false,
+        "priority": "high",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "camera_tripod_silver_key\\source\\cinema-camera-with-simple-tripod.zip",
+          "size": 450992,
+          "sha256": "0748cfb515d740d22256e3b42bb16e2a8b957a87a9393a6cb41fdef87f07161e"
+        },
+        {
+          "path": "camera_tripod_silver_key\\source\\cinema_camera_with_simple_tripod.glb",
+          "size": 941240,
+          "sha256": "7d29891b578372e878223eca905566c4c79aff13994cd07ef9d76c12fe215ff2"
+        },
+        {
+          "path": "camera_tripod_silver_key\\source\\extracted\\source\\camera.fbx",
+          "size": 450860,
+          "sha256": "2f0b59b1a3272a7aea6259979017b830f383f1fa4a72035522f41153f2219230"
+        },
+        {
+          "path": "camera_tripod_silver_key\\metadata\\sketchfab_model.json",
+          "size": 7471,
+          "sha256": "cea718bed631e71b107b4542e7802abd6247b6d0334831d7542a62fe44d55756"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "chair_director_creativejenna",
+        "role": "director and production seating",
+        "source": "sketchfab",
+        "asset_id": "d664c3ed7e1d48f5a0c0ad7f6581477b",
+        "title": "Director's Chair",
+        "creator": "creativejenna",
+        "url": "https://sketchfab.com/3d-models/directors-chair-d664c3ed7e1d48f5a0c0ad7f6581477b",
+        "license": "CC-BY-4.0",
+        "triangles": 28700,
+        "noai_flag_seen": false,
+        "priority": "high",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "chair_director_creativejenna\\source\\directors-chair.zip",
+          "size": 680032,
+          "sha256": "0b160ad5f1c7b1ca447cf2ebb41c83b0acfe1c0b63cfa59fb6e723127a5296ee"
+        },
+        {
+          "path": "chair_director_creativejenna\\source\\directors_chair.glb",
+          "size": 1882228,
+          "sha256": "c926aa46c7cf8b4811abf6d40601f477997abfab24efed2d28c56a67af630162"
+        },
+        {
+          "path": "chair_director_creativejenna\\source\\extracted\\source\\directorschair.fbx",
+          "size": 679884,
+          "sha256": "6438cf902a2895e44fdd4ff4a821468009197c92e18938838b7828a930e75c74"
+        },
+        {
+          "path": "chair_director_creativejenna\\metadata\\sketchfab_model.json",
+          "size": 5650,
+          "sha256": "f26ed786263b4653a39886a37c0d86039c02bdd498b84e4ad926fac200550627"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "grip_c_stand_kilianpohl",
+        "role": "grip and lighting stand",
+        "source": "sketchfab",
+        "asset_id": "a532607fea0d40908302201beff1ad48",
+        "title": "C-Stand",
+        "creator": "KilianPohl",
+        "url": "https://sketchfab.com/3d-models/c-stand-a532607fea0d40908302201beff1ad48",
+        "license": "CC-BY-4.0",
+        "triangles": 42800,
+        "noai_flag_seen": false,
+        "priority": "high",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "grip_c_stand_kilianpohl\\source\\c-stand.glb",
+          "size": 3434160,
+          "sha256": "23e74cb38cb50413b7a779e95e39b96234eff2a182f915aac01602a9ede0e0a3"
+        },
+        {
+          "path": "grip_c_stand_kilianpohl\\source\\c-stand.zip",
+          "size": 53466517,
+          "sha256": "18e57a1755d280e0b563a3a7a1fa952cd43a601b087940c6bf1493b11ea54b67"
+        },
+        {
+          "path": "grip_c_stand_kilianpohl\\source\\extracted\\source\\C-Stand.fbx",
+          "size": 1346140,
+          "sha256": "eb8cfa111b77e0d584076b438dd85491d1412a189234cb00eb92b5806e8c0484"
+        },
+        {
+          "path": "grip_c_stand_kilianpohl\\source\\extracted\\textures\\C-Stand_Bake1_PBR_Diffuse.png",
+          "size": 919311,
+          "sha256": "58ae0427dd3e424ba58b197e90242705bf57997f9a7c7a32d2a131884a4b7c93"
+        },
+        {
+          "path": "grip_c_stand_kilianpohl\\source\\extracted\\textures\\C-Stand_Bake1_PBR_Metalness.png",
+          "size": 504204,
+          "sha256": "184a7d4248067a5c27750ef8f58054151ba5b01c6f8a1c284c4103a28d192e81"
+        },
+        {
+          "path": "grip_c_stand_kilianpohl\\source\\extracted\\textures\\C-Stand_Bake1_PBR_Normal.png",
+          "size": 44224828,
+          "sha256": "89092e41ef9c94c32538774ecef80a5e25f0f383733dcda5201444da71bbcd42"
+        },
+        {
+          "path": "grip_c_stand_kilianpohl\\source\\extracted\\textures\\C-Stand_Bake1_PBR_Roughness.png",
+          "size": 6471286,
+          "sha256": "f23c2b995706d5756fd9672c45510f02ad9cffa41ce860f72a08fd0f433d6301"
+        },
+        {
+          "path": "grip_c_stand_kilianpohl\\metadata\\sketchfab_model.json",
+          "size": 5919,
+          "sha256": "3f355a7a0bf131c39a0b33b05ecba37adf314adbc0dabfb2d2ae451bf2c73850"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "light_led_soft_panel_roy",
+        "role": "practical LED production light",
+        "source": "sketchfab",
+        "asset_id": "482c075e82f64cfdaa55e45fde9af8f2",
+        "title": "LED Soft Light Panel",
+        "creator": "ROY",
+        "url": "https://sketchfab.com/3d-models/led-soft-light-panel-482c075e82f64cfdaa55e45fde9af8f2",
+        "license": "CC-BY-4.0",
+        "triangles": 49400,
+        "noai_flag_seen": false,
+        "priority": "high",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "light_led_soft_panel_roy\\source\\extracted\\source\\lamp focus-light.blend",
+          "size": 2566029,
+          "sha256": "45e5d28a462b95f5615f35fec8ec6f6cbd083894617463da85e553bcc511eac0"
+        },
+        {
+          "path": "light_led_soft_panel_roy\\source\\extracted\\textures\\GRIS_C.png",
+          "size": 913223,
+          "sha256": "d169781ba9df0b206eeccaf94c5a02cc5bcdcd39e0b6a2294d6a7a158b549d3f"
+        },
+        {
+          "path": "light_led_soft_panel_roy\\source\\extracted\\textures\\internal_ground_ao_texture.jpeg",
+          "size": 5446,
+          "sha256": "27e2f0f5fae92c680e37090ada76a508eb4e8695f7b3a52c56b8be5e94e709c7"
+        },
+        {
+          "path": "light_led_soft_panel_roy\\source\\led-soft-light-panel.zip",
+          "size": 3485124,
+          "sha256": "57b2cbefb6f9412fd3aa06d1ae1893a26bf5ad40716909bb7bcad849f95bcfa1"
+        },
+        {
+          "path": "light_led_soft_panel_roy\\source\\led_soft_light_panel.glb",
+          "size": 3030652,
+          "sha256": "2c01c40e1fe2964f8150401139a8e954104bb1fa8dcca81e40e29774840e4780"
+        },
+        {
+          "path": "light_led_soft_panel_roy\\metadata\\sketchfab_model.json",
+          "size": 7953,
+          "sha256": "435d863700dc37a110f0c528d21f953dc13bc16691edc37a5e727864996f82ed"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "control_server_rack_anais",
+        "role": "media-server room rack",
+        "source": "sketchfab",
+        "asset_id": "1348f8c5313f4059b9a2b5b3f37c81f3",
+        "title": "Server Rack",
+        "creator": "Anais3Dcraft",
+        "url": "https://sketchfab.com/3d-models/server-rack-1348f8c5313f4059b9a2b5b3f37c81f3",
+        "license": "CC-BY-4.0",
+        "triangles": 1100,
+        "noai_flag_seen": false,
+        "priority": "high",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "control_server_rack_anais\\source\\extracted\\source\\Server Rack.zip",
+          "size": 4672250,
+          "sha256": "5daa2d82d4bc8110eaa3bfec85923852b46ee58d6d98e5bba2d663af6553bac4"
+        },
+        {
+          "path": "control_server_rack_anais\\source\\extracted\\textures\\Atlas_Servidores_HQ_Atlas_Servidores_BaseColor.png",
+          "size": 738582,
+          "sha256": "2cca21c03b0c86bda3b03c2964e891ab7f54e63f64ed498d19239a81631fd901"
+        },
+        {
+          "path": "control_server_rack_anais\\source\\extracted\\textures\\MaquinaOp_Objetos_MaquinaOp_Objetos_AlbedoTransparency.png",
+          "size": 551000,
+          "sha256": "8f9fddd4c7b8b573f864ba0382844296f95f84f011d66f8eede4ebedc8345ec5"
+        },
+        {
+          "path": "control_server_rack_anais\\source\\extracted\\textures\\MaquinaOp_Objetos_MaquinaOp_Objetos_Normal.png",
+          "size": 638383,
+          "sha256": "fb08e5c17870771f1a12f9ba9beb0a9aa850a1b31df9962aba792329e870c792"
+        },
+        {
+          "path": "control_server_rack_anais\\source\\server-rack.zip",
+          "size": 6600947,
+          "sha256": "ac040ede1fb0593fedba1a43d04fdc24b26053847a431ec3ac0755c229f9bcf8"
+        },
+        {
+          "path": "control_server_rack_anais\\source\\server_rack.glb",
+          "size": 1946140,
+          "sha256": "456892fc9ad0ac40b57b05ba0a78ee05943849af414f2e1275df7d81ecb494ca"
+        },
+        {
+          "path": "control_server_rack_anais\\metadata\\sketchfab_model.json",
+          "size": 9341,
+          "sha256": "1375298dba330137d05c927cde2df5dd7a89a0bd4d718348fe12e58a30e7f965"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "control_monitor_datsketch",
+        "role": "repeated control-room monitor",
+        "source": "sketchfab",
+        "asset_id": "6a7b0147890242418a49f6db26657ab4",
+        "title": "Office Monitor / Workstation Monitor",
+        "creator": "DatSketch",
+        "url": "https://sketchfab.com/3d-models/office-monitor-workstation-monitor-6a7b0147890242418a49f6db26657ab4",
+        "license": "CC-BY-4.0",
+        "triangles": 181,
+        "noai_flag_seen": false,
+        "priority": "high",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "control_monitor_datsketch\\source\\extracted\\source\\Office Monitor by DATSKETCH.rar",
+          "size": 31138,
+          "sha256": "400b87e2b41f78175e229804485505687d15e9fb56d466ba7933919602f2daad"
+        },
+        {
+          "path": "control_monitor_datsketch\\source\\office-monitor-workstation-monitor.zip",
+          "size": 31312,
+          "sha256": "d119b828e0c0c5e8978188bb995a1d5377f7ac87a3c741d6275ef773e3b0d583"
+        },
+        {
+          "path": "control_monitor_datsketch\\source\\office_monitor__workstation_monitor.glb",
+          "size": 25020,
+          "sha256": "75ac580efa3a2f2ddd0abe78b45971eb4c31a51ebc1ceddd047389f2f65e5d02"
+        },
+        {
+          "path": "control_monitor_datsketch\\metadata\\sketchfab_model.json",
+          "size": 6669,
+          "sha256": "ca17ea7dcb0047ec3bb22d0620c4a788418ff1f95ed35aee00df28558e15c877"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "roadcase_thomas_kole",
+        "role": "stage and loading-area road case",
+        "source": "sketchfab",
+        "asset_id": "4ef9402141f0406bbb8981bc0f56b2e5",
+        "title": "PBR Roadcase",
+        "creator": "Thomas Kole",
+        "url": "https://sketchfab.com/3d-models/pbr-roadcase-4ef9402141f0406bbb8981bc0f56b2e5",
+        "license": "CC-BY-4.0",
+        "triangles": 668,
+        "noai_flag_seen": false,
+        "priority": "medium",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "roadcase_thomas_kole\\source\\extracted\\source\\case.fbx.fbx",
+          "size": 95084,
+          "sha256": "b384f1967d6260151d0aba141a16fa641cbdae4a7421a1199b13f27971d943f4"
+        },
+        {
+          "path": "roadcase_thomas_kole\\source\\extracted\\textures\\GAP02_3DObject_AO_ThomasKole_2DAE-1.png",
+          "size": 814824,
+          "sha256": "55b53357ad113ba97f741989fa59c8913ebd7dd3c3ee1694a35f9f71dc4cf483"
+        },
+        {
+          "path": "roadcase_thomas_kole\\source\\extracted\\textures\\GAP02_3DObject_basecolor_ThomasKole_2DAE-1.png",
+          "size": 3158865,
+          "sha256": "d5882116012d3b186cdc921794a37a56dbbdf1fcbb4fde8a24f039f0649acde3"
+        },
+        {
+          "path": "roadcase_thomas_kole\\source\\extracted\\textures\\GAP02_3DObject_metalness_ThomasKole_2DAE-1.png",
+          "size": 74972,
+          "sha256": "9401502134dbc655405006e0b6f9e1c375e909cba8c52bf5ed0fb65304085218"
+        },
+        {
+          "path": "roadcase_thomas_kole\\source\\extracted\\textures\\GAP02_3DObject_normal_ThomasKole_2DAE-1.png",
+          "size": 3623691,
+          "sha256": "8e12d80b089506d483297e8f64734d78304991df956b3bb78d9be09675280949"
+        },
+        {
+          "path": "roadcase_thomas_kole\\source\\extracted\\textures\\GAP02_3DObject_roughness_ThomasKole_2DAE-1.png",
+          "size": 2187584,
+          "sha256": "46c7a47b0926065eb13edcad2988d2e4ad1a1b1c5cdf6b7289980aecd5de4b60"
+        },
+        {
+          "path": "roadcase_thomas_kole\\source\\pbr-roadcase.zip",
+          "size": 9956066,
+          "sha256": "c66608e10ff5964e6c1ee5c39f9a0b329c744e13200d0556d15094b8761dd9db"
+        },
+        {
+          "path": "roadcase_thomas_kole\\source\\pbr_roadcase.glb",
+          "size": 2728704,
+          "sha256": "3556d2bbf1a81c3ac7de32b9dc7da4fdd206efa682de642237cba17cb26ee402"
+        },
+        {
+          "path": "roadcase_thomas_kole\\metadata\\sketchfab_model.json",
+          "size": 5771,
+          "sha256": "7b9fc81d1f4381ff7f5ccb5af1834956a0ef5bf7c8cbbf0d29b0f5974fe33302"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "cables_modular_simon_laisne",
+        "role": "controlled cable dressing",
+        "source": "sketchfab",
+        "asset_id": "86fd2a4c57144bf083882564a63870f7",
+        "title": "Modular cables 1m",
+        "creator": "Simon Laisne",
+        "url": "https://sketchfab.com/3d-models/modular-cables-1m-86fd2a4c57144bf083882564a63870f7",
+        "license": "CC-BY-4.0",
+        "triangles": 9100,
+        "noai_flag_seen": false,
+        "priority": "medium",
+        "status": "shortlisted"
+      },
+      "source": "sketchfab",
+      "package": "original+glb",
+      "files": [
+        {
+          "path": "cables_modular_simon_laisne\\source\\extracted\\source\\sm_Tuyaux_grillage_1m.zip",
+          "size": 12325947,
+          "sha256": "15563e8983289d07949eb6d3b5af15bce355b336013905988ebd35a93d3859a3"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\source\\extracted\\textures\\sm_Tuyaux_grillage_1m_Mat1_AO.png",
+          "size": 1608284,
+          "sha256": "31ee65cc5ba624b75c79373fcd7319a93391211fba70d0871508d02f50891290"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\source\\extracted\\textures\\sm_Tuyaux_grillage_1m_Mat1_BaseColor.png",
+          "size": 2722814,
+          "sha256": "12fb419418f84d0d9c18a68431431d75b436a2184df7d54248dad045b2606cde"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\source\\extracted\\textures\\sm_Tuyaux_grillage_1m_Mat1_Metallic.png",
+          "size": 1038368,
+          "sha256": "1ccf2ca52a52a3ac636c5c0c4d23c756768cc4902467725eb42a421e93531466"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\source\\extracted\\textures\\sm_Tuyaux_grillage_1m_Mat1_Normal.png",
+          "size": 3679735,
+          "sha256": "000f39f615b0f1027994ca5311d69d791a594ed8f9f0129ee76e285fb91102bd"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\source\\extracted\\textures\\sm_Tuyaux_grillage_1m_Mat1_Roughness.png",
+          "size": 1375876,
+          "sha256": "73e1f75c3a67faefe843eb68ef95bea9e197c867ad755716deaf242ec01a14e9"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\source\\modular-cables-1m.zip",
+          "size": 22752034,
+          "sha256": "f3e454fb0898c7cc50de2ec616803e291404244dfeb83cae4ee6a7ea1c5cefa2"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\source\\modular_cables_1m.glb",
+          "size": 3556012,
+          "sha256": "398c049ce30b4edd82468b078cc0203afbdbaf8b5825fed9b983b8a0d959798f"
+        },
+        {
+          "path": "cables_modular_simon_laisne\\metadata\\sketchfab_model.json",
+          "size": 5500,
+          "sha256": "63756e4a3f0d5b7017bc0e1dd735617a5ec1ef049a82e209808b51ce637f3ede"
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "chair_modern_arm_polyhaven",
+        "role": "green room and client lounge chair",
+        "source": "polyhaven",
+        "asset_id": "modern_arm_chair_01",
+        "title": "Modern Arm Chair 01",
+        "creator": "Vibrant Nordic",
+        "url": "https://polyhaven.com/a/modern_arm_chair_01",
+        "license": "CC0-1.0",
+        "triangles": 9000,
+        "noai_flag_seen": false,
+        "priority": "medium",
+        "status": "shortlisted"
+      },
+      "source": "polyhaven",
+      "resolution": "2k",
+      "files": [
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\modern_arm_chair_01_2k.blend",
+          "size": 355136,
+          "sha256": "c6c92b5a07be4ab37e48fbf43c7ff233b90b1e364987e2bae790aed501fe97f6",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_legs_rough_2k.png",
+          "size": 3497673,
+          "sha256": "fa49217cd4908d6c403fe37e0ee0b7f74d15168ac3b585ed8d22277c07f4e59b",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_pillow_metal_2k.png",
+          "size": 8264,
+          "sha256": "e280cde7e0775c960c448ea75e95e4023e3c47f6f5a825ee08d07b397ebbe98e",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_pillow_nor_gl_2k.png",
+          "size": 7433277,
+          "sha256": "7b3c44c34ecfa8cf07a8930592364c52a7c543eecd9434b34df1ee46884a7680",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_legs_diff_2k.png",
+          "size": 10153780,
+          "sha256": "86cd587fe94c561695df91fc23cc48935be9bc2d98e811ac2be084bcb9ee2bdc",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_legs_nor_gl_2k.png",
+          "size": 10611050,
+          "sha256": "6364741a59f40e84f43c06f6e2b40b165613d0bb048ec8729a64b423de0d17d6",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_pillow_rough_2k.png",
+          "size": 2512880,
+          "sha256": "cc00fe679b9be02e68c3d65980c99fa2b75251fad0649f025b281fe8881086d1",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_pillow_diff_2k.png",
+          "size": 6961371,
+          "sha256": "b339fcdde4c1fc1c863b607d3eb878aca495c2edf452d1b9b45ef96641a13ac2",
+          "reused": true
+        },
+        {
+          "path": "chair_modern_arm_polyhaven\\source\\textures\\modern_arm_chair_01_legs_metal_2k.png",
+          "size": 8264,
+          "sha256": "e280cde7e0775c960c448ea75e95e4023e3c47f6f5a825ee08d07b397ebbe98e",
+          "reused": true
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "chair_crew_monobloc_polyhaven",
+        "role": "inexpensive stackable crew seating",
+        "source": "polyhaven",
+        "asset_id": "plastic_monobloc_chair_01",
+        "title": "Plastic Monobloc Chair 01",
+        "creator": "Kuutti Siitonen",
+        "url": "https://polyhaven.com/a/plastic_monobloc_chair_01",
+        "license": "CC0-1.0",
+        "triangles": 3000,
+        "noai_flag_seen": false,
+        "priority": "low",
+        "status": "shortlisted"
+      },
+      "source": "polyhaven",
+      "resolution": "2k",
+      "files": [
+        {
+          "path": "chair_crew_monobloc_polyhaven\\source\\plastic_monobloc_chair_01_2k.blend",
+          "size": 197735,
+          "sha256": "90685db9e60f5de9ee2b709c48b8c1698503d3604a3bd60f39e42c8b4737f145",
+          "reused": true
+        },
+        {
+          "path": "chair_crew_monobloc_polyhaven\\source\\textures\\plastic_monobloc_chair_01_metal_2k.exr",
+          "size": 13296,
+          "sha256": "a7a629502b764da5a04914b96719ea74bc9f690d7214a52eb00941ed3f6a83a8",
+          "reused": true
+        },
+        {
+          "path": "chair_crew_monobloc_polyhaven\\source\\textures\\plastic_monobloc_chair_01_diff_2k.jpg",
+          "size": 2010853,
+          "sha256": "97aa591b9291614799ba98b02a37913c381dee6695e1e5f9f42574e0119d755e",
+          "reused": true
+        },
+        {
+          "path": "chair_crew_monobloc_polyhaven\\source\\textures\\plastic_monobloc_chair_01_nor_gl_2k.exr",
+          "size": 5710855,
+          "sha256": "1075c7e149ac470b7a81457766bffef4426e8842433d14ed181589874f13a6cf",
+          "reused": true
+        },
+        {
+          "path": "chair_crew_monobloc_polyhaven\\source\\textures\\plastic_monobloc_chair_01_rough_2k.exr",
+          "size": 3350121,
+          "sha256": "514ec823d516292a7ce2697346520e2617d2717fe3b4ac02c60c4f09f323d001",
+          "reused": true
+        }
+      ],
+      "status": "cached"
+    },
+    {
+      "asset": {
+        "key": "dressing_office_notepads_polyhaven",
+        "role": "control-room and production-office dressing",
+        "source": "polyhaven",
+        "asset_id": "office_notepads",
+        "title": "Office Notepads",
+        "creator": "Ulan Cabanilla",
+        "url": "https://polyhaven.com/a/office_notepads",
+        "license": "CC0-1.0",
+        "triangles": 666,
+        "noai_flag_seen": false,
+        "priority": "low",
+        "status": "shortlisted"
+      },
+      "source": "polyhaven",
+      "resolution": "2k",
+      "files": [
+        {
+          "path": "dressing_office_notepads_polyhaven\\source\\office_notepads_2k.blend",
+          "size": 117223,
+          "sha256": "b70e06c34802bf7bf9649e032be729150a2c92c00f031fcc844cc7304eacf9f8",
+          "reused": true
+        },
+        {
+          "path": "dressing_office_notepads_polyhaven\\source\\textures\\office_notepads_diff_2k.jpg",
+          "size": 1800779,
+          "sha256": "9037c4c6ffe60a123e875d2618f71bf448a25c5e87c494289c8fb0c9c52ab469",
+          "reused": true
+        },
+        {
+          "path": "dressing_office_notepads_polyhaven\\source\\textures\\office_notepads_nor_gl_2k.exr",
+          "size": 4968676,
+          "sha256": "d3059f610e4e873c061a83ac630ae2893d7e3893b3a91bf158008a4a62283dc2",
+          "reused": true
+        },
+        {
+          "path": "dressing_office_notepads_polyhaven\\source\\textures\\office_notepads_rough_2k.exr",
+          "size": 1808569,
+          "sha256": "0fe7f412e2beb06458d1d3afdde5a992d339d346e52d17428356bad90ae7f1cf",
+          "reused": true
+        }
+      ],
+      "status": "cached"
+    }
+  ],
+  "failures": []
+}

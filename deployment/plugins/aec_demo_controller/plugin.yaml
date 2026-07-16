@@ -1,0 +1,3 @@
+name: aec_demo_controller
+description: Minimal application-state safety shim for agent-authored AEC workflows.
+version: 0.3.0

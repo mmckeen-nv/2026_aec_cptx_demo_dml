@@ -28,9 +28,11 @@ compression:
   enabled: true
   threshold: 0.5
   target_ratio: 0.2
-  protect_last_n: 20
+  protect_last_n: 4
+  protect_first_n: 0
+  dml_first: true
+  dml_first_tail_ratio: 0.02
   hygiene_hard_message_limit: 400
-  protect_first_n: 3
   abort_on_summary_failure: false
 
 # Auxiliary LLM tasks pinned per-task, same pattern as the aec-cptx profile.
@@ -42,6 +44,12 @@ auxiliary:
     provider: custom:vllm_vision
     model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
     base_url: http://localhost:8001/v1
+    temperature: 0.2
+    max_tokens: 512
+    extra_body:
+      top_k: 1
+      chat_template_kwargs:
+        enable_thinking: false
   web_extract:
     provider: custom:nvidia
     model: aws/anthropic/bedrock-claude-sonnet-5
@@ -68,8 +76,12 @@ memory:
   memory_enabled: true
   user_profile_enabled: true
   provider: daystrom_dml
+  nudge_interval: 0
   daystrom_dml:
     retrieval_policy: always
+    top_k: 8
+    max_context_chars: 3200
+    preflight_strict: true
     timeout_seconds: 20
     # Valid DCN modes: active_read, active_learn, observe_only, disabled.
     dcn:
@@ -78,7 +90,11 @@ memory:
 plugins:
   enabled:
     - daystrom_dml
+    - teapot_execution_rails
   disabled: []
+
+skills:
+  creation_nudge_interval: 0
 
 sessions:
   write_json_snapshots: true
@@ -95,3 +111,18 @@ model_catalog:
   enabled: true
   url: https://hermes-agent.nousresearch.com/docs/api/model-catalog.json
   ttl_hours: 1
+
+mcp_servers:
+  blender:
+    command: cmd
+    args: [/c, uvx, blender-mcp]
+    env:
+      BLENDER_HOST: localhost
+      BLENDER_PORT: "9876"
+      DISABLE_TELEMETRY: "true"
+  daystrom_dml:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/dml_mcp_server_teapot.cmd]
+  cma:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/cma_mcp_server_teapot.cmd]

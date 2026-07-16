@@ -1,7 +1,9 @@
 """Validated .3dm importer with metadata extraction.
 
 Reads a Rhino .3dm via rhino3dm. For each object:
-  - Builds Blender mesh from Brep face render meshes
+  - Handles both Brep AND Mesh geometry types
+  - For Mesh: imports vertices/faces directly (render meshes from Rhino)
+  - For Brep: attempts face-level render meshes; if none, tries full B-rep mesh
   - Preserves layer hierarchy as nested Blender Collections
   - Sets hide_viewport per Rhino visibility
   - Extracts User Text attributes -> Blender custom properties
@@ -10,8 +12,26 @@ Reads a Rhino .3dm via rhino3dm. For each object:
 Refuses to proceed if rhino3dm reports load errors or critical attributes are
 missing. Caller must inspect the issue report and decide.
 """
-import bpy, sys, site, os
-from mathutils import Vector
+import hashlib
+import os
+import site
+import sys
+from pathlib import Path
+
+
+def _source_signature(path):
+    resolved = Path(path).resolve()
+    digest = hashlib.sha256()
+    with resolved.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    stat = resolved.stat()
+    return {
+        "path": str(resolved),
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+        "sha256": digest.hexdigest(),
+    }
 
 def ensure_rhino3dm():
     user_site = site.getusersitepackages()
@@ -40,18 +60,122 @@ def parse_name_fallback(name):
             hints["color_hint"] = tok
     return hints
 
-def import_3dm(path, root_name="ImportedRhino", verbose=True):
+
+def default_material_tag(name, layer_name=""):
+    """Return a stable VP/AEC material tag when Rhino omitted one."""
+    text = (name + " " + layer_name).lower()
+    if "led" in text:
+        return "M_LED_Emissive"
+    if "glass" in text or "glazing" in text:
+        return "M_Glass_Clear"
+    if "floor" in text or "slab" in text or "concrete" in text:
+        return "M_Concrete_Neutral"
+    if "roof" in text or "truss" in text or "rig" in text or "hoist" in text:
+        return "M_Metal_Dark"
+    if "chair" in text:
+        return "M_Fabric_Dark"
+    if "camera" in text or "cam_" in text or "cart" in text or "case" in text:
+        return "M_Equipment_Black"
+    if "wall" in text or "room" in text or "partition" in text:
+        return "M_Wall_Neutral"
+    return "M_Proxy_Neutral"
+
+def _unit_scale_to_meters(unit_system):
+    """Return a deterministic model-unit to metre conversion."""
+    unit_name = str(unit_system).split(".")[-1].lower()
+    scales = {
+        "angstroms": 1e-10, "nanometers": 1e-9, "microns": 1e-6,
+        "millimeters": 1e-3, "centimeters": 1e-2, "decimeters": 1e-1,
+        "meters": 1.0, "dekameters": 10.0, "hectometers": 100.0,
+        "kilometers": 1000.0, "microinches": 0.0254e-6, "mils": 0.0254e-3,
+        "inches": 0.0254, "feet": 0.3048, "yards": 0.9144, "miles": 1609.344,
+    }
+    if unit_name not in scales:
+        raise RuntimeError(f"Unsupported or unset Rhino unit system: {unit_system}")
+    return scales[unit_name]
+
+
+def inspect_3dm(path):
+    """Validate a handoff without requiring Blender and return exact counts."""
     rhino3dm = ensure_rhino3dm()
     f3dm = rhino3dm.File3dm.Read(path)
     if f3dm is None:
         raise RuntimeError(f"Could not read {path}")
 
+    counts = {
+        "objects": len(f3dm.Objects),
+        "layers": len(f3dm.Layers),
+        "breps": 0,
+        "meshes": 0,
+        "joined_meshes": 0,
+        "joined_vertices": 0,
+        "joined_faces": 0,
+        "invalid_joined_meshes": 0,
+        "unit_scale": _unit_scale_to_meters(f3dm.Settings.ModelUnitSystem),
+        "joined_names": [],
+        "joined_bounds": {},
+    }
+    for robj in f3dm.Objects:
+        geom = robj.Geometry
+        if isinstance(geom, rhino3dm.Brep):
+            counts["breps"] += 1
+        elif isinstance(geom, rhino3dm.Mesh):
+            counts["meshes"] += 1
+            if robj.Attributes.GetUserString("handoff_geometry") == "joined_mesh":
+                counts["joined_meshes"] += 1
+                vertex_count = len(geom.Vertices)
+                face_count = len(geom.Faces)
+                counts["joined_vertices"] += vertex_count
+                counts["joined_faces"] += face_count
+                if vertex_count <= 0 or face_count <= 0:
+                    counts["invalid_joined_meshes"] += 1
+                name = robj.Attributes.Name or ""
+                counts["joined_names"].append(name)
+                if vertex_count > 0:
+                    xs = [vertex.X for vertex in geom.Vertices]
+                    ys = [vertex.Y for vertex in geom.Vertices]
+                    zs = [vertex.Z for vertex in geom.Vertices]
+                    counts["joined_bounds"][name] = {
+                        "min": (min(xs), min(ys), min(zs)),
+                        "max": (max(xs), max(ys), max(zs)),
+                    }
+    return counts
+
+
+def _remove_collection_tree(bpy, collection):
+    """Remove only the named import collection and its descendants."""
+    for obj in list(collection.all_objects):
+        bpy.data.objects.remove(obj, do_unlink=True)
+    for child in list(collection.children):
+        _remove_collection_tree(bpy, child)
+    if bpy.data.collections.get(collection.name) is not None:
+        bpy.data.collections.remove(collection)
+
+
+def import_3dm(path, root_name="ImportedRhino", verbose=True, replace_existing=True):
+    import bpy
+    rhino3dm = ensure_rhino3dm()
+    f3dm = rhino3dm.File3dm.Read(path)
+    if f3dm is None:
+        raise RuntimeError(f"Could not read {path}")
+    existing = bpy.data.collections.get(root_name)
+    if existing is not None:
+        if not replace_existing:
+            raise RuntimeError(f"Collection already exists: {root_name}")
+        _remove_collection_tree(bpy, existing)
+    unit_scale = _unit_scale_to_meters(f3dm.Settings.ModelUnitSystem)
+
     # Build layer index -> Blender collection
     root_col = bpy.data.collections.new(root_name)
     bpy.context.scene.collection.children.link(root_col)
+    signature = _source_signature(path)
+    root_col["source_3dm_path"] = signature["path"]
+    root_col["source_3dm_size"] = signature["size"]
+    root_col["source_3dm_mtime_ns"] = str(signature["mtime_ns"])
+    root_col["source_3dm_sha256"] = signature["sha256"]
     layers = {}  # idx -> {"col": Collection, "name": str, "visible": bool}
     for i, lay in enumerate(f3dm.Layers):
-        layers[i] = {"name": lay.Name, "visible": lay.Visible,
+        layers[i] = {"name": lay.Name, "full_path": getattr(lay, "FullPath", lay.Name), "visible": lay.Visible,
                      "parent_id": lay.ParentLayerId, "rhino_id": lay.Id,
                      "col": None}
     # Create collections honoring parent chain
@@ -69,37 +193,83 @@ def import_3dm(path, root_name="ImportedRhino", verbose=True):
         else:
             root_col.children.link(info["col"])
 
-    # Build mesh objects from Breps
+    # A deterministic VP handoff contains explicit joined Mesh companions. When
+    # they exist, import only those companions so saved Brep render meshes cannot
+    # create duplicates. Older AEC files without companions retain the Brep path.
+    joined_mesh_ids = set()
+    for robj in f3dm.Objects:
+        try:
+            handoff_geometry = robj.Attributes.GetUserString("handoff_geometry")
+        except Exception:
+            handoff_geometry = None
+        if isinstance(robj.Geometry, rhino3dm.Mesh) and handoff_geometry == "joined_mesh":
+            joined_mesh_ids.add(str(robj.Attributes.Id))
+    prefer_joined_meshes = bool(joined_mesh_ids)
+
+    # Build mesh objects from explicit Mesh companions, or Brep render meshes in
+    # legacy files that do not contain companions.
     skipped = 0
     imported = 0
     for robj in f3dm.Objects:
         attrs = robj.Attributes
         g = robj.Geometry
-        if not isinstance(g, rhino3dm.Brep):
+
+        if attrs.GetUserString("export_to_blender") == "false":
             continue
-        # Collect render meshes from all faces
-        verts_all = []
-        faces_all = []
-        vbase = 0
-        for fi in range(len(g.Faces)):
-            face = g.Faces[fi]
-            rm = face.GetMesh(rhino3dm.MeshType.Render)
-            if rm is None: continue
-            try:
-                vf = rm.Vertices.ToFloatArray()
-                ff = rm.Faces.ToIntArray(False)
-            except Exception:
+        if prefer_joined_meshes and str(attrs.Id) not in joined_mesh_ids:
+            continue
+
+        if isinstance(g, rhino3dm.Mesh):
+            # Direct mesh geometry (render meshes from Rhino)
+            verts_all = []
+            faces_all = []
+            for vertex in g.Vertices:
+                # Rhino and Blender are both Z-up. Preserve axes exactly.
+                verts_all.append((
+                    vertex.X * unit_scale,
+                    vertex.Y * unit_scale,
+                    vertex.Z * unit_scale,
+                ))
+            for mesh_face in g.Faces:
+                indices = tuple(mesh_face)
+                if len(indices) == 4 and indices[2] == indices[3]:
+                    indices = indices[:3]
+                faces_all.append(tuple(index for index in indices))
+
+        elif isinstance(g, rhino3dm.Brep):
+            # Try face-level render meshes first
+            verts_all = []
+            faces_all = []
+            vbase = 0
+            has_mesh = False
+            for fi in range(len(g.Faces)):
+                face = g.Faces[fi]
+                rm = face.GetMesh(rhino3dm.MeshType.Render)
+                if rm is not None:
+                    has_mesh = True
+                    nv = len(rm.Vertices)
+                    for vertex in rm.Vertices:
+                        # Rhino and Blender are both Z-up. Preserve axes exactly.
+                        verts_all.append((
+                            vertex.X * unit_scale,
+                            vertex.Y * unit_scale,
+                            vertex.Z * unit_scale,
+                        ))
+                    for mesh_face in rm.Faces:
+                        indices = tuple(mesh_face)
+                        if len(indices) == 4 and indices[2] == indices[3]:
+                            indices = indices[:3]
+                        faces_all.append(tuple(index + vbase for index in indices))
+                    vbase += nv
+            if not has_mesh:
+                # No face-level render meshes — check if there's a separate Mesh obj by name/layer
+                # This is handled by the separate Mesh geometry pass above
+                skipped += 1
                 continue
-            nv = len(vf) // 3
-            for k in range(nv):
-                verts_all.append((vf[3*k], vf[3*k+1], vf[3*k+2]))
-            i_in_face = 0
-            while i_in_face < len(ff):
-                fcount = ff[i_in_face]
-                idx = ff[i_in_face+1 : i_in_face+1+fcount]
-                faces_all.append(tuple(v + vbase for v in idx))
-                i_in_face += 1 + fcount
-            vbase += nv
+        else:
+            # Not a Brep or Mesh — skip (curves, points, etc.)
+            continue
+
         if not verts_all or not faces_all:
             skipped += 1
             continue
@@ -117,28 +287,53 @@ def import_3dm(path, root_name="ImportedRhino", verbose=True):
             info["col"].objects.link(obj)
             obj.hide_viewport = not (info["visible"] and attrs.Visible)
             obj.hide_render = obj.hide_viewport
+            obj["rhino_layer"] = info["full_path"]
         else:
             root_col.objects.link(obj)
 
         # User Text -> custom properties
         utext = {}
         try:
-            keys = attrs.GetUserStrings()
-            for k in keys:
-                v = attrs.GetUserString(k)
-                if v is not None:
-                    utext[k] = v
+            for key, value in attrs.GetUserStrings():
+                if value is not None:
+                    utext[key] = value
         except Exception:
             pass
         if not utext:
             # Fall back to name-parsing
             utext = parse_name_fallback(name)
+        if not str(utext.get("material", "")).strip():
+            layer_name = info["full_path"] if info else ""
+            utext["material"] = default_material_tag(name, layer_name)
         for k, v in utext.items():
             obj[k] = v
+        obj["source_units"] = str(f3dm.Settings.ModelUnitSystem)
+        obj["unit_scale_to_meters"] = unit_scale
+        obj.rotation_mode = 'XYZ'
 
         imported += 1
 
     if verbose:
-        print(f"Imported {imported} Brep objects, skipped {skipped}, "
-              f"layers={len(layers)}")
+        print(f"Imported {imported} objects, skipped {skipped}, "
+              f"layers={len(layers)}, unit_scale={unit_scale}")
     return imported, skipped, layers
+
+
+def assert_import_matches_source(path, root_name="ImportedRhino"):
+    """Reject a retained Blender collection imported from any older .3dm."""
+    import bpy
+
+    collection = bpy.data.collections.get(root_name)
+    if collection is None:
+        raise RuntimeError("missing imported collection: " + root_name)
+    signature = _source_signature(path)
+    expected = {
+        "source_3dm_path": signature["path"],
+        "source_3dm_size": signature["size"],
+        "source_3dm_mtime_ns": str(signature["mtime_ns"]),
+        "source_3dm_sha256": signature["sha256"],
+    }
+    for key, value in expected.items():
+        if str(collection.get(key, "")) != str(value):
+            raise RuntimeError("stale Blender handoff collection: {} mismatch".format(key))
+    return signature

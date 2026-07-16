@@ -25,11 +25,13 @@ compression:
   # 2026-06-11: lowered from 0.95 after aux-provider verification so
   # compression triggers before the custom endpoint/model gets too close to
   # its practical 200K context ceiling.
-  threshold: 0.85
-  target_ratio: 0.85
-  protect_last_n: 10
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 4
   hygiene_hard_message_limit: 400
-  protect_first_n: 3
+  protect_first_n: 0
+  dml_first: true
+  dml_first_tail_ratio: 0.02
   abort_on_summary_failure: false
   codex_gpt55_autoraise: true
   preserve_first_n_turns: 0
@@ -41,9 +43,15 @@ compression:
 # 2026-06-30 remote sync also captured GLM 5.2 as the NVIDIA vision/model-catalog option.
 auxiliary:
   vision:
-    provider: custom:nvidia
-    model: nvidia/zai-org/glm-5.2
-    base_url: https://inference-api.nvidia.com/v1
+    provider: custom:vllm_vision
+    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    base_url: http://localhost:8001/v1
+    temperature: 0.2
+    max_tokens: 512
+    extra_body:
+      top_k: 1
+      chat_template_kwargs:
+        enable_thinking: false
   compression:
     provider: custom
     model: azure/anthropic/claude-opus-4-6
@@ -84,14 +92,26 @@ auxiliary:
 
 memory:
   memory_enabled: true
+  # Disable post-turn background review forks during deterministic demos.
+  nudge_interval: 0
   provider: daystrom_dml
   daystrom_dml:
     retrieval_policy: always
+    top_k: 8
+    max_context_chars: 3200
+    preflight_strict: true
     timeout_seconds: 8
     # Valid DCN modes: active_read, active_learn, observe_only, disabled.
     # The Windows AEC demo uses active_read plus sync_turns for stable retrieval/writeback.
     dcn:
       mode: active_read
+
+skills:
+  creation_nudge_interval: 0
+
+plugins:
+  enabled:
+    - daystrom_dml
 
 sessions:
   write_json_snapshots: true

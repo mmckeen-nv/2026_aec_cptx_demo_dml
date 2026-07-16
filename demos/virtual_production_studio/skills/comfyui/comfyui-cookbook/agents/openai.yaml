@@ -1,0 +1,4 @@
+interface:
+  display_name: "VP Studio ComfyUI Cookbook"
+  short_description: "Run the fixed local VP stylization workflow"
+  default_prompt: "Use $comfyui-cookbook to stylize the approved VP Studio hero render."

@@ -1,0 +1,105 @@
+# Sanitized local-model excerpt for the rtx_pro Hermes profile.
+# Keep credentials and live runtime state in the installed profile only.
+model:
+  provider: custom:vllm_local
+  default: nvidia/Qwen3.6-35B-A3B-NVFP4
+  base_url: http://localhost:8000/v1
+  api_key: ${AEC_DEMO_MODEL_API_KEY}
+
+auxiliary:
+  vision:
+    provider: custom:vllm_vision
+    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
+    base_url: http://localhost:8001/v1
+    temperature: 0.2
+    max_tokens: 512
+    extra_body:
+      top_k: 1
+      chat_template_kwargs:
+        enable_thinking: false
+  # Every non-vision auxiliary task inherits the local Qwen main model. No
+  # external provider/model is permitted in the RTX Pro demo profile.
+  compression:
+    provider: main
+  title_generation:
+    provider: main
+  web_extract:
+    provider: main
+  goal_judge:
+    provider: main
+  approval:
+    provider: main
+  mcp:
+    provider: main
+  skills_hub:
+    provider: main
+  profile_describer:
+    provider: main
+  triage_specifier:
+    provider: main
+  kanban_decomposer:
+    provider: main
+  curator:
+    provider: main
+  tts_audio_tags:
+    provider: main
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  provider: daystrom_dml
+  daystrom_dml:
+    retrieval_policy: always
+    top_k: 8
+    max_context_chars: 3200
+    preflight_strict: true
+    timeout_seconds: 20
+    dcn:
+      mode: active_read
+    project_id: project:vp-studio-01
+    sync_turns: true
+
+plugins:
+  enabled:
+    - daystrom_dml
+  disabled: []
+
+# Keep enough recent tool context for correction without protecting entire
+# Rhino object listings and vision analyses. The prior 20-message tail caused
+# compression to preserve ~130K tokens and retrigger after nearly every call.
+compression:
+  enabled: true
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 4
+  protect_first_n: 0
+  # Daystrom writes a compact continuity checkpoint before Hermes rotates its
+  # internal session id. The compressor then drops the transcript bulk and
+  # rehydrates from DML without stopping Rhino, Blender, MCP, or Hermes.
+  dml_first: true
+  dml_first_tail_ratio: 0.02
+  hygiene_hard_message_limit: 400
+  abort_on_summary_failure: true
+
+model_catalog:
+  enabled: false
+
+# Installed paths are machine-specific. The installer/preflight must resolve
+# these rather than copying this sanitized example over a live profile.
+mcp_servers:
+  blender:
+    command: cmd
+    args: [/c, uvx, blender-mcp]
+    env:
+      BLENDER_HOST: localhost
+      BLENDER_PORT: "9876"
+      DISABLE_TELEMETRY: "true"
+  rhino:
+    command: C:/Users/USER/AppData/Roaming/McNeel/Rhinoceros/packages/8.0/Rhino-MCP-Platform/VERSION/router/win-x64/rhino-mcp-router.exe
+    args: [--default-version, "8"]
+  daystrom_dml:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/dml_mcp_server_vp_studio.cmd]
+  cma:
+    command: cmd
+    args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/cma_mcp_server_vp_studio.cmd]

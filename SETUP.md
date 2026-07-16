@@ -1,5 +1,17 @@
 # Setup Guide
 
+## Windows bootstrapper
+
+For Windows-native Hermes with WSL-hosted vLLM, run:
+
+```powershell
+.\Install-AEC-Demo.cmd -InstallDependencies -Configure
+```
+
+Add `-ProvisionVllm -StartVllm` on a connected machine to provision and start
+the local model backend. For USB-drive and disconnected workflows, see
+[`docs/portable_install.md`](docs/portable_install.md).
+
 ## 1. Clone and run preflight
 
 ```bash

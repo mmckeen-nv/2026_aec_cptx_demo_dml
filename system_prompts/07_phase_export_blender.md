@@ -200,8 +200,13 @@ Confirm the snapshot file exists and is non-zero size before continuing.
 
 ### Step 5 — Import into Blender via import_with_metadata.py
 
-Switch to Blender. Run `skills/import_with_metadata.py` via BlenderMCP,
-pointing it at the snapshot path from Step 4.
+Switch to Blender. Use the exact registered tool
+`mcp_blender_execute_blender_code` with its required `code` argument. There is no
+generic `run` tool; never emit a tool call named `run`. Load the repository-root
+`skills/import_with_metadata.py` into a namespace with `__file__` set to its
+absolute path, then call `import_3dm(snapshot_path, root_name="VP_STUDIO_RHINO")`.
+When Hermes starts in a demo directory, repository-root `skills/` is `../../skills/`.
+Do not search for `[demo]/skills/import_with_metadata.py`.
 
 This script:
 - Uses the `rhino3dm` Python library to read the `.3dm` directly (no FBX/OBJ)
@@ -211,6 +216,11 @@ This script:
 - Sets `obj["rhino_layer"]` custom property for segmentation pass use
 - Organises the scene hierarchy — each Rhino layer becomes a collection
 
+Before import, prove every generated mesh matches its source Brep's bounding box
+on all axes. `Rhino.Geometry.Mesh.CreateFromBrep` returns an array: append every
+part into one mesh and never keep only the first element. Equal source and mesh
+counts do not prove geometric parity.
+
 **Do NOT attempt to import via File → Import FBX/OBJ.**
 The `rhino3dm` approach is the only method that preserves metadata.
 
@@ -218,6 +228,8 @@ After import, confirm in the Blender outliner:
 - All expected objects are present
 - Objects are organised into collections matching Rhino layer names
 - No objects at world origin that should be elsewhere
+- Plan and axonometric screenshots show the complete building and rooms, not
+  flattened or edge-on sheets
 
 ### Step 6 — Set rotation_mode = 'XYZ' on all imports
 
@@ -236,7 +248,12 @@ This must be run before any transform work.
 
 ### Step 7 — Run validate_blender_scene.py
 
-Run `skills/validate_blender_scene.py` via BlenderMCP.
+Use `mcp_blender_execute_blender_code(code=...)` to load repository-root
+`skills/validate_blender_scene.py` into a namespace with `__file__` set, then call
+its `validate(require_material_slots=False)` function. Do not call a generic
+`run` tool. Material metadata is required at handoff; actual Blender slots become
+mandatory only after the material-assignment phase, which calls
+`validate(require_material_slots=True)`.
 This script checks:
 - Every mesh has the `material` custom property set
 - No objects at world origin (un-imported stubs)

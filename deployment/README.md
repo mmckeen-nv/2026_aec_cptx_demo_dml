@@ -15,6 +15,9 @@ deployment/
 └── SOURCE_VERSIONS.md      External source provenance
 ```
 
+`rtx-pro-profile/` adds the sanitized local-model profile and launcher used by
+`windows-launchers/RTX-Pro.bat`.
+
 Run the root preflight before using a launcher:
 
 ```bash
@@ -27,13 +30,14 @@ Hermes profiles are expected under the platform's Hermes home. The Windows
 templates derive this from `%LOCALAPPDATA%\hermes`; no username or hostname is
 embedded. Set `AEC_DEMO_ROOT` to the repository checkout.
 
-The two reference profiles use `memory.provider: daystrom_dml` with DCN mode
+The reference profiles use `memory.provider: daystrom_dml` with DCN mode
 `active_read`. After creating or cloning any profile, verify the plugin files
 and runtime rather than trusting config alone:
 
 ```bash
 hermes -p aec-cptx memory status
 hermes -p bac_teapot memory status
+hermes -p rtx_pro memory status
 ```
 
 Hermes profile cloning does not necessarily copy `plugins/`. Install or copy

@@ -131,11 +131,13 @@ this machine's WSL2 networking, that specific outbound DNS/HTTPS call is
 intermittently flaky, and when it fails, the whole container startup
 crashes instead of falling back to the local cache.
 
-**Fix (already baked into `run-vllm-qwen36.sh`):** set both
-`HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` as container env vars.
-This forces vLLM/transformers/huggingface_hub to load everything from the
-local HF cache (`/root/.cache/huggingface`, which is a persistent volume
-mount, not container-local) and skip the network metadata call entirely.
+**Fix (already baked into the run scripts):** when the required model snapshot
+exists, set both `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` as container
+env vars. This forces vLLM/transformers/huggingface_hub to load everything
+from the persistent local HF cache and skip the network metadata call. On a
+fresh online installation the scripts leave offline mode disabled so the
+initial model download can succeed. A portable bundle restores the snapshots
+before container creation, so disconnected starts select offline mode.
 
 **If you ever recreate the container by hand and forget these env vars,**
 you will hit this crash loop again. Diagnose it the same way we did
@@ -188,6 +190,14 @@ comment block at the top of `run-vllm-nemotron-vision.sh`.
   churn and slightly slower. Only recreate when you're intentionally
   changing a `docker run` flag (model, port, GPU pinning, env vars) — use
   `--recreate` on the run scripts for that.
+
+- **Configured port present but container detached from Docker bridge.** A
+  container can remain `Up` while `.NetworkSettings.Networks` is empty. In
+  that state the model listens inside the container, but Windows receives a
+  connection error because the configured published port is not effective.
+  `start_vllm.bat` reconnects the container to `bridge` and restarts it so
+  Docker reapplies the port. It also accepts `--no-pause` for profile
+  launchers and uses an stdin-independent delay for noninteractive polling.
 
 ## Verification checklist after any change here
 

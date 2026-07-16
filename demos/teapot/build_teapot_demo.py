@@ -18,6 +18,13 @@ import bpy
 import math
 import os
 import sys
+from mathutils import Vector
+
+
+def point_at(obj, target):
+    """Aim a camera or spotlight's local -Z axis at a world-space target."""
+    direction = Vector(target) - obj.location
+    obj.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
 
 
 def build_teapot_scene(obj_path, target_size=0.3, scene_name="TeapotDemo"):
@@ -30,7 +37,9 @@ def build_teapot_scene(obj_path, target_size=0.3, scene_name="TeapotDemo"):
     if bpy.context.window:
         bpy.context.window.scene = scene
 
-    bpy.ops.wm.obj_import(filepath=obj_path)
+    # This OBJ was exported from Rhino and is already Z-up. Blender's OBJ
+    # default assumes Y-up, which rotates the lid onto the side of the body.
+    bpy.ops.wm.obj_import(filepath=obj_path, forward_axis='NEGATIVE_Y', up_axis='Z')
     teapot = bpy.context.selected_objects[0]
     teapot.name = "utah_teapot"
 
@@ -39,7 +48,9 @@ def build_teapot_scene(obj_path, target_size=0.3, scene_name="TeapotDemo"):
     scale_factor = target_size / current_max_dim
     teapot.scale = (scale_factor, scale_factor, scale_factor)
     bpy.context.view_layer.objects.active = teapot
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    for polygon in teapot.data.polygons:
+        polygon.use_smooth = True
 
     # Ceramic material
     mat = bpy.data.materials.new("M_Teapot_Ceramic")
@@ -52,8 +63,10 @@ def build_teapot_scene(obj_path, target_size=0.3, scene_name="TeapotDemo"):
     teapot.data.materials.clear()
     teapot.data.materials.append(mat)
 
-    # Sit on the ground
-    teapot.location.z = teapot.dimensions.z / 2
+    # Sit on the ground using the actual transformed mesh bounds. The OBJ is
+    # not centered on its local origin, so half-height placement penetrates.
+    min_z = min((teapot.matrix_world @ vertex.co).z for vertex in teapot.data.vertices)
+    teapot.location.z -= min_z
 
     # Ground plane
     bpy.ops.mesh.primitive_plane_add(size=2, location=(0, 0, 0))
@@ -71,17 +84,29 @@ def build_teapot_scene(obj_path, target_size=0.3, scene_name="TeapotDemo"):
     cam = bpy.data.objects.new("TeapotCam", cam_data)
     scene.collection.objects.link(cam)
     cam.location = (0.6, -0.6, 0.4)
-    cam.rotation_euler = (math.radians(65), 0, math.radians(45))
+    cam_data.lens = 58
+    point_at(cam, (0.0, 0.0, 0.11))
     scene.camera = cam
 
     # Sun light
     light_data = bpy.data.lights.new("TeapotLightData", type='SUN')
-    light_data.energy = 3.0
+    light_data.energy = 1.0
     light = bpy.data.objects.new("TeapotLight", light_data)
     scene.collection.objects.link(light)
     light.rotation_euler = (math.radians(50), 0, math.radians(30))
 
-    scene.render.engine = 'CYCLES'
+    # A broad key makes the ceramic form readable without relying on a
+    # workstation-specific world or color-management setup.
+    key_data = bpy.data.lights.new("TeapotKeyData", type='AREA')
+    key_data.energy = 180.0
+    key_data.shape = 'DISK'
+    key_data.size = 1.2
+    key = bpy.data.objects.new("TeapotKey", key_data)
+    scene.collection.objects.link(key)
+    key.location = (-0.5, -0.45, 0.7)
+    point_at(key, (0.0, 0.0, 0.1))
+
+    scene.render.engine = 'BLENDER_EEVEE'
     scene.render.resolution_x = 1280
     scene.render.resolution_y = 960
 
@@ -116,10 +141,26 @@ if __name__ == "__main__":
         else:
             i += 1
 
+    demo_root = os.path.dirname(os.path.abspath(__file__))
+
+    def resolve_demo_path(path):
+        return os.path.normpath(path if os.path.isabs(path) else os.path.join(demo_root, path))
+
     if not obj_path:
-        obj_path = os.path.join(os.path.dirname(__file__), "utah_teapot.obj")
+        obj_path = os.path.join(demo_root, "utah_teapot.obj")
+    else:
+        obj_path = resolve_demo_path(obj_path)
+    if out_path:
+        out_path = resolve_demo_path(out_path)
+    if render_path:
+        render_path = resolve_demo_path(render_path)
 
     scene = build_teapot_scene(obj_path)
+
+    # A standalone artifact should open directly into the completed demo
+    # scene. The reusable function above still restores the caller's scene.
+    if bpy.context.window:
+        bpy.context.window.scene = scene
 
     if render_path:
         render_teapot_scene(scene, render_path)
