@@ -155,6 +155,81 @@ class VpExecutionRailsTests(unittest.TestCase):
             )
         )
 
+    def test_launcher_open_template_marks_document_ready_and_blocks_reopen(self):
+        rails = load_plugin()
+        rails.on_post_tool_call(
+            tool_name="mcp_rhino_list_slots",
+            args={},
+            status="ok",
+            result={"output": "aardvark port=10500"},
+        )
+        rails.on_post_tool_call(
+            tool_name="mcp_rhino_run_python",
+            args={"script": 'print("ACTIVE_DOCUMENT_PATH "+__rhino_doc__.Path)'},
+            status="ok",
+            result={"output": r"ACTIVE_DOCUMENT_PATH C:\demo\source\vp_studio_01_template.3dm"},
+        )
+        self.assertTrue(rails._STATE["test-run"]["document_ready"])
+        blocked = rails.on_pre_tool_call(
+            tool_name="mcp_rhino_open_doc",
+            args={"path": "source/vp_studio_01_template.3dm"},
+        )
+        self.assertEqual("block", blocked["action"])
+        self.assertIn("duplicate", blocked["message"])
+
+    def test_open_doc_requires_slot_inspection_first(self):
+        rails = load_plugin()
+        blocked = rails.on_pre_tool_call(
+            tool_name="mcp_rhino_open_doc",
+            args={"path": "source/vp_studio_01_template.3dm"},
+        )
+        self.assertEqual("block", blocked["action"])
+        self.assertIn("list_slots", blocked["message"])
+        rails.on_post_tool_call(
+            tool_name="mcp_rhino_list_slots", args={}, status="ok", result={"output": "no active slots"}
+        )
+        blocked = rails.on_pre_tool_call(
+            tool_name="mcp_rhino_open_doc", args={"path": "source/vp_studio_01_template.3dm"}
+        )
+        self.assertEqual("block", blocked["action"])
+        self.assertIn("ACTIVE_DOCUMENT_PATH", blocked["message"])
+        rails.on_post_tool_call(
+            tool_name="mcp_rhino_run_python",
+            args={"script": 'print("ACTIVE_DOCUMENT_PATH "+__rhino_doc__.Path)'},
+            status="ok",
+            result={"output": "ACTIVE_DOCUMENT_PATH C:/unrelated/other.3dm"},
+        )
+        self.assertIsNone(rails.on_pre_tool_call(
+            tool_name="mcp_rhino_open_doc",
+            args={"path": "source/vp_studio_01_template.3dm"},
+        ))
+
+    def test_current_run_output_slot_is_ready_for_handoff_continuation(self):
+        rails = load_plugin()
+        rails.on_post_tool_call(
+            tool_name="mcp_rhino_list_slots",
+            args={},
+            status="ok",
+            result={"output": "aardvark port=10500"},
+        )
+        rails.on_post_tool_call(
+            tool_name="mcp_rhino_run_python",
+            args={"script": 'print("ACTIVE_DOCUMENT_PATH "+__rhino_doc__.Path)'},
+            status="ok",
+            result={"output": r"ACTIVE_DOCUMENT_PATH C:\demo\rhino\vp_studio_01.3dm"},
+        )
+        self.assertTrue(rails._STATE["test-run"]["document_ready"])
+
+    def test_blocks_session_state_rewrite_through_file_or_terminal(self):
+        for tool, args in (
+            ("write_file", {"path": "skills/session_state.md", "content": "complete"}),
+            ("patch", {"path": "skills/session_state.md", "patch": "complete"}),
+            ("terminal", {"command": "Set-Content skills/session_state.md complete"}),
+        ):
+            blocked = self.rails.on_pre_tool_call(tool_name=tool, args=args)
+            self.assertEqual("block", blocked["action"])
+            self.assertIn("immutable", blocked["message"])
+
     def test_blocks_importer_rewrite_even_before_modeling(self):
         for path in (
             "skills/import_with_metadata.py",

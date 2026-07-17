@@ -27,14 +27,25 @@ def main() -> None:
         raise SystemExit(
             "COMFY_SOURCE_FAIL marker must name an existing PNG under {}: {}".format(render_root, source)
         )
-    print("COMFY_SOURCE_PASS lane=bac_hero source={}".format(source))
+    stage = marker_lines[2].strip() if len(marker_lines) > 2 else "missing"
+    stage_files = {
+        "base": ("comfy_style_prompt_base.txt", "bac_teapot_hero_base_sdxl.png", "bac_teapot_hero_base_stylized.png", "126"),
+        # Seed 314 is visually locked for this exact source/prompt: seed 126
+        # changed the circular ring into a second flamingo during FLUX refine.
+        "floaties": ("comfy_style_prompt_floaties.txt", "bac_teapot_hero_floaties_sdxl.png", "bac_teapot_hero_floaties_stylized.png", "314"),
+        "complete": ("comfy_style_prompt.txt", "bac_teapot_hero_complete_sdxl.png", "bac_teapot_hero_complete_stylized.png", "126"),
+    }
+    if stage not in stage_files:
+        raise SystemExit("COMFY_SOURCE_FAIL unknown BAC HERO stage={!r}; render a validated base/floaties/complete scene".format(stage))
+    prompt_name, intermediate_name, output_name, seed = stage_files[stage]
+    print("COMFY_SOURCE_PASS lane=bac_hero stage={} source={}".format(stage, source))
     defaults = [
         str(helper),
         "--source", str(source),
-        "--output", str(hero / "comfy_output" / "bac_teapot_hero_stylized.png"),
-        "--intermediate", str(hero / "comfy_output" / "bac_teapot_hero_sdxl.png"),
-        "--prompt-file", str(hero / "user_prompts" / "comfy_style_prompt.txt"),
-        "--seed", "126",
+        "--output", str(hero / "comfy_output" / output_name),
+        "--intermediate", str(hero / "comfy_output" / intermediate_name),
+        "--prompt-file", str(hero / "user_prompts" / prompt_name),
+        "--seed", seed,
         "--denoise", "0.18",
         "--steps", "28",
         "--flux-steps", "24",

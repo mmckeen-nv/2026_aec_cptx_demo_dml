@@ -1,0 +1,14 @@
+Photorealistic cinematic architectural visualization of the exact supplied
+modern coastal house and its undressed pool terrace. Preserve the exact camera,
+house geometry, roof, floor levels, glazing, balconies, empty pool deck, pool,
+object count, positions, scale, and silhouettes. Do not add pool toys, loungers,
+umbrellas, tables, chairs, people, or decorative props.
+
+Replace only the blank cream-colored environment beyond and below the terrace
+with a believable rugged coastal cliff of layered dark gray and warm brown rock
+descending naturally to a blue ocean. Add a clearly visible ocean horizon,
+subtle waves, pale blue late-afternoon sky, atmospheric haze, and sparse
+wind-shaped coastal grasses and shrubs rooted in the rock. The cliff must
+connect physically to the building site and continue beneath the cantilevered
+pool terrace. No empty void, studio backdrop, beige cyclorama, fog wall, or
+abstract background. Do not redesign the architecture or pool.

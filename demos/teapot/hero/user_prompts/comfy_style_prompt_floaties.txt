@@ -1,0 +1,20 @@
+Photorealistic cinematic architectural visualization of the exact supplied
+modern coastal house and pool scene. Preserve the exact camera, house geometry,
+roof, floor levels, glazing, balconies, pool, otherwise-empty deck, object
+count, positions, scale, and silhouettes. Do not add loungers, umbrellas,
+tables, chairs, people, or extra decorative props.
+
+Replace only the blank cream-colored environment beyond and below the terrace
+with a believable rugged coastal cliff of layered dark gray and warm brown rock
+descending naturally to a blue ocean. Add a visible ocean horizon, subtle
+waves, pale blue late-afternoon sky, atmospheric haze, and sparse wind-shaped
+coastal vegetation. The cliff must connect physically beneath the pool terrace.
+No empty void, studio backdrop, beige cyclorama, fog wall, or abstract
+background.
+
+Preserve exactly two distinct pool inflatables in the water: one circular
+magenta float ring with a clearly open center, and one separate magenta
+flamingo float with a recognizable upright curved neck, head, beak, wings, and
+hollow seat. Add fine seams, handles, glossy vinyl highlights, realistic
+thickness, contact shadows, and water reflections. Do not merge, simplify,
+replace, omit, duplicate, or redesign either pool toy.

@@ -13,8 +13,16 @@ Cliff House demo.
 4. Read `prompts/01a_locked_scene_manifest.md` and retain its units, world
    datum, coordinates, object sizes, names, and containment envelopes verbatim.
 5. Check required MCPs once and report a real blocker instead of repairing it.
-6. Open `source/vp_studio_01_template.3dm` with `mcp_rhino_open_doc`; never
-   invoke `_New` or use a previous finished base model.
+6. Inspect `mcp_rhino_list_slots` once, then make one read-only
+   `mcp_rhino_run_python(script='print("ACTIVE_DOCUMENT_PATH "+__rhino_doc__.Path)')`
+   call because `list_slots` does not include the document path. The launcher
+   normally already owns an active document whose exact path is
+   `source/vp_studio_01_template.3dm`. If that exact template is active, **do
+   not call `mcp_rhino_open_doc`**. If another document is active, call
+   `mcp_rhino_open_doc` exactly once. Never call it twice, invoke `_New`, or use
+   a previous finished base model. Reopening the active template duplicates its
+   datum guides. A resumed same-run handoff may reuse the exact active
+   `rhino/vp_studio_01.3dm` output without reopening it.
 7. Read `prompts/02_rhino_modeling_contract.md`.
 8. Read the current numbered phase prompt. Its embedded C# scaffold is the
    mutation implementation; do not substitute Python or invent another API.
@@ -65,6 +73,17 @@ After any context rotation, re-read `skills/session_state.md`, the locked
 manifest, and the current phase prompt before the next mutation. Inspect Rhino
 state first and never repeat geometry based only on the compacted transcript.
 
+`skills/session_state.md`, prompts, rails, and helper files are immutable during
+a demo. Never patch, overwrite, append, redirect terminal output into, or mark
+them complete. They are configuration inputs, not an agent-authored progress
+log. Record continuity only through validated receipts, saved application
+checkpoints, and DML ingest.
+
+The four original objects on `VP00_TEMPLATE_DATUMS` are launcher-owned datum
+guides. Never copy, recreate, test-delete, purge, or count them as phase output.
+Do not create `GUIDE_*` or `TEST_*` scratch objects. A fresh run must still have
+exactly those four template datums when Rhino modeling finishes.
+
 ## Pipeline
 
 1. `prompts/02a_phase_site_shell.md`
@@ -79,6 +98,13 @@ The last prompt is a real two-stage execution phase, not a suggestion to invent
 a workflow. After the Blender beauty passes, run the checked-in helper once for
 SDXL depth conditioning and FLUX.2 Klein reference refinement. The final phase
 is complete only at `COMFY_OUTPUT_PASS stage=sdxl+flux`.
+
+For an end-to-end request, Rhino completion is never a terminal condition and
+must not produce a final answer. Immediately continue with
+`prompts/07_phase_export_blender.md`. `VP_HANDOFF_PASS`, `VP_RENDER_PASS`, and
+`COMFY_PREFLIGHT_PASS` are intermediate receipts. The only successful terminal
+receipt is `COMFY_OUTPUT_PASS stage=sdxl+flux`; otherwise report one concrete
+rail-defined blocker.
 
 Daystrom DML supplies compact continuity and reusable experience. It does not
 replace the phase prompt, control tool calls, or authorize skipping review.

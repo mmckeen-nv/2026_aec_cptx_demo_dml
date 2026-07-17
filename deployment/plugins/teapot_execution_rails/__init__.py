@@ -16,6 +16,9 @@ _APPROVED_COMFY_WRAPPER = re.compile(
     re.I,
 )
 _HERO_MASTER_SAVE = re.compile(r"save_(?:as_)?mainfile[\s\S]{0,500}BAC_TEAPOT_HERO[.]blend", re.I)
+_POOL_ALL_AT_ONCE = re.compile(r"\badd_pool_assets\s*\(", re.I)
+_POOL_FLOATIES = re.compile(r"\badd_pool_floaties\s*\(", re.I)
+_POOL_FURNITURE = re.compile(r"\badd_pool_furniture\s*\(", re.I)
 
 
 def _active():
@@ -57,9 +60,7 @@ def _approved_comfy_command(args):
         tokens = shlex.split(command, posix=True)
     except ValueError:
         return None
-    if len(tokens) not in (2, 3) or tokens[0].lower() not in {"python", "python3"}:
-        return None
-    if len(tokens) == 3 and tokens[2] != "--dry-run":
+    if len(tokens) < 2 or tokens[0].lower() not in {"python", "python3"}:
         return None
     script = tokens[1].replace("\\", "/")
     expected_root = root.replace("\\", "/").rstrip("/")
@@ -81,6 +82,18 @@ def _approved_comfy_command(args):
         })
     if script.casefold() not in {item.casefold() for item in allowed}:
         return None
+    selected = os.path.basename(script).casefold()
+    extras = tokens[2:]
+    if selected == "comfyui_bac_hero.py":
+        if extras not in ([], ["--dry-run"]):
+            return None
+    else:
+        styles = {"product", "neon_noir", "botanical_porcelain", "molten_metal"}
+        valid = extras in ([], ["--dry-run"])
+        if len(extras) in (2, 3) and extras[0] == "--style" and extras[1] in styles:
+            valid = len(extras) == 2 or extras[2] == "--dry-run"
+        if not valid:
+            return None
     marker = os.path.join(root, "demos", "teapot", "work", "active_render_lane.txt")
     if os.path.isfile(marker):
         try:
@@ -88,7 +101,6 @@ def _approved_comfy_command(args):
                 lane = stream.readline().strip()
         except OSError:
             return None
-        selected = os.path.basename(script).casefold()
         expected = "comfyui_bac_hero.py" if lane == "bac_hero" else "comfyui_teapot.py" if lane == "teapot" else ""
         if selected != expected:
             return None
@@ -115,11 +127,12 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "render_preview. Material requests are open-ended and do not replay the build. If asked for "
         "the HERO house, use {0}/demos/teapot/skills/blender_bac_hero.py through Blender "
         "MCP; source is {0}/demos/teapot/hero/BAC_TEAPOT_HERO.blend. Never substitute the "
-        "standalone Cliff House or VP Studio HERO. In that BAC HERO scene, an explicit request to add pool assets "
-        "must call add_pool_assets(root, reset=True) from the same helper, require BAC_POOL_ASSETS_PASS "
-        "floats=2 chairs=3 furniture=1, and render Cam_Shot_A. The helper exclusively owns pool/deck/patio "
-        "coordinates, six approved asset hashes, and the 1:1000 scale conversion; never append or place them "
-        "manually. After a valid teapot preview, an explicit user request may run "
+        "standalone Cliff House or VP Studio HERO. BAC HERO pool dressing has two mandatory audience gates: "
+        "after the base Comfy render STOP. Only an explicit later request may call add_pool_floaties(root, "
+        "reset=True); require BAC_POOL_FLOATIES_PASS, render/stylize, and STOP again. Only a second separate "
+        "request may call add_pool_furniture(root); require BAC_POOL_FURNITURE_PASS and render. Never call both "
+        "in one turn or use add_pool_assets. The helper owns all coordinates, hashes, and 1:1000 conversion. "
+        "After a valid teapot preview, an explicit user request may run "
         "{0}/demos/teapot/skills/comfyui_teapot.py through terminal. The BAC house uses "
         "{0}/demos/teapot/skills/comfyui_bac_hero.py. Both approved Comfy wrappers "
         "own their own preflight; do not read their internals or search for QUICK_DEMO.md. Run the exact "
@@ -148,6 +161,10 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             )
         if _HERO_MASTER_SAVE.search(code):
             return _block("the HERO master is immutable; save only the helper-opened working copy")
+        if _POOL_ALL_AT_ONCE.search(code):
+            return _block("all-at-once pool dressing is prohibited; floaties and furniture require separate user turns")
+        if _POOL_FLOATIES.search(code) and _POOL_FURNITURE.search(code):
+            return _block("never add floaties and furniture in one Blender call; render/stylize and stop between gates")
     if tool in {"run", "terminal", "execute_code"}:
         payload = json.dumps(args, ensure_ascii=False, default=str)
         if tool == "terminal" and _approved_comfy_command(args):

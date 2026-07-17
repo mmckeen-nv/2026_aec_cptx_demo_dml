@@ -46,19 +46,24 @@ ComfyUI, or a full pipeline replay.
 ## Explicit Teapot ComfyUI Request
 
 If the user explicitly asks for an AI-enhanced or stylized version of the
-current `renders/teapot_preview.png`, release Blender and run only:
+current preview, the wrapper must use the exact render path recorded by
+`render_preview`; never fall back to an older `teapot_preview.png`. Choose only
+the audience-requested checked-in style: `product`, `neon_noir`,
+`botanical_porcelain`, or `molten_metal`. Run one style at a time:
 
 ```bash
-python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py" --dry-run
-python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py"
+python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py" --style neon_noir --dry-run
+python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py" --style neon_noir
 ```
 
-The wrapper uses `user_prompts/comfy_style_prompt.txt`, runs SDXL depth
-conditioning followed by FLUX.2 Klein reference refinement, and writes
-`comfy_output/teapot_sdxl.png` plus `comfy_output/teapot_stylized.png`. Require
+The wrapper uses a user-editable prompt in `user_prompts/comfy_styles`, runs
+SDXL depth conditioning followed by FLUX.2 Klein reference refinement, and
+writes unique `<source>_<style>_sdxl.png` and `<source>_<style>_stylized.png`
+artifacts so repeated audience styles never overwrite each other. Require
 `COMFY_SDXL_OUTPUT_PASS`, `COMFY_FLUX_OUTPUT_PASS`, and
 `COMFY_OUTPUT_PASS stage=sdxl+flux`. Never put ComfyUI HTTP or Python inside
 Blender MCP, and never silently trigger this phase for a normal material edit.
+After each style completes, report it and wait for another audience request.
 
 ## Explicit HERO House Transition
 

@@ -1,0 +1,7 @@
+Photorealistic product photograph of the exact supplied Utah teapot transformed
+only through materials and lighting into a neon-noir hero object: deep polished
+black ceramic, restrained cyan and magenta edge reflections, wet-look glossy
+studio floor, subtle volumetric haze, and a dark cinematic gradient backdrop.
+Preserve the exact canonical teapot geometry, lid, handle, spout, proportions,
+camera, position, object count, and silhouette. No added parts, text, people,
+warping, duplicated handles, or redesigned spout.
