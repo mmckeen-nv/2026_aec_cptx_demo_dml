@@ -5,7 +5,36 @@ It records the drive's current repository path in `AEC_DEMO_ROOT`, installs
 managed launchers, creates only missing Hermes profiles, and runs preflight.
 If the drive letter changes, rerun `Install-AEC-Demo.cmd` from the drive.
 
-## Connected installation
+## One-click workstation installation
+
+From the repository or prepared external drive, double-click:
+
+```powershell
+Setup-AEC-Demo.cmd
+```
+
+The bootstrapper requests administrator access, enables the Windows WSL and
+Virtual Machine Platform features, registers automatic continuation across a
+required reboot, installs/updates Ubuntu as WSL2, verifies Windows and WSL GPU
+visibility, and invokes the existing idempotent installer with dependency,
+Docker/NVIDIA, vLLM, launcher, and full-preflight stages enabled.
+
+The generic Windows NVIDIA production driver is deliberately not installed
+silently. If it is missing or WSL GPU passthrough fails, setup stops with one
+actionable message and preserves a log under
+`%ProgramData%\AEC-CPTX\logs`. Rerun the same command after installing the
+driver. Use `-NoRestart` to defer an otherwise automatic 30-second reboot.
+The tested local-model topology requires two NVIDIA GPUs visible inside WSL2:
+the chat model uses GPU 0 and Nemotron vision uses GPU 1. The bootstrapper
+checks this before provisioning so an incompatible target fails early.
+
+On a prepared disconnected workstation, double-click
+`Setup-AEC-Demo-Offline.cmd`. A fully fresh offline machine still needs a
+preinstalled Ubuntu WSL2 distro plus Docker and NVIDIA Container Toolkit,
+because Windows, a GPU driver, and Linux distribution packages are not safely
+portable as application files.
+
+## Connected lower-level installation
 
 From the repository root on the target Windows machine:
 
@@ -59,7 +88,7 @@ rehashes the runtime archives before writing the refreshed manifest.
 
 ## Disconnected installation
 
-The target must already have:
+The lower-level offline installer requires:
 
 - Windows with `wsl.exe` and an Ubuntu WSL2 distro;
 - a compatible Windows NVIDIA driver with WSL GPU passthrough;

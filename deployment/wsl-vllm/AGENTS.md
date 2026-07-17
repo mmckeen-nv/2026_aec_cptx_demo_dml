@@ -40,6 +40,11 @@ Files in this directory:
 
 ## Building out WSL2 from scratch (new machine, or after a WSL2 reset)
 
+For a normal target installation, prefer the repository-root
+`Setup-AEC-Demo.cmd`. It performs the Windows feature/distro/reboot checks and
+then calls these scripts. The manual sequence below remains the diagnostic and
+recovery path.
+
 1. Confirm a WSL2 Ubuntu distro exists and has NVIDIA GPU passthrough:
    ```
    wsl -l -v                     # from Windows — confirm "Ubuntu" is VERSION 2

@@ -380,7 +380,7 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Assert-PortableManifestAssets", installer)
         self.assertIn("Portable manifest asset checksum mismatch", installer)
         self.assertIn('$mountRoot = "/mnt/$drive"', installer)
-        self.assertIn("$wslRepo.Distro, '-u', 'root', '-e', 'bash'", installer)
+        self.assertIn("$provisionArgs = @('-d', $wslRepo.Distro, '-u', 'root', '-e')", installer)
         self.assertIn("integrations\\daystrom-dml\\source", installer)
         self.assertIn("DML_SOURCE_DIR saved for future sessions", installer)
         self.assertIn("Sync-DaystromProfilePlugin", installer)
@@ -405,6 +405,41 @@ class SetupTests(unittest.TestCase):
             launcher = (REPO_ROOT / relative).read_text()
             self.assertIn("DML_SOURCE_DIR", launcher)
             self.assertIn("integrations\\daystrom-dml\\source", launcher)
+
+    def test_one_click_windows_bootstrap_owns_wsl_and_reboot_boundary(self):
+        bootstrap = (REPO_ROOT / "Bootstrap-AEC-Windows.ps1").read_text(encoding="utf-8")
+        launcher = (REPO_ROOT / "Setup-AEC-Demo.cmd").read_text(encoding="utf-8")
+        offline = (REPO_ROOT / "Setup-AEC-Demo-Offline.cmd").read_text(encoding="utf-8")
+        installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("Bootstrap-AEC-Windows.ps1", launcher)
+        self.assertIn("-OfflineOnly", offline)
+        for token in (
+            "Start-Process powershell.exe -Verb RunAs",
+            "Microsoft-Windows-Subsystem-Linux",
+            "VirtualMachinePlatform",
+            "AEC-CPTX-Setup-Resume",
+            "Request-Reboot",
+            "--set-default-version",
+            "--install', '--distribution'",
+            "--set-version",
+            "nvidia-smi --query-gpu=index,name,memory.total",
+            "requires two visible NVIDIA GPUs",
+            "Docker/NVIDIA Container Toolkit",
+            "Install-AEC-Demo.ps1",
+            "-ProvisionVllm",
+            "-StartVllm",
+            "ProgramData",
+        ):
+            self.assertIn(token, bootstrap)
+        self.assertIn("shutdown.exe /r /t 30", bootstrap)
+        self.assertIn("-NoRestart", bootstrap)
+        self.assertIn("$provisionArgs = @('-d', $wslRepo.Distro, '-u', 'root', '-e')", installer)
+        self.assertIn("AEC_SKIP_VLLM_PULL=1", installer)
+        self.assertLess(
+            installer.index("Provision WSL2 Docker and NVIDIA Container Toolkit"),
+            installer.index("Restore available portable runtime assets"),
+        )
 
     def test_profiles_require_strict_daystrom_preflight(self):
         for relative in (
