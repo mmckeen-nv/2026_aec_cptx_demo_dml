@@ -108,5 +108,6 @@ or `complete`) and selects a stage-specific editable prompt and output filename.
 The process may exit normally; Blender must remain running on port 9876.
 It uses the approved SDXL depth stage followed by FLUX.2 Klein reference
 refinement. Require `COMFY_SDXL_OUTPUT_PASS`, `COMFY_FLUX_OUTPUT_PASS`, and
-`COMFY_OUTPUT_PASS stage=sdxl+flux`. Never reuse a previous stage's image as the
+`COMFY_DESKTOP_OUTPUT_PASS` before `COMFY_OUTPUT_PASS stage=sdxl+flux`. The
+shared helper copies accepted outputs to `Desktop/comfyui outputs`. Never reuse a previous stage's image as the
 current result.

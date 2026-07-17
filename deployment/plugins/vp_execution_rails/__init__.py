@@ -293,7 +293,8 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             "Never use browser tools, Windows paths, curl, Invoke-RestMethod, handwritten JSON, "
             "or launch/install ComfyUI or models."
             " END-TO-END TERMINAL CONTRACT: Rhino completion is intermediate, never final. Continue immediately "
-            "through handoff, Blender production, and ComfyUI. Only COMFY_OUTPUT_PASS stage=sdxl+flux is successful "
+            "through handoff, Blender production, and ComfyUI. Require COMFY_DESKTOP_OUTPUT_PASS for the accepted "
+            "SDXL and FLUX artifacts copied under Desktop/comfyui outputs. Only COMFY_OUTPUT_PASS stage=sdxl+flux is successful "
             "terminal completion; otherwise report one real rail-defined blocker."
         )
     }

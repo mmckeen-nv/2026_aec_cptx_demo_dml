@@ -56,6 +56,7 @@ refinement. Require, in order:
 - `COMFY_PREFLIGHT_PASS`
 - `COMFY_SDXL_QUEUED` and `COMFY_SDXL_OUTPUT_PASS`
 - `COMFY_FLUX_QUEUED` and `COMFY_FLUX_OUTPUT_PASS`
+- `COMFY_DESKTOP_OUTPUT_PASS` for the accepted SDXL and FLUX artifacts
 - `COMFY_OUTPUT_PASS stage=sdxl+flux`
 
 The stage artifacts are `comfy_output/cliff_house_sdxl.png` and

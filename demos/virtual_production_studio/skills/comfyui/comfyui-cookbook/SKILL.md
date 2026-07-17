@@ -61,6 +61,8 @@ wording. For an explicit one-run override, the helper also accepts
    - `COMFY_PREFLIGHT_PASS`
    - `COMFY_SDXL_QUEUED` and `COMFY_SDXL_OUTPUT_PASS`
    - `COMFY_FLUX_QUEUED` and `COMFY_FLUX_OUTPUT_PASS`
+   - `COMFY_DESKTOP_OUTPUT_PASS` for both accepted outputs copied under
+     `Desktop/comfyui outputs`
    - `COMFY_OUTPUT_PASS stage=sdxl+flux ... bytes=...`
 
 6. Accept only:

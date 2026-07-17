@@ -9,10 +9,14 @@ models, or invent a graph at demo time.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import json
+import os
+import shutil
 import time
 import urllib.parse
+from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -259,6 +263,50 @@ def download(url: str, image_info: dict, destination: Path) -> None:
     destination.write_bytes(api(url, "GET", f"/view?{query}", timeout=60).content)
 
 
+def default_desktop_output_dir() -> Path:
+    """Return the user's real Desktop known folder, with a portable fallback."""
+    override = os.environ.get("AEC_COMFY_OUTPUT_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+    if os.name == "nt":
+        buffer = ctypes.create_unicode_buffer(260)
+        # CSIDL_DESKTOPDIRECTORY resolves redirected/OneDrive Desktops too.
+        result = ctypes.windll.shell32.SHGetFolderPathW(None, 0x10, None, 0, buffer)
+        if result == 0 and buffer.value:
+            return Path(buffer.value).resolve() / "comfyui outputs"
+    return Path.home().resolve() / "Desktop" / "comfyui outputs"
+
+
+def publish_desktop_output(source: Path, destination_dir: Path, stage: str) -> Path:
+    """Copy an accepted artifact to the Desktop without overwriting an earlier run."""
+    source = source.resolve()
+    destination_dir = destination_dir.expanduser().resolve()
+    destination_dir.mkdir(parents=True, exist_ok=True)
+    destination = destination_dir / source.name
+    if destination.exists():
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        destination = destination_dir / f"{source.stem}_{stamp}{source.suffix}"
+        counter = 2
+        while destination.exists():
+            destination = destination_dir / f"{source.stem}_{stamp}_{counter}{source.suffix}"
+            counter += 1
+    try:
+        shutil.copy2(source, destination)
+    except OSError as exc:
+        raise SystemExit(
+            f"COMFY_DESKTOP_OUTPUT_FAIL stage={stage} source={source} destination={destination} error={exc}"
+        ) from exc
+    if not destination.is_file() or destination.stat().st_size != source.stat().st_size:
+        raise SystemExit(
+            f"COMFY_DESKTOP_OUTPUT_FAIL stage={stage} size verification failed: {destination}"
+        )
+    print(
+        f"COMFY_DESKTOP_OUTPUT_PASS stage={stage} output={destination} "
+        f"bytes={destination.stat().st_size}"
+    )
+    return destination
+
+
 def main() -> int:
     here = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser()
@@ -280,6 +328,10 @@ def main() -> int:
     parser.add_argument("--max-dimension", type=int, default=1216)
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument(
+        "--desktop-output-dir", type=Path,
+        help="Desktop publication directory; defaults to the user's 'Desktop/comfyui outputs'.",
+    )
+    parser.add_argument(
         "--prompt-file", type=Path,
         default=here / "user_prompts" / "comfy_style_prompt.txt",
         help="User-editable positive prompt file; used unless --prompt is supplied.",
@@ -297,6 +349,11 @@ def main() -> int:
     output = args.output.expanduser().resolve()
     intermediate = args.intermediate.expanduser().resolve()
     prompt_file = args.prompt_file.expanduser().resolve()
+    desktop_output_dir = (
+        args.desktop_output_dir.expanduser().resolve()
+        if args.desktop_output_dir is not None
+        else default_desktop_output_dir()
+    )
     if args.prompt is not None:
         positive_prompt = args.prompt.strip()
         prompt_source = "--prompt"
@@ -341,7 +398,8 @@ def main() -> int:
           f"contrast={quality['contrast']} foreground_fraction={quality['foreground_fraction']} "
           f"checkpoint={args.checkpoint} controlnet={args.controlnet} "
           f"flux={'disabled' if args.sdxl_only else args.flux_model} "
-          f"prompt_source={prompt_source} prompt_sha256={prompt_sha256}")
+          f"prompt_source={prompt_source} prompt_sha256={prompt_sha256} "
+          f"desktop_output_dir={desktop_output_dir}")
     if args.dry_run:
         return 0
 
@@ -364,9 +422,11 @@ def main() -> int:
         raise SystemExit(f"COMFY_OUTPUT_FAIL prompt_id={prompt_id} error={exc}") from exc
     print(f"COMFY_SDXL_OUTPUT_PASS prompt_id={prompt_id} output={intermediate} "
           f"bytes={intermediate.stat().st_size} seed={args.seed} denoise={args.denoise}")
+    publish_desktop_output(intermediate, desktop_output_dir, "sdxl")
     if args.sdxl_only:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_bytes(intermediate.read_bytes())
+        publish_desktop_output(output, desktop_output_dir, "sdxl-final")
         print(f"COMFY_OUTPUT_PASS stage=sdxl output={output} bytes={output.stat().st_size} "
               f"prompt_sha256={prompt_sha256}")
         return 0
@@ -394,6 +454,7 @@ def main() -> int:
         raise SystemExit(f"COMFY_FLUX_OUTPUT_FAIL prompt_id={flux_prompt_id} error={exc}") from exc
     print(f"COMFY_FLUX_OUTPUT_PASS prompt_id={flux_prompt_id} output={output} "
           f"bytes={output.stat().st_size} model={args.flux_model} steps={args.flux_steps} cfg={args.flux_cfg}")
+    publish_desktop_output(output, desktop_output_dir, "sdxl+flux")
     print(f"COMFY_OUTPUT_PASS stage=sdxl+flux output={output} bytes={output.stat().st_size} "
           f"seed={args.seed} sdxl_denoise={args.denoise} prompt_sha256={prompt_sha256}")
     return 0

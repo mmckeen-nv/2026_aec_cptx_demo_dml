@@ -69,3 +69,29 @@ def test_top_level_demo_prompts_require_two_stage_receipts():
     assert "COMFY_FLUX_OUTPUT_PASS" in text
     assert "COMFY_OUTPUT_PASS stage=sdxl+flux" in text
     assert "FLUX.2 Klein" in text
+
+
+def test_desktop_publication_is_verified_and_collision_safe(tmp_path, capsys):
+    helper = load_helper()
+    source = tmp_path / "source" / "hero_stylized.png"
+    source.parent.mkdir()
+    source.write_bytes(b"accepted-comfy-output")
+    destination_dir = tmp_path / "Desktop" / "comfyui outputs"
+
+    first = helper.publish_desktop_output(source, destination_dir, "sdxl+flux")
+    second = helper.publish_desktop_output(source, destination_dir, "sdxl+flux")
+
+    assert first == destination_dir / source.name
+    assert first.read_bytes() == source.read_bytes()
+    assert second != first
+    assert second.parent == destination_dir
+    assert second.read_bytes() == source.read_bytes()
+    receipts = capsys.readouterr().out
+    assert receipts.count("COMFY_DESKTOP_OUTPUT_PASS stage=sdxl+flux") == 2
+
+
+def test_desktop_publication_directory_can_be_overridden(tmp_path, monkeypatch):
+    helper = load_helper()
+    override = tmp_path / "presented outputs"
+    monkeypatch.setenv("AEC_COMFY_OUTPUT_DIR", str(override))
+    assert helper.default_desktop_output_dir() == override.resolve()

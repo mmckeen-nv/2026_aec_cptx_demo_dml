@@ -137,7 +137,7 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "{0}/demos/teapot/skills/comfyui_bac_hero.py. Both approved Comfy wrappers "
         "own their own preflight; do not read their internals or search for QUICK_DEMO.md. Run the exact "
         "approved wrapper path with --dry-run, then without it. They own SDXL depth followed by FLUX.2 Klein "
-        "and must reach COMFY_OUTPUT_PASS stage=sdxl+flux. "
+        "and must reach COMFY_DESKTOP_OUTPUT_PASS before COMFY_OUTPUT_PASS stage=sdxl+flux. "
         "DML is advisory."
     ).format(root)}
 

@@ -75,7 +75,8 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         "python \"$AEC_DEMO_ROOT/demos/cliff_house/hero/skills/comfyui_cliff_hero.py\" --dry-run ; "
         "then python \"$AEC_DEMO_ROOT/demos/cliff_house/hero/skills/comfyui_cliff_hero.py\". "
         "Do not invent comfy_stylize.py, change Python executables, or hand-build a workflow. "
-        "Require COMFY_OUTPUT_PASS stage=sdxl+flux. DML is advisory."
+        "Require COMFY_DESKTOP_OUTPUT_PASS for accepted artifacts copied under Desktop/comfyui outputs, then "
+        "COMFY_OUTPUT_PASS stage=sdxl+flux. DML is advisory."
     ).format(root)}
 
 
