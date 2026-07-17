@@ -48,3 +48,6 @@ first preview, stop and wait for the user's material or presentation request.
 
 If explicitly asked for the HERO house, read `system_prompts/05_phase_comfyui.md`
 and use its verified Blender scene transition. Do not search for another house.
+Once that HERO scene is open, the request "Let's add the pool assets to the
+pool area" remains in the same HERO phase and uses the exact pool-assets call
+in that prompt. It does not return to the teapot pipeline.
