@@ -51,7 +51,7 @@ if (-not (Test-Path -LiteralPath $preflight)) {
   $preflight = Join-Path $projectRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1'
 }
 if (-not (Test-Path -LiteralPath $preflight)) { throw "RTX Pro preflight not found at $preflight" }
-& $preflight -StartServices -SkipComfyUI -RhinoTemplatePath $rhinoTemplate
+& $preflight -StartServices -RhinoTemplatePath $rhinoTemplate
 if ($LASTEXITCODE -ne 0) { throw "RTX Pro preflight failed (exit code $LASTEXITCODE)." }
 
 Set-Location $studioRoot
@@ -65,6 +65,7 @@ Write-Host ' Vision: Nemotron-3-Nano-Omni-30B-A3B (:8001)'
 Write-Host ' Project: VP Studio 01 (Rhino -> Blender -> ComfyUI)'
 Write-Host ' DML: active-read + synchronized project learning'
 Write-Host ' Workflow: original Cliff House agent-led phase rhythm'
+Write-Host ' Enhancement: SDXL depth -> FLUX.2 Klein reference refinement'
 Write-Host '============================================================'
 Write-Host ''
 

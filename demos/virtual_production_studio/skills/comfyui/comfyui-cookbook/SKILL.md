@@ -4,7 +4,7 @@ description: Use when the Virtual Production Studio demo has an approved Blender
 license: MIT
 metadata:
   hermes:
-    tags: [comfyui, virtual-production, sdxl, controlnet, stylization]
+    tags: [comfyui, virtual-production, sdxl, controlnet, flux2, stylization]
     related_skills: [blender-comfyui-integration]
 ---
 
@@ -12,8 +12,8 @@ metadata:
 
 ## Overview
 
-Run one approved Blender hero render through the fixed local SDXL plus depth
-ControlNet graph. The launcher owns ComfyUI at `http://127.0.0.1:8188`; the
+Run one approved Blender hero render through fixed local SDXL plus depth
+ControlNet, then FLUX.2 Klein reference refinement. The launcher owns ComfyUI at `http://127.0.0.1:8188`; the
 checked-in helper owns upload, graph construction, polling, and download.
 
 Do not substitute the Cliff House multi-frame script. The useful Cliff House
@@ -59,8 +59,9 @@ wording. For an explicit one-run override, the helper also accepts
 5. Require these receipts in order:
 
    - `COMFY_PREFLIGHT_PASS`
-   - `COMFY_QUEUED prompt_id=...`
-   - `COMFY_OUTPUT_PASS ... bytes=...`
+   - `COMFY_SDXL_QUEUED` and `COMFY_SDXL_OUTPUT_PASS`
+   - `COMFY_FLUX_QUEUED` and `COMFY_FLUX_OUTPUT_PASS`
+   - `COMFY_OUTPUT_PASS stage=sdxl+flux ... bytes=...`
 
 6. Accept only:
    `comfy_enhanced/vp_studio_stylized.png`.
@@ -75,17 +76,17 @@ python skills/comfyui_vp_stylize.py --denoise 0.20
 ```
 
 Otherwise accept the first result. Do not change the graph, model, seed, camera,
-resolution, sampler, steps, CFG, or ControlNet strength during the demo. Keep
+resolution, sampler, steps, CFG, ControlNet strength, or FLUX reference conditioning during the demo. Keep
 the same user-selected prompt for the optional correction.
 
 ## Failure Handling
 
 - `COMFY_SOURCE_FAIL`: report the missing approved Blender render.
-- `COMFY_PREFLIGHT_FAIL`: report the exact missing endpoint, node, checkpoint,
-  or ControlNet model. Do not install or launch anything.
+- `COMFY_PREFLIGHT_FAIL`: report the exact missing endpoint, node, SDXL/FLUX
+  model, text encoder, VAE, or ControlNet model. Do not install or launch anything.
 - `COMFY_QUEUE_FAIL`: report the returned node errors. Do not create alternate
   workflow JSON.
-- Timeout after `COMFY_QUEUED`: check once for the accepted output file. Do not
+- Timeout after either queue receipt: check once for the expected stage output file. Do not
   resubmit blindly.
 - `COMFY_OUTPUT_PASS`: record the artifact and fixed settings as one concise DML
   success lesson.
@@ -103,7 +104,7 @@ the same user-selected prompt for the optional correction.
 ## Verification Checklist
 
 - [ ] Preflight receipt is present.
-- [ ] Exactly one prompt was queued.
+- [ ] Exactly one SDXL prompt and one FLUX prompt were queued.
 - [ ] Output receipt reports a non-zero byte count.
 - [ ] The accepted PNG exists at the required path.
 - [ ] At most one vision review and one denoise correction occurred.

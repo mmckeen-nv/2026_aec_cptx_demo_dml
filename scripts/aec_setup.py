@@ -48,7 +48,10 @@ DOCS = {
     "ollama": "https://docs.ollama.com/quickstart",
     "ollama_models": "Run: ollama pull qwen3-embedding:0.6b && ollama pull llama3:8b",
     "comfyui": "https://docs.comfy.org/comfy-cli/getting-started",
-    "comfy_models": "Install an SDXL checkpoint and SDXL depth ControlNet through ComfyUI Manager.",
+    "comfy_models": (
+        "Install the shared demo SDXL, depth ControlNet, and FLUX.2 Klein model set; "
+        "on Windows run scripts\\install_comfy_flux2_models.ps1."
+    ),
     "hermes": "https://hermes-agent.nousresearch.com/docs/",
     "rhino": "https://www.rhino3d.com/download/",
 }
@@ -184,11 +187,35 @@ def run_checks(tier: str) -> list[Result]:
         .get("required", {}).get("control_net_name", [[]])[0]
     ) or []
     depth_models = [name for name in controlnets if "depth" in str(name).lower()]
-    comfy_models_ok = bool(checkpoints and depth_models)
+    unets = (
+        object_info.get("UNETLoader", {}).get("input", {})
+        .get("required", {}).get("unet_name", [[]])[0]
+    ) or []
+    text_encoders = (
+        object_info.get("CLIPLoader", {}).get("input", {})
+        .get("required", {}).get("clip_name", [[]])[0]
+    ) or []
+    vaes = (
+        object_info.get("VAELoader", {}).get("input", {})
+        .get("required", {}).get("vae_name", [[]])[0]
+    ) or []
+    required_checkpoint = "sd_xl_base_1.0.safetensors"
+    required_flux = "flux-2-klein-base-4b-fp8.safetensors"
+    required_clip = "qwen_3_4b.safetensors"
+    required_vae = "flux2-vae.safetensors"
+    comfy_models_ok = bool(
+        required_checkpoint in checkpoints
+        and depth_models
+        and required_flux in unets
+        and required_clip in text_encoders
+        and required_vae in vaes
+    )
     add(
         "comfy_models",
         comfy_models_ok,
-        f"checkpoints={len(checkpoints)}, depth_controlnets={len(depth_models)}",
+        f"sdxl={required_checkpoint in checkpoints}, depth_controlnets={len(depth_models)}, "
+        f"flux={required_flux in unets}, flux_clip={required_clip in text_encoders}, "
+        f"flux_vae={required_vae in vaes}",
     )
     return results
 

@@ -75,6 +75,11 @@ state first and never repeat geometry based only on the compacted transcript.
 6. `prompts/03_asset_sourcing_contract.md`
 7. `prompts/04_comfyui_stylization_contract.md`
 
+The last prompt is a real two-stage execution phase, not a suggestion to invent
+a workflow. After the Blender beauty passes, run the checked-in helper once for
+SDXL depth conditioning and FLUX.2 Klein reference refinement. The final phase
+is complete only at `COMFY_OUTPUT_PASS stage=sdxl+flux`.
+
 Daystrom DML supplies compact continuity and reusable experience. It does not
 replace the phase prompt, control tool calls, or authorize skipping review.
 

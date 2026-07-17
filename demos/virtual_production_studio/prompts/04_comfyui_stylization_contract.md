@@ -24,7 +24,7 @@ internal prompt. Manual operators may also use `--prompt "..."`, which takes
 precedence over the file.
 
 Do not construct a workflow in the browser and do not adapt the Cliff House
-frame-sequence script. Use the checked-in single-render helper exactly:
+frame-sequence script. Use the checked-in two-stage helper exactly:
 
 ```powershell
 python skills/comfyui_vp_stylize.py --dry-run
@@ -37,7 +37,9 @@ The helper owns the complete API sequence:
    `GET /object_info`.
 2. Require the locally installed `sd_xl_base_1.0.safetensors`,
    `controlnet-depth-sdxl-1.0\\diffusion_pytorch_model.safetensors`, and the
-   exact nodes used by the graph.
+   FLUX.2 Klein files `flux-2-klein-base-4b-fp8.safetensors`,
+   `qwen_3_4b.safetensors`, and `flux2-vae.safetensors`, plus the exact nodes
+   used by both graphs.
 3. Require `renders/vp_studio_hero_preview.png` as the approved source. Reject
    low-contrast or nearly empty frames with `COMFY_SOURCE_FAIL`; file existence
    and byte size alone do not pass. Upload only a passing source with
@@ -45,15 +47,19 @@ The helper owns the complete API sequence:
 4. Submit the fixed SDXL depth-conditioned img2img graph with `POST /prompt`.
    Defaults are seed `42`, denoise `0.28`, 24 steps, CFG 6, depth strength
    0.72, and a geometry-preserving positive/negative prompt.
-5. Poll `GET /history/{prompt_id}` until completion, download through
-   `GET /view`, and write
+5. Save the accepted SDXL intermediate as
+   `comfy_enhanced/vp_studio_sdxl.png`, then submit the fixed FLUX.2 Klein
+   reference-conditioned edit graph at 20 steps and CFG 5.
+6. Poll `GET /history/{prompt_id}` for both stages, download through
+   `GET /view`, and write the final FLUX result to
    `comfy_enhanced/vp_studio_stylized.png`.
 
-Success requires the helper's three explicit receipts in order:
+Success requires the helper's stage receipts in order:
 
 - `COMFY_PREFLIGHT_PASS`
-- `COMFY_QUEUED prompt_id=...`
-- `COMFY_OUTPUT_PASS ... output=... bytes=...`
+- `COMFY_SDXL_QUEUED` then `COMFY_SDXL_OUTPUT_PASS`
+- `COMFY_FLUX_QUEUED` then `COMFY_FLUX_OUTPUT_PASS`
+- `COMFY_OUTPUT_PASS stage=sdxl+flux ... output=... bytes=...`
 
 If dry-run fails, report the exact missing service, model, node, or source
 render. Never launch another ComfyUI instance, install models, search WSL, or
@@ -65,4 +71,5 @@ geometry-preservation review. If concrete drift is identified, rerun once with
 only `--denoise 0.20`; otherwise accept the first result.
 
 After a meaningful validated result or failure, store one compact DML lesson
-containing the model names, seed, denoise, output path, and preservation result.
+containing both model names, seed, SDXL denoise, FLUX steps/CFG, output path,
+and preservation result.

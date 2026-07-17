@@ -9,3 +9,6 @@
 *.hdr binary
 *.exr binary
 *.obj -text
+
+# The BAC Teapot HERO master is a 1.55 GB textured scene and must use Git LFS.
+/demos/teapot/hero/BAC_TEAPOT_HERO.blend filter=lfs diff=lfs merge=lfs -text

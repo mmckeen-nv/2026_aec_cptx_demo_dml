@@ -26,7 +26,9 @@ deliverable is an end-to-end workflow that an audience can follow.
    terminal, execute_code, run-command macros, editors, or file opens.
 10. Numeric `NUMERIC_PASS` precedes viewport capture, vision, and checkpoint.
 11. For the final ComfyUI phase, read `skills/COMFYUI_COOKBOOK.md` and execute
-    only its checked-in single-render helper commands, one Bash command at a time.
+    only its checked-in two-stage SDXL -> FLUX helper commands, one terminal
+    command at a time. Require the SDXL and FLUX stage receipts before accepting
+    `COMFY_OUTPUT_PASS stage=sdxl+flux`.
 
 ## Pipeline
 
@@ -39,7 +41,9 @@ template/reference audit
   -> metadata-preserving .3dm handoff
   -> Blender assets/materials/lighting
   -> approved render
-  -> optional ComfyUI stylization
+  -> SDXL depth-conditioned enhancement
+  -> FLUX.2 Klein reference refinement
+  -> final geometry-preservation review
 ```
 
 ## Source of truth order

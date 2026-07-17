@@ -20,6 +20,9 @@ No tool named `run` exists. Use only the registered Blender MCP tool above.
 Never use OBJ, FBX, an import add-on, or a handwritten geometry parser.
 Do not probe Blender add-ons or import operators. Do not call `run`,
 `bpy.ops.import_scene.*`, `bpy.ops.wm.obj_import`, or parse an OBJ manually.
+Never terminate the Blender host from an MCP snippet: do not use `raise
+SystemExit`, `sys.exit`, `quit`, `exit`, or `bpy.ops.wm.quit_blender`. Return or
+print diagnostic failures so the launcher-owned Blender bridge stays alive.
 Never write, patch, regenerate, or replace either importer. The demo-local
 `skills/import_with_metadata.py` is only a compatibility shim to the shared
 tested implementation. Importer failure is a hard stop, not permission to
@@ -121,26 +124,28 @@ After the handoff passes:
    `assets/cache/cache_index.json`.
 2. Load `<AEC_DEMO_ROOT>/skills/blender_vp_production.py` and call
    `apply_required_set_dressing(root)` exactly once. Require
+   `VP_SET_DRESSING_CLEARANCE_PASS overlaps=0 protected_zones=4`, followed by
    `VP_SET_DRESSING_PASS categories=6 placements=27`. This batch supplies three
    production cameras, eight chairs, six workstation monitors, six road cases,
    two complete LED soft-panel practicals, and two server racks. A standalone
    bare C-stand is prohibited. Do not selectively skip categories or retain
    visible proxy boxes.
-3. Call
-   `prepare_production_look()` exactly once. Require `VP_MATERIAL_PASS` and
-   `VP_LIGHTING_PASS`; its fixed rig supplies LED contribution,
-   key, fill, rim/backlight, stage softbox, and restrained world light. Do not invent
-   material or lighting scripts.
-4. Call `setup_beauty_camera()` and `render_preview()` exactly as specified in
-   `03_asset_sourcing_contract.md`. Require verified camera alignment and
-   `VP_RENDER_PASS`. The helper uses the unobstructed `stage_wide` presentation
-   angle; do not substitute CAM_E/CAM_F or handwritten camera transforms.
-5. Capture and inspect the stage-wide hero render. Visible proxy boxes, flat gray
+3. Call `render_beauty_preview(root)` exactly once. It atomically applies the
+   production look, activates the locked beauty camera, renders the canonical
+   absolute output path, and validates the image. Require `VP_MATERIAL_PASS`,
+   `VP_LIGHTING_PASS`, `VP_BEAUTY_VISIBILITY_PASS`, `VP_RENDER_PASS`, and
+   `VP_BEAUTY_PASS`. Do not separately
+   call or unpack `setup_beauty_camera()` and do not call `render_preview()`.
+   Its fixed rig supplies LED contribution, key, fill, rim/backlight, stage
+   softbox, and restrained world light; do not invent lighting scripts.
+   The helper uses the unobstructed `stage_wide` presentation angle; do not
+   substitute CAM_E/CAM_F or handwritten camera transforms.
+4. Capture and inspect the stage-wide hero render. Visible proxy boxes, flat gray
    shading, broken LED curvature, an empty stage, a bare C-stand, or missing
    cameras/furniture/road cases/practical fixtures are defects.
-6. Treat the passing hero as the approved
+5. Treat the passing hero as the approved
    ComfyUI source render.
-7. Run `validate(require_material_slots=True, strict_coplanar=False)` and save
+6. Run `validate(require_material_slots=True, strict_coplanar=False)` and save
    the `.blend` checkpoint.
 
 ## Hard failure rules

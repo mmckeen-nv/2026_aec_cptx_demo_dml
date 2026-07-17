@@ -2,8 +2,10 @@
 
 Project memory namespace: `project:teapot-01`.
 
-BAC Teapot is Blender-only. Rhino is not part of this demo. The Cliff House
-and Virtual Production Studio demos keep their Rhino workflows unchanged.
+BAC Teapot is Blender-only. Rhino is not part of this demo. Its secondary HERO
+lane uses the immutable `hero/BAC_TEAPOT_HERO.blend`; do not use the standalone
+Cliff House HERO scene. The Cliff House and Virtual Production Studio demos
+keep their workflows unchanged.
 
 At startup read, in order:
 
@@ -23,3 +25,10 @@ advisory continuity, not turn-by-turn control.
 
 Startup is intentionally idle. Do not construct anything until the user gives a
 natural-language build request such as "let's build a Utah teapot".
+
+If the user explicitly asks to stylize the current teapot render, use only
+`skills/comfyui_teapot.py` through the terminal after a valid
+`TEAPOT_PREVIEW_PASS`. It runs SDXL depth conditioning followed by FLUX.2 Klein
+reference refinement and must end at `COMFY_OUTPUT_PASS stage=sdxl+flux`.
+ComfyUI is optional and user-triggered in this demo; it never rebuilds the
+teapot or replaces the open-ended Blender material interaction loop.

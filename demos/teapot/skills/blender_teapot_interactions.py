@@ -341,6 +341,9 @@ def render_preview(root, filename="teapot_preview.png", samples=32):
         dynamic = max(values) - min(values) if values else 0.0
         if mean < 0.015 or dynamic < 0.04:
             raise RuntimeError("TEAPOT_PREVIEW_FAIL mean={:.4f} dynamic={:.4f}".format(mean, dynamic))
+    lane_marker = root / "demos" / "teapot" / "work" / "active_render_lane.txt"
+    lane_marker.parent.mkdir(parents=True, exist_ok=True)
+    lane_marker.write_text("teapot\n{}\n".format(output), encoding="utf-8")
     receipt = "TEAPOT_PREVIEW_PASS output={} bytes={}".format(output, output.stat().st_size)
     print(receipt)
     return receipt

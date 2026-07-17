@@ -2,30 +2,24 @@
 project: vp-studio-01
 session_state: true
 phase: 03_asset_sourcing
-phase_label: Asset sourcing complete — set dressing, production look, hero preview
-status: complete
-completed_at: 2026-07-15
+phase_label: Asset sourcing ready — fresh set dressing, production look, and hero preview required
+status: ready
+completed_at: null
 asset_cache:
-  local: assets/cache (synced from G:/AEC-CPTX)
-  entries: 12 (9 GLB assets available)
-  sources: sketchfab, polyhaven
-  note: Sketchfab WAF blocks automated curl; use G: drive mirror
+  local: assets/cache
+  external: G:/AEC-CPTX/demos/virtual_production_studio/assets/cache
+  entries: 12
+  note: Use the checked-in cache index and blender_vp_production helper only.
 blender_checkpoint:
   blend_file: blender_assets/vp_studio_01.blend
-  blend_size: 17122858 bytes
-  object_count: 379 (RHINO) + assets
-render:
-  hero_preview: renders/vp_studio_hero_preview.png (688724 bytes)
-  resolution: 960x540
-  samples: 32
-set_dressing:
-  vp_set_dressing_pass: categories=6 placements=27 cameras=3 chairs=8 monitors=6 roadcases=6 practical_lights=2 racks=2
+  status: output_only
 handoff_source:
   rhino_file: rhino/vp_studio_01.3dm
-  object_count: 379
-  layers: 64
-next: Phase 04 ComfyUI stylization
+  requirement: Import fresh and require VP_HANDOFF_PASS before set dressing.
+next: Run one fresh Blender handoff, then apply required set dressing, materials, lighting, camera, render, and ComfyUI.
 dml_notes:
-  - Asset cache synced from G: drive (local Sketchfab downloads blocked by WAF)
-  - apply_required_set_dressing passed all 27 placements across 6 categories
-  - Hero preview rendered at 960x540, 32 samples
+  - Handoff resolver accepts either repository root or VP demo root.
+  - Cached assets use one measured source collection plus lightweight placement instances.
+  - Camera tripod placement uses oriented physical-size validation after deterministic yaw.
+  - Require zero asset collisions, protected-zone clearance, and hero-role camera visibility.
+  - Do not retry, monkey-patch, rewrite, symlink, or hand-scale assets after a failed deployment.

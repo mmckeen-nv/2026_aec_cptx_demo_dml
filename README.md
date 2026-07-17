@@ -2,7 +2,7 @@
 
 An agent-driven architectural visualization demo: Hermes interprets a design
 brief, controls Rhino and Blender through MCP, renders the scene, and can send
-the output through ComfyUI. Daystrom DML/DCN provides optional cross-session
+the output through deterministic SDXL depth and FLUX.2 ComfyUI stages. Daystrom DML/DCN provides optional cross-session
 continuity for the full agent-driven deployment.
 
 The active project is `cliff_house_02`, a three-storey modernist cliff house.
@@ -46,9 +46,9 @@ Use `--install` to approve supported package-manager installs one at a time.
 | Demo | Shipped state | Minimum runtime |
 |---|---|---|
 | Cliff House | Protected hero `.blend`, session copy, source checkpoint | Blender 4.0+ |
-| Cliff House Modification | Blender and ComfyUI output examples | Blender; ComfyUI only to regenerate stylization |
-| Virtual Production Studio | Rhino source, Blender scenes, raw and enhanced renders | Blender; Rhino/ComfyUI only to regenerate source/enhancement |
-| Teapot | OBJ/3DM source, build script, Blender scene, hero render | Blender 4.0+ |
+| Cliff House Modification | Blender plus SDXL/FLUX output examples | Blender; ComfyUI model set to regenerate stylization |
+| Virtual Production Studio | Rhino source, Blender scenes, raw and SDXL/FLUX renders | Blender; Rhino/ComfyUI to regenerate source/enhancement |
+| Teapot | Canonical source, Blender interaction scene, optional SDXL/FLUX product render | Blender 4.0+; ComfyUI model set for enhancement |
 
 Daystrom DML is required for persistent memory in the agent-driven workflow. It
 is not required merely to open or render the packaged `.blend` files. Maya and
@@ -73,7 +73,7 @@ not assume the two are identical.
 | 02–06 | Rhino | Site, massing, plans, stacked geometry, detailing |
 | 07 | Rhino → Blender | Validation, metadata-preserving `.3dm` handoff |
 | 08–09 | Blender | Lighting, camera, and materials |
-| 10–11 | Blender / ComfyUI | Test and final renders, depth and segmentation |
+| 10–11 | Blender / ComfyUI | Test/final renders, depth, SDXL conditioning, and FLUX refinement |
 | 12–13 | Rhino | Layer reveal and sun-study animations |
 
 Core operating rules:

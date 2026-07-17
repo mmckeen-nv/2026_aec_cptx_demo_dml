@@ -67,9 +67,9 @@ rdoc.Views.Redraw();System.Console.WriteLine("RIGGING_CREATED trusses=11 hoists=
 ```csharp
 int cams=GL("VP10_CAMERAS",System.Drawing.Color.Red);
 System.Action<string,double,double,double,double,double,double> CAM=(n,x,y,z,tx,ty,tz)=>{SB(n+"_BODY",cams,x-12,x+12,y-6,y+6,z-6,z+6);var a=A(n+"_AIM",cams);rdoc.Objects.AddCurve(new Rhino.Geometry.LineCurve(new Rhino.Geometry.Point3d(x,y,z),new Rhino.Geometry.Point3d(tx,ty,tz)),a);double r=24;for(int k=0;k<3;k++){double q=2.0*System.Math.PI*k/3.0;rdoc.Objects.AddCurve(new Rhino.Geometry.LineCurve(new Rhino.Geometry.Point3d(x,y,z-6),new Rhino.Geometry.Point3d(x+r*System.Math.Cos(q),y+r*System.Math.Sin(q),0)),A(n+"_TRIPOD_"+(k+1),cams));}};
-CAM("CAM_A_HERO_TRACKED",-120,-420,66,-120,-60,72);CAM("CAM_E_WITNESS",600,-540,120,-120,0,72);CAM("CAM_F_CONTROL_ROOM",750,684,66,-120,0,72);
-CAM("CAM_B_DOLLY_TRACKED",-120,-480,66,-120,-60,72);CAM("CAM_C_CRANE_TRACKED",360,-240,66,-120,-60,72);
-rdoc.Objects.AddCurve(new Rhino.Geometry.LineCurve(new Rhino.Geometry.Point3d(-360,-480,0),new Rhino.Geometry.Point3d(120,-480,0)),A("CAM_B_DOLLY_PATH",cams));
+CAM("CAM_A_HERO_TRACKED",-480,-420,66,-120,60,72);CAM("CAM_E_WITNESS",600,-420,66,-120,60,72);CAM("CAM_F_CONTROL_ROOM",750,684,66,-120,0,72);
+CAM("CAM_B_DOLLY_TRACKED",120,-540,66,-120,60,72);CAM("CAM_C_CRANE_TRACKED",360,-240,66,-120,-60,72);
+rdoc.Objects.AddCurve(new Rhino.Geometry.LineCurve(new Rhino.Geometry.Point3d(-120,-540,0),new Rhino.Geometry.Point3d(360,-540,0)),A("CAM_B_DOLLY_PATH",cams));
 rdoc.Objects.AddCircle(new Rhino.Geometry.Circle(new Rhino.Geometry.Point3d(360,-240,0),300),A("CAM_C_CRANE_SWEEP",cams));
 var hand=new Rhino.Geometry.PolylineCurve(new[]{new Rhino.Geometry.Point3d(-600,-360,0),new Rhino.Geometry.Point3d(-360,-360,0),new Rhino.Geometry.Point3d(-360,-120,0),new Rhino.Geometry.Point3d(-600,-120,0),new Rhino.Geometry.Point3d(-600,-360,0)});rdoc.Objects.AddCurve(hand,A("CAM_D_HANDHELD_TRACKED_OPERATING_ZONE",cams));
 rdoc.Views.Redraw();System.Console.WriteLine("CAMERAS_CREATED fixed=5 envelopes=3");
@@ -81,14 +81,14 @@ rdoc.Views.Redraw();System.Console.WriteLine("CAMERAS_CREATED fixed=5 envelopes=
 int lay=GL("VP11_PRODUCTION_LAYOUT",System.Drawing.Color.SteelBlue);
 double[,] ws={{804,570},{804,684},{804,798},{960,570},{960,684},{960,798}};for(int i=0;i<6;i++){double x=ws[i,0],y=ws[i,1];SB("WORKSTATION_"+(i+1).ToString("00"),lay,x-15,x+15,y-36,y+36,0,30);}
 double[,] op={{852,570},{852,684},{852,798},{1008,570},{1008,684},{1008,798}};for(int i=0;i<6;i++){double x=op[i,0],y=op[i,1];SB("OP_CHAIR_"+(i+1).ToString("00"),lay,x-12,x+12,y-12,y+12,0,42);}
-double[,] rev={{-1008,330},{-936,330},{-864,330},{-1008,414},{-936,414},{-864,414},{-1008,498},{-936,498},{-864,498},{-1008,582},{-936,582},{-864,582}};for(int i=0;i<12;i++){double x=rev[i,0],y=rev[i,1];SB("REVIEW_CHAIR_"+(i+1).ToString("00"),lay,x-11,x+11,y-11,y+11,0,36);}
+double[,] rev={{-1008,330},{-936,330},{-864,330},{-1008,414},{-936,414},{-864,414},{-1008,498},{-936,498},{-864,498},{-1008,582},{-936,582},{-864,582}};for(int i=0;i<12;i++){double x=rev[i,0],y=rev[i,1];SB("REVIEW_CHAIR_"+(i+1).ToString("00"),lay,x-12,x+12,y-12,y+12,0,42);}
 double[,] carts={{-1008,-504},{-936,-504},{-864,-504},{-816,-504}};for(int i=0;i<4;i++){double x=carts[i,0],y=carts[i,1];SB("CART_"+(i+1).ToString("00"),lay,x-24,x+24,y-12,y+12,0,42);}
 double[,] cases={{-1008,-408},{-912,-408},{-816,-408},{-1008,-324},{-912,-324},{-816,-324}};for(int i=0;i<6;i++){double x=cases[i,0],y=cases[i,1];SB("ROAD_CASE_"+(i+1).ToString("00"),lay,x-24,x+24,y-12,y+12,0,30);}
-SB("STAGE_DIRECTOR_CHAIR_01",lay,-611,-589,-311,-289,0,36);SB("STAGE_DIRECTOR_CHAIR_02",lay,589,611,-311,-289,0,36);
-SB("HERO_ROAD_CASE_01",lay,-624,-576,-432,-408,0,30);SB("HERO_ROAD_CASE_02",lay,576,624,-432,-408,0,30);
+SB("STAGE_DIRECTOR_CHAIR_01",lay,-432,-408,-72,-48,0,42);SB("STAGE_DIRECTOR_CHAIR_02",lay,528,552,48,72,0,42);
+SB("HERO_ROAD_CASE_01",lay,-624,-576,-432,-408,0,30);SB("HERO_ROAD_CASE_02",lay,612,660,-72,-48,0,30);
 SB("FLOOR_LIGHT_01",lay,-672,-648,-132,-108,0,72);SB("FLOOR_LIGHT_02",lay,648,672,-132,-108,0,72);
 SB("SERVER_RACK_01",lay,774,798,369,411,0,84);SB("SERVER_RACK_02",lay,846,870,369,411,0,84);
-SB("DOLLY_BASE",lay,-150,-90,-498,-462,0,12);SB("CRANE_BASE",lay,324,396,-276,-204,0,24);SB("CAL_TARGET_01",lay,564,612,453,459,0,72);SB("CAL_TARGET_02",lay,624,672,453,459,0,72);
+SB("DOLLY_BASE",lay,90,150,-558,-522,0,12);SB("CRANE_BASE",lay,324,396,-276,-204,0,24);SB("CAL_TARGET_01",lay,564,612,453,459,0,72);SB("CAL_TARGET_02",lay,624,672,453,459,0,72);
 rdoc.Views.Redraw();System.Console.WriteLine("LAYOUT_CREATED workstations=6 chairs=20 carts=4 cases=8 floor_lights=2 racks=2 equipment=4");
 ```
 

@@ -14,7 +14,9 @@ lighting positions, workstations, chairs, and recognizable equipment proxies.
 4. Clear camera, talent, loading, service, and circulation zones.
 5. Metadata-preserving Rhino -> Blender handoff.
 6. Blender asset replacement, materials, lighting, camera, and render.
-7. Optional geometry-preserving ComfyUI stylization.
+7. Final geometry-preserving ComfyUI presentation: SDXL depth conditioning,
+   followed by FLUX.2 Klein reference refinement using the user-editable style
+   prompt.
 
 ## Exclusions
 

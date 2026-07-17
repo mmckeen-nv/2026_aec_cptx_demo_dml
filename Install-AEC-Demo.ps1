@@ -351,6 +351,16 @@ function Sync-TeapotExecutionRails {
   Enable-HermesProfilePlugin (Join-Path $ProfilePath 'config.yaml') 'teapot_execution_rails'
 }
 
+function Sync-CliffHeroExecutionRails {
+  param([string]$ProfilePath)
+  $pluginSource = Join-Path $RepoRoot 'deployment\plugins\cliff_hero_execution_rails'
+  $pluginDestination = Join-Path $ProfilePath 'plugins\cliff_hero_execution_rails'
+  New-Item -ItemType Directory -Path $pluginDestination -Force | Out-Null
+  Install-ManagedFile (Join-Path $pluginSource 'plugin.yaml') (Join-Path $pluginDestination 'plugin.yaml')
+  Install-ManagedFile (Join-Path $pluginSource '__init__.py') (Join-Path $pluginDestination '__init__.py')
+  Enable-HermesProfilePlugin (Join-Path $ProfilePath 'config.yaml') 'cliff_hero_execution_rails'
+}
+
 function Repair-TeapotDemoRuntime {
   param([string]$ProfileConfig)
   if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
@@ -902,7 +912,7 @@ if (-not $SkipProfiles) {
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
         Disable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
-        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml') ($profile.Name -ne 'bac_teapot')
+        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml') ($profile.Name -notin @('bac_teapot', 'cliff_hero'))
         if ($profile.Name -eq 'rtx_pro') {
           Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml')
           Sync-VpExecutionRails $profilePath
@@ -918,6 +928,7 @@ if (-not $SkipProfiles) {
         if ($profile.Name -eq 'cliff_hero') {
           Repair-CliffHeroLocalRuntime (Join-Path $profilePath 'config.yaml')
           Ensure-DemoMemoryMcps (Join-Path $profilePath 'config.yaml') 'dml_mcp_server_cliff_hero.cmd' 'cma_mcp_server_cliff_hero.cmd'
+          Sync-CliffHeroExecutionRails $profilePath
         }
         $workingDirectory = if ($profile.Name -eq 'aec-cptx') { $RepoRoot } elseif ($profile.Name -eq 'rtx_pro') { Join-Path $RepoRoot 'demos\virtual_production_studio' } elseif ($profile.Name -eq 'cliff_hero') { Join-Path $RepoRoot 'demos\cliff_house\hero' } else { Join-Path $RepoRoot 'demos\teapot' }
         Repair-CliffStyleProfileRuntime (Join-Path $profilePath 'config.yaml') $workingDirectory
@@ -930,7 +941,7 @@ if (-not $SkipProfiles) {
         Repair-DaystromStrictPreflight (Join-Path $profilePath 'config.yaml')
         Sync-DaystromProfilePlugin $profilePath
         Disable-HermesProfilePlugin (Join-Path $profilePath 'config.yaml') 'aec_demo_controller'
-        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml') ($profile.Name -ne 'bac_teapot')
+        Repair-DemoApplicationMcps (Join-Path $profilePath 'config.yaml') ($profile.Name -notin @('bac_teapot', 'cliff_hero'))
         if ($profile.Name -eq 'rtx_pro') {
           Repair-RTXProDmlIsolation (Join-Path $profilePath 'config.yaml')
           Sync-VpExecutionRails $profilePath
@@ -946,6 +957,7 @@ if (-not $SkipProfiles) {
         if ($profile.Name -eq 'cliff_hero') {
           Repair-CliffHeroLocalRuntime (Join-Path $profilePath 'config.yaml')
           Ensure-DemoMemoryMcps (Join-Path $profilePath 'config.yaml') 'dml_mcp_server_cliff_hero.cmd' 'cma_mcp_server_cliff_hero.cmd'
+          Sync-CliffHeroExecutionRails $profilePath
         }
         $workingDirectory = if ($profile.Name -eq 'aec-cptx') { $RepoRoot } elseif ($profile.Name -eq 'rtx_pro') { Join-Path $RepoRoot 'demos\virtual_production_studio' } elseif ($profile.Name -eq 'cliff_hero') { Join-Path $RepoRoot 'demos\cliff_house\hero' } else { Join-Path $RepoRoot 'demos\teapot' }
         Repair-CliffStyleProfileRuntime (Join-Path $profilePath 'config.yaml') $workingDirectory

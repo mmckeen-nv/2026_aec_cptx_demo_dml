@@ -119,29 +119,64 @@ class TeapotQuickDemoTests(unittest.TestCase):
         self.assertIn("shutil.copy2(master, working)", helper)
         self.assertIn("CLIFF_HERO_RENDER_PASS", helper)
         self.assertIn("COMFY_OUTPUT_PASS", cookbook)
+        self.assertIn("COMFY_SDXL_OUTPUT_PASS", cookbook)
+        self.assertIn("COMFY_FLUX_OUTPUT_PASS", cookbook)
+        self.assertIn("stage=sdxl+flux", cookbook)
         self.assertIn("comfyui_vp_stylize.py", wrapper)
         self.assertIn("comfy_style_prompt.txt", wrapper)
+        self.assertIn("cliff_house_sdxl.png", wrapper)
 
     def test_teapot_lane_has_deterministic_hero_transition(self):
         transition = (TEAPOT / "system_prompts" / "05_phase_comfyui.md").read_text(encoding="utf-8")
         interaction = (TEAPOT / "prompts" / "04_phase_material_interactions.md").read_text(encoding="utf-8")
         plugin = (ROOT / "deployment" / "plugins" / "teapot_execution_rails" / "__init__.py").read_text(encoding="utf-8")
         for text in (transition, interaction, plugin):
-            self.assertIn("demos/cliff_house/hero/cliff_house_02_HERO.blend", text)
+            self.assertIn("demos/teapot/hero/BAC_TEAPOT_HERO.blend", text)
         self.assertIn("hero.open_verified_hero(root)", transition)
         self.assertIn("ComfyUI never runs inside Blender MCP", transition)
-        self.assertIn("comfyui_cliff_hero.py", transition)
-        self.assertIn("Never look under", plugin)
+        self.assertIn("comfyui_bac_hero.py", transition)
+        self.assertIn("COMFY_FLUX_OUTPUT_PASS", transition)
+        self.assertIn("Never substitute the", plugin)
+        self.assertIn("standalone Cliff House or VP Studio HERO", plugin)
+
+        bac_master = TEAPOT / "hero" / "BAC_TEAPOT_HERO.blend"
+        self.assertEqual(bac_master.stat().st_size, 1548410063)
+        bac_helper = (TEAPOT / "skills" / "blender_bac_hero.py").read_text(encoding="utf-8")
+        for token in (
+            'EXPECTED = {"objects": 506, "meshes": 257, "cameras": 6, "lights": 1}',
+            "350e19eb3db88cf5c98c98ba76f5d9f2017ed168b5fcf7e276a2c3bb13c7b882",
+            "BAC_TEAPOT_HERO_working.blend",
+            "Camera_day",
+            "BAC_HERO_OPEN_PASS",
+            "BAC_HERO_RENDER_PASS",
+        ):
+            self.assertIn(token, bac_helper)
+        bac_wrapper = (TEAPOT / "skills" / "comfyui_bac_hero.py").read_text(encoding="utf-8")
+        self.assertIn("bac_teapot_hero_sdxl.png", bac_wrapper)
+        self.assertIn("bac_teapot_hero_stylized.png", bac_wrapper)
+        self.assertTrue((TEAPOT / "hero" / "user_prompts" / "comfy_style_prompt.txt").is_file())
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("/demos/teapot/hero/BAC_TEAPOT_HERO.blend filter=lfs", attributes)
+
+        teapot_wrapper = (TEAPOT / "skills" / "comfyui_teapot.py").read_text(encoding="utf-8")
+        self.assertIn("comfyui_vp_stylize.py", teapot_wrapper)
+        self.assertIn("teapot_sdxl.png", teapot_wrapper)
+        self.assertIn("teapot_stylized.png", teapot_wrapper)
+        self.assertTrue((TEAPOT / "user_prompts" / "comfy_style_prompt.txt").is_file())
 
     def test_teapot_rails_block_blender_host_exit_but_allow_comfy_wrapper(self):
         import importlib.util
         import os
+        import tempfile
         path = ROOT / "deployment" / "plugins" / "teapot_execution_rails" / "__init__.py"
         spec = importlib.util.spec_from_file_location("teapot_rails_test", path)
         rails = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(rails)
         old = os.environ.get("AEC_DEMO_ID")
+        old_root = os.environ.get("AEC_DEMO_ROOT")
         os.environ["AEC_DEMO_ID"] = "teapot-01"
+        temp = tempfile.TemporaryDirectory()
+        os.environ["AEC_DEMO_ROOT"] = temp.name
         try:
             blocked = rails.on_pre_tool_call(
                 tool_name="mcp_blender_execute_blender_code",
@@ -150,19 +185,86 @@ class TeapotQuickDemoTests(unittest.TestCase):
             self.assertEqual(blocked["action"], "block")
             master_save = rails.on_pre_tool_call(
                 tool_name="mcp_blender_execute_blender_code",
-                args={"code": "bpy.ops.wm.save_as_mainfile(filepath='demos/cliff_house/hero/cliff_house_02_HERO.blend')"},
+                args={"code": "bpy.ops.wm.save_as_mainfile(filepath='demos/teapot/hero/BAC_TEAPOT_HERO.blend')"},
             )
             self.assertEqual(master_save["action"], "block")
             allowed = rails.on_pre_tool_call(
                 tool_name="terminal",
-                args={"command": 'python "$AEC_DEMO_ROOT/demos/cliff_house/hero/skills/comfyui_cliff_hero.py"'},
+                args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_bac_hero.py"'},
             )
             self.assertIsNone(allowed)
+            teapot_allowed = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py"'},
+            )
+            self.assertIsNone(teapot_allowed)
+            native_root = str(Path(temp.name).resolve())
+            msys_root = "/" + native_root.replace("\\", "/")[0].lower() + native_root.replace("\\", "/")[2:]
+            msys_allowed = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": f"python {msys_root}/demos/teapot/skills/comfyui_bac_hero.py --dry-run"},
+            )
+            self.assertIsNone(msys_allowed)
+            marker = Path(temp.name) / "demos" / "teapot" / "work" / "active_render_lane.txt"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("bac_hero\n", encoding="utf-8")
+            wrong_lane = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py"'},
+            )
+            right_lane = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_bac_hero.py"'},
+            )
+            self.assertEqual(wrong_lane["action"], "block")
+            self.assertIsNone(right_lane)
+            marker.unlink()
+            temp_demo = Path(temp.name) / "demos" / "teapot"
+            cd_allowed = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": f'cd "{temp_demo}" && python skills/comfyui_teapot.py --dry-run'},
+            )
+            self.assertIsNone(cd_allowed)
+            env_allowed = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={
+                    "command": f'AEC_DEMO_ROOT="{temp.name}" python skills/comfyui_teapot.py 2>&1',
+                    "background": True,
+                },
+            )
+            self.assertIsNone(env_allowed)
+            browser_blocked = rails.on_pre_tool_call(
+                tool_name="browser_navigate", args={"url": "http://127.0.0.1:8188"}
+            )
+            self.assertEqual(browser_blocked["action"], "block")
+            execute_code = rails.on_pre_tool_call(
+                tool_name="execute_code", args={"code": "import hashlib"}
+            )
+            self.assertEqual(execute_code["action"], "block")
+            curl_probe = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": "curl -s http://127.0.0.1:8188/system_stats"},
+            )
+            self.assertEqual(curl_probe["action"], "block")
+            invented = rails.on_pre_tool_call(
+                tool_name="terminal", args={"command": "python skills/comfy_stylize.py"}
+            )
+            self.assertEqual(invented["action"], "block")
+            execute_code = rails.on_pre_tool_call(
+                tool_name="execute_code",
+                args={"code": "import comfyui_teapot; comfyui_teapot.main()"},
+            )
+            self.assertEqual(execute_code["action"], "block")
         finally:
+            temp.cleanup()
             if old is None:
                 os.environ.pop("AEC_DEMO_ID", None)
             else:
                 os.environ["AEC_DEMO_ID"] = old
+            if old_root is None:
+                os.environ.pop("AEC_DEMO_ROOT", None)
+            else:
+                os.environ["AEC_DEMO_ROOT"] = old_root
 
     def test_installer_creates_independent_cliff_hero_profile(self):
         installer = (ROOT / "Install-AEC-Demo.ps1").read_text(encoding="utf-8")
@@ -173,8 +275,85 @@ class TeapotQuickDemoTests(unittest.TestCase):
             "cliff-house-hero-runtime-store",
             "project:cliff-house-hero-01",
             "Sync-TeapotExecutionRails",
+            "Sync-CliffHeroExecutionRails",
         ):
             self.assertIn(token, installer)
+
+        dml = (ROOT / "deployment" / "cliff-hero-profile" / "dml_mcp_server_cliff_hero.cmd").read_text(encoding="utf-8")
+        cma = (ROOT / "deployment" / "cliff-hero-profile" / "cma_mcp_server_cliff_hero.cmd").read_text(encoding="utf-8")
+        config = (ROOT / "deployment" / "cliff-hero-profile" / "config.example.yaml").read_text(encoding="utf-8")
+        launcher = (ROOT / "deployment" / "cliff-hero-profile" / "Start-Cliff-Hero-Quick.ps1").read_text(encoding="utf-8")
+        self.assertIn(".venv-dml\\Scripts\\python.exe", dml)
+        self.assertIn("-m dml_mcp.dml_mcp_server", dml)
+        self.assertIn("-m cma.mcp_server", cma)
+        self.assertNotIn("  rhino:", config)
+        self.assertIn("cliff_hero_execution_rails", config)
+        self.assertIn("-SkipRhino", launcher)
+
+    def test_cliff_hero_rails_keep_the_quick_lane_bounded(self):
+        import importlib.util
+        import os
+        path = ROOT / "deployment" / "plugins" / "cliff_hero_execution_rails" / "__init__.py"
+        spec = importlib.util.spec_from_file_location("cliff_hero_rails_test", path)
+        rails = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rails)
+        old_id = os.environ.get("AEC_DEMO_ID")
+        old_root = os.environ.get("AEC_DEMO_ROOT")
+        os.environ["AEC_DEMO_ID"] = "cliff-house-hero-01"
+        os.environ["AEC_DEMO_ROOT"] = str(ROOT)
+        try:
+            allowed = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": 'python "$AEC_DEMO_ROOT/demos/cliff_house/hero/skills/comfyui_cliff_hero.py" --dry-run'},
+            )
+            self.assertIsNone(allowed)
+            cd_allowed = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": f'cd "{HERO}" && python skills/comfyui_cliff_hero.py'},
+            )
+            self.assertIsNone(cd_allowed)
+            self.assertEqual(rails.on_pre_tool_call(tool_name="mcp_rhino_get_document_info", args={})["action"], "block")
+            self.assertEqual(rails.on_pre_tool_call(tool_name="browser_navigate", args={"url": "http://127.0.0.1:8188"})["action"], "block")
+            self.assertEqual(rails.on_pre_tool_call(tool_name="terminal", args={"command": "python skills/comfy_stylize.py"})["action"], "block")
+        finally:
+            if old_id is None:
+                os.environ.pop("AEC_DEMO_ID", None)
+            else:
+                os.environ["AEC_DEMO_ID"] = old_id
+            if old_root is None:
+                os.environ.pop("AEC_DEMO_ROOT", None)
+            else:
+                os.environ["AEC_DEMO_ROOT"] = old_root
+
+    def test_other_demo_launchers_preflight_comfyui(self):
+        launchers = (
+            ROOT / "deployment" / "aec-cptx-profile" / "Start-Hermes-AEC-Rhino-DML.ps1",
+            ROOT / "deployment" / "bac-teapot-profile" / "Start-BAC_Teapot.ps1",
+            ROOT / "deployment" / "cliff-hero-profile" / "Start-Cliff-Hero-Quick.ps1",
+        )
+        for launcher in launchers:
+            text = launcher.read_text(encoding="utf-8")
+            self.assertNotIn("-SkipComfyUI", text)
+
+    def test_bac_launcher_rejects_missing_lfs_hero_payload(self):
+        launcher = (ROOT / "deployment" / "bac-teapot-profile" / "Start-BAC_Teapot.ps1").read_text(encoding="utf-8")
+        self.assertIn("BAC_TEAPOT_HERO.blend", launcher)
+        self.assertIn("1548410063", launcher)
+        self.assertIn("git lfs pull", launcher)
+
+    def test_original_cliff_animation_is_two_stage(self):
+        phase7 = (ROOT / "scripts" / "comfyui_phase7.py").read_text(encoding="utf-8")
+        for token in (
+            "load_flux_builder",
+            "flux-2-klein-base-4b-fp8.safetensors",
+            "qwen_3_4b.safetensors",
+            "flux2-vae.safetensors",
+            "sdxl_enhanced",
+            "ocean_view_ai_flux.mp4",
+            "COMFY_OUTPUT_PASS stage=sdxl+flux",
+            "--prompt-file",
+        ):
+            self.assertIn(token, phase7)
 
 
 if __name__ == "__main__":

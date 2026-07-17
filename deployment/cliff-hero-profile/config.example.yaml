@@ -40,7 +40,7 @@ skills:
   creation_nudge_interval: 0
 
 plugins:
-  enabled: [daystrom_dml]
+  enabled: [daystrom_dml, cliff_hero_execution_rails]
 
 mcp_servers:
   blender:
@@ -50,9 +50,6 @@ mcp_servers:
       BLENDER_HOST: localhost
       BLENDER_PORT: "9876"
       DISABLE_TELEMETRY: "true"
-  rhino:
-    command: C:/Users/USER/AppData/Roaming/McNeel/Rhinoceros/packages/8.0/Rhino-MCP-Platform/VERSION/router/win-x64/rhino-mcp-router.exe
-    args: [--default-version, "8"]
   daystrom_dml:
     command: cmd
     args: [/c, C:/Users/USER/AppData/Local/hermes/integrations/daystrom-dml/bin/dml_mcp_server_cliff_hero.cmd]

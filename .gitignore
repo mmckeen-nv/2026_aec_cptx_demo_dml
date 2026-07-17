@@ -131,5 +131,9 @@ demos/virtual_production_studio/demos/
 demos/virtual_production_studio/nul
 demos/virtual_production_studio/rhino/
 demos/virtual_production_studio/scripts/
+demos/virtual_production_studio/handoff/
+demos/virtual_production_studio/blender_render_ready.json
 aa_demo_versions/cliff_house_02/rhino_assets/base_model_checkpoint_*.3dm
 *.3dmbak
+*.rhl
+/work/

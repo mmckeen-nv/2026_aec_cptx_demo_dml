@@ -51,12 +51,20 @@ if (-not (Test-LocalModel 8000) -or -not (Test-LocalModel 8001)) {
 }
 
 $demoRoot = Join-Path $projectRoot 'demos\teapot'
+$bacHeroMaster = Join-Path $demoRoot 'hero\BAC_TEAPOT_HERO.blend'
+if (-not (Test-Path -LiteralPath $bacHeroMaster -PathType Leaf)) {
+  throw "BAC HERO master is missing: $bacHeroMaster. Restore the installation payload or run git lfs pull."
+}
+$bacHeroBytes = (Get-Item -LiteralPath $bacHeroMaster).Length
+if ($bacHeroBytes -ne 1548410063) {
+  throw "BAC HERO master is incomplete (actual=$bacHeroBytes expected=1548410063): $bacHeroMaster. Run git lfs pull before launching."
+}
 foreach ($relative in @('work', 'renders', 'blender_assets')) {
   New-Item -ItemType Directory -Force -Path (Join-Path $demoRoot $relative) | Out-Null
 }
 $preflight = Join-Path $env:HERMES_HOME 'bin\Test-RTX-Pro-Preflight.ps1'
 if (-not (Test-Path $preflight)) { $preflight = Join-Path $projectRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1' }
-& $preflight -StartServices -SkipRhino -SkipComfyUI -ProfileName 'bac_teapot' -ProjectId 'teapot-01' `
+& $preflight -StartServices -SkipRhino -ProfileName 'bac_teapot' -ProjectId 'teapot-01' `
   -DmlStoreName 'teapot-01-runtime-store' -CmaStoreName 'cma-teapot-01' `
   -DmlLauncherName 'dml_mcp_server_teapot.cmd' -CmaLauncherName 'cma_mcp_server_teapot.cmd' `
   -DisplayName 'BAC Teapot'
@@ -70,6 +78,8 @@ Write-Host ' Model: nvidia/Qwen3.6-35B-A3B-NVFP4 (local vLLM, Docker/WSL2)'
 Write-Host ' Vision: Nemotron-3-Nano-Omni-30B-A3B (local vLLM, Docker/WSL2)'
 Write-Host ' Endpoint: http://localhost:8000/v1 (chat), :8001 (vision)'
 Write-Host ' Flow: official 1987 Utah data -> Blender canonical build -> material interaction'
+Write-Host ' Optional enhancement: SDXL depth -> FLUX.2 Klein on explicit request'
+Write-Host ' HERO house: demos/teapot/hero/BAC_TEAPOT_HERO.blend'
 Write-Host ' Target: first material interaction in under five minutes'
 Write-Host ' Start gate: waiting for you to say "let''s build a Utah teapot"'
 Write-Host '============================================================'

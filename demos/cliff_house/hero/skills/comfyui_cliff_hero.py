@@ -1,4 +1,4 @@
-"""Cliff HERO defaults for the tested RTX Pro single-image ComfyUI helper."""
+"""Cliff HERO defaults for the tested SDXL -> FLUX ComfyUI helper."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ def main():
         str(helper),
         "--source", str(hero / "renders" / "cliff_house_hero_source.png"),
         "--output", str(hero / "comfy_output" / "cliff_house_stylized.png"),
+        "--intermediate", str(hero / "comfy_output" / "cliff_house_sdxl.png"),
         "--prompt-file", str(hero / "user_prompts" / "comfy_style_prompt.txt"),
     ]
     sys.argv = defaults + sys.argv[1:]

@@ -49,12 +49,19 @@ python "$AEC_DEMO_ROOT/demos/cliff_house/hero/skills/comfyui_cliff_hero.py"
 Never inline this workflow inside Blender. In particular, `SystemExit` in an
 MCP-executed Blender snippet terminates Blender even when ComfyUI succeeds.
 
-The wrapper uses the same tested SDXL depth-conditioned single-image graph as
-RTX Pro with the Cliff HERO render as source. Require, in order:
+The wrapper uses the same tested two-stage graph as RTX Pro with the Cliff HERO
+render as source: SDXL depth conditioning first, then FLUX.2 Klein reference
+refinement. Require, in order:
 
 - `COMFY_PREFLIGHT_PASS`
-- `COMFY_QUEUED`
-- `COMFY_OUTPUT_PASS`
+- `COMFY_SDXL_QUEUED` and `COMFY_SDXL_OUTPUT_PASS`
+- `COMFY_FLUX_QUEUED` and `COMFY_FLUX_OUTPUT_PASS`
+- `COMFY_OUTPUT_PASS stage=sdxl+flux`
+
+The stage artifacts are `comfy_output/cliff_house_sdxl.png` and
+`comfy_output/cliff_house_stylized.png`. The user prompt controls the visual
+treatment, but both stages must preserve the verified house, camera, openings,
+terrain, and composition.
 
 For another look, edit the user prompt or use `--prompt "..."`; do not reopen
 Blender or rerun Phase 1. One source render can produce many fast variations.

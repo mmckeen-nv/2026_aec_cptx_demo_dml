@@ -7,6 +7,7 @@ known-good Blender camera/render operations that should not be re-invented.
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 
@@ -15,16 +16,22 @@ def _expected_handoff_path():
     root = os.environ.get("AEC_DEMO_ROOT")
     if not root:
         return None
-    return Path(root) / "demos" / "virtual_production_studio" / "rhino" / "vp_studio_01.3dm"
+    candidate = Path(root).resolve()
+    # Launchers normally export the repository root, but older profile
+    # launchers exported the VP demo directory.  Accept both forms so the
+    # canonical handoff and cache resolve without nested-path workarounds.
+    if (candidate / "rhino" / "vp_studio_01.3dm").is_file():
+        return candidate / "rhino" / "vp_studio_01.3dm"
+    return candidate / "demos" / "virtual_production_studio" / "rhino" / "vp_studio_01.3dm"
 
 ASSET_EXTENSIONS = (".glb", ".blend")
 INCH_TO_METER = 0.0254
 CAMERA_PRESETS_INCHES = {
     "stage_wide": {
         "manifest_camera": "VP_PRESENTATION_STAGE_WIDE",
-        "location": (0.0, -588.0, 144.0),
-        "target": (-120.0, 120.0, 96.0),
-        "lens_mm": 20.0,
+        "location": (0.0, -840.0, 96.0),
+        "target": (-120.0, 60.0, 72.0),
+        "lens_mm": 14.0,
         "hide_for_render": (),
     },
     "stage_three_quarter": {
@@ -36,15 +43,15 @@ CAMERA_PRESETS_INCHES = {
     },
     "hero": {
         "manifest_camera": "CAM_A_HERO_TRACKED",
-        "location": (-120.0, -420.0, 66.0),
-        "target": (-120.0, -60.0, 72.0),
+        "location": (-480.0, -420.0, 66.0),
+        "target": (-120.0, 60.0, 72.0),
         "lens_mm": 28.0,
         "hide_for_render": ("CAM_A_HERO_TRACKED_BODY",),
     },
     "diagonal": {
         "manifest_camera": "CAM_E_WITNESS",
-        "location": (600.0, -540.0, 120.0),
-        "target": (-120.0, 0.0, 72.0),
+        "location": (600.0, -420.0, 66.0),
+        "target": (-120.0, 60.0, 72.0),
         "lens_mm": 24.0,
         "hide_for_render": ("CAM_E_WITNESS_BODY",),
     },
@@ -65,7 +72,7 @@ ASSET_ALIASES = {
 }
 FIXED_ASSET_PLACEMENT = {
     "camera_tripod_silver_key": {"source_size_m": (4.258815, 4.392436, 10.697300), "scale_xyz": (0.286276816, 0.277568074, 0.170959027), "target_size_in": (48.0, 48.0, 72.0), "anchor": "world_floor"},
-    "chair_director_creativejenna": {"source_size_m": (34.020267, 34.020271, 20.453735), "scale_xyz": (0.016425503, 0.016425501, 0.044705771), "target_size_in": (22.0, 22.0, 36.0), "anchor": "proxy_floor"},
+    "chair_director_creativejenna": {"source_size_m": (34.020267, 34.020271, 20.453735), "scale_xyz": (0.017918731, 0.017918729, 0.052156733), "target_size_in": (24.0, 24.0, 42.0), "anchor": "proxy_floor"},
     "control_monitor_datsketch": {"source_size_m": (252.750580, 831.104492, 549.273865), "scale_xyz": (0.000602966, 0.000733482, 0.000832372), "target_size_in": (6.0, 24.0, 18.0), "anchor": "proxy_top"},
     "roadcase_thomas_kole": {"source_size_m": (452.888000, 260.606750, 424.406189), "scale_xyz": (0.002692056, 0.002339157, 0.001795450), "target_size_in": (48.0, 24.0, 30.0), "anchor": "proxy_floor"},
     "grip_c_stand_kilianpohl": {"source_size_m": (0.783726, 0.751831, 1.025059), "scale_xyz": (1.166734292, 1.216230775, 2.081441166), "target_size_in": (36.0, 36.0, 84.0), "anchor": "proxy_floor"},
@@ -90,6 +97,57 @@ REQUIRED_SET_DRESSING = {
     ),
     "light_led_soft_panel_roy": ("FLOOR_LIGHT_01", "FLOOR_LIGHT_02"),
     "control_server_rack_anais": ("SERVER_RACK_01", "SERVER_RACK_02"),
+}
+CAMERA_ASSET_MARKS_INCHES = {
+    "CAM_A_HERO_TRACKED_BODY": {
+        "location": (-480, -420, 0), "target": (-120, 60, 72),
+    },
+    "CAM_B_DOLLY_TRACKED_BODY": {
+        "location": (120, -540, 0), "target": (-120, 60, 72),
+    },
+    "CAM_E_WITNESS_BODY": {
+        "location": (600, -420, 0), "target": (-120, 60, 72),
+    },
+}
+BEAUTY_VISIBILITY_REQUIREMENTS = {
+    "cameras": (("CAM_A_HERO_TRACKED_BODY", "CAM_B_DOLLY_TRACKED_BODY", "CAM_E_WITNESS_BODY"), 2),
+    "chairs": (("STAGE_DIRECTOR_CHAIR_01", "STAGE_DIRECTOR_CHAIR_02"), 1),
+    "roadcases": (("HERO_ROAD_CASE_01", "HERO_ROAD_CASE_02"), 1),
+    "practical_lights": (("FLOOR_LIGHT_01", "FLOOR_LIGHT_02"), 1),
+}
+# Deterministic recovery anchors for Blender-only continuation.  These are the
+# exact locked Rhino proxy bounds (centre X/Y, bottom Z, size X/Y/Z), in inches.
+# They are used only when an otherwise-valid handoff omitted a production-layout
+# proxy; they are not design geometry and never relax the arbitrary-primitive
+# execution rail.
+REQUIRED_PROXY_FALLBACKS_INCHES = {
+    "CAM_A_HERO_TRACKED_BODY": (-480, -420, 60, 24, 12, 12),
+    "CAM_B_DOLLY_TRACKED_BODY": (120, -540, 60, 24, 12, 12),
+    "CAM_E_WITNESS_BODY": (600, -420, 60, 24, 12, 12),
+    "REVIEW_CHAIR_01": (-1008, 330, 0, 24, 24, 42),
+    "REVIEW_CHAIR_02": (-936, 330, 0, 24, 24, 42),
+    "REVIEW_CHAIR_03": (-864, 330, 0, 24, 24, 42),
+    "REVIEW_CHAIR_04": (-1008, 414, 0, 24, 24, 42),
+    "REVIEW_CHAIR_05": (-936, 414, 0, 24, 24, 42),
+    "REVIEW_CHAIR_06": (-864, 414, 0, 24, 24, 42),
+    "STAGE_DIRECTOR_CHAIR_01": (-420, -60, 0, 24, 24, 42),
+    "STAGE_DIRECTOR_CHAIR_02": (540, 60, 0, 24, 24, 42),
+    "WORKSTATION_01": (804, 570, 0, 30, 72, 30),
+    "WORKSTATION_02": (804, 684, 0, 30, 72, 30),
+    "WORKSTATION_03": (804, 798, 0, 30, 72, 30),
+    "WORKSTATION_04": (960, 570, 0, 30, 72, 30),
+    "WORKSTATION_05": (960, 684, 0, 30, 72, 30),
+    "WORKSTATION_06": (960, 798, 0, 30, 72, 30),
+    "ROAD_CASE_01": (-1008, -408, 0, 48, 24, 30),
+    "ROAD_CASE_02": (-912, -408, 0, 48, 24, 30),
+    "ROAD_CASE_03": (-816, -408, 0, 48, 24, 30),
+    "ROAD_CASE_04": (-1008, -324, 0, 48, 24, 30),
+    "HERO_ROAD_CASE_01": (-600, -420, 0, 48, 24, 30),
+    "HERO_ROAD_CASE_02": (636, -60, 0, 48, 24, 30),
+    "FLOOR_LIGHT_01": (-660, -120, 0, 24, 24, 72),
+    "FLOOR_LIGHT_02": (660, -120, 0, 24, 24, 72),
+    "SERVER_RACK_01": (786, 390, 0, 24, 42, 84),
+    "SERVER_RACK_02": (858, 390, 0, 24, 42, 84),
 }
 MATERIAL_PALETTE = {
     "M_LED_Emissive": {
@@ -213,6 +271,29 @@ def remove_legacy_scene_debris(require_handoff=True):
     return removed
 
 
+def _repo_root(project_root):
+    """Accept either the repository root or the VP demo directory."""
+    candidate = Path(project_root).resolve()
+    roots = (candidate, *candidate.parents)
+    # A stale nested demo copy can contain its own `skills` and `demos` paths.
+    # The actual distributable repository also owns deployment/, so prefer that
+    # unambiguous marker before accepting a reduced source tree.
+    for root in roots:
+        if (
+            (root / "deployment").is_dir()
+            and (root / "skills" / "blender_vp_production.py").is_file()
+            and (root / "demos" / "virtual_production_studio").is_dir()
+        ):
+            return root
+    for root in roots:
+        if (
+            (root / "skills" / "blender_vp_production.py").is_file()
+            and (root / "demos" / "virtual_production_studio").is_dir()
+        ):
+            return root
+    raise RuntimeError("cannot resolve AEC_DEMO_ROOT from: " + str(project_root))
+
+
 def save_production_checkpoint(project_root):
     """Save only after a real validated handoff is present in the scene."""
     import bpy
@@ -221,7 +302,7 @@ def save_production_checkpoint(project_root):
     if not handoff:
         raise RuntimeError("refusing to save production scene without VP_STUDIO_RHINO meshes")
     target = (
-        Path(project_root)
+        _repo_root(project_root)
         / "demos"
         / "virtual_production_studio"
         / "blender_assets"
@@ -239,7 +320,7 @@ def import_current_handoff(project_root, reset_scene=True):
     import bpy
     import importlib.util
 
-    project_root = Path(project_root)
+    project_root = _repo_root(project_root)
     handoff = project_root / "demos" / "virtual_production_studio" / "rhino" / "vp_studio_01.3dm"
     importer_path = project_root / "skills" / "import_with_metadata.py"
     if not handoff.is_file():
@@ -286,7 +367,7 @@ def import_current_handoff(project_root, reset_scene=True):
 
 
 def cache_roots(project_root):
-    project_root = Path(project_root)
+    project_root = _repo_root(project_root)
     candidates = [
         project_root / "demos" / "virtual_production_studio" / "assets" / "cache",
         Path(r"G:\AEC-CPTX\demos\virtual_production_studio\assets\cache"),
@@ -299,7 +380,7 @@ def cache_roots(project_root):
 
 
 def resolve_cached_asset(project_root, asset_key):
-    project_root = Path(project_root)
+    project_root = _repo_root(project_root)
     asset_key = ASSET_ALIASES.get(asset_key, asset_key)
     index_path = project_root / "demos" / "virtual_production_studio" / "assets" / "cache" / "cache_index.json"
     if not index_path.is_file():
@@ -357,6 +438,49 @@ def import_cached_asset(project_root, asset_key, collection_name=None):
         obj["asset_key"] = asset_key
         obj["asset_source_path"] = path
     return imported, collection, path
+
+
+def _cached_asset_source(project_root, asset_key):
+    """Import one unlinked source collection for lightweight repetition."""
+    import bpy
+
+    canonical_key = ASSET_ALIASES.get(asset_key, asset_key)
+    path = resolve_cached_asset(project_root, canonical_key)
+    collection_name = "VP_ASSET_SOURCE_" + canonical_key.upper()
+    collection = bpy.data.collections.get(collection_name)
+    if collection is not None and collection.all_objects:
+        imported = list(collection.all_objects)
+        recorded = {str(obj.get("asset_source_path", "")) for obj in imported}
+        if recorded == {path}:
+            _validate_cached_source_materials(imported, canonical_key)
+            return imported, collection, path
+    imported, collection, path = import_cached_asset(
+        project_root, canonical_key, collection_name
+    )
+    # The source remains in bpy.data and is rendered only through collection
+    # instances.  Keeping it out of the scene prevents one hidden full copy of
+    # every asset from inflating the outliner and render traversal.
+    scene_root = bpy.context.scene.collection
+    if scene_root.children.get(collection.name) is not None:
+        scene_root.children.unlink(collection)
+    collection["asset_key"] = canonical_key
+    collection["asset_source_path"] = path
+    _validate_cached_source_materials(imported, canonical_key)
+    return imported, collection, path
+
+
+def _validate_cached_source_materials(imported, asset_key):
+    meshes = [obj for obj in imported if obj.type == "MESH"]
+    if not meshes:
+        raise RuntimeError("cached asset has no mesh objects: " + asset_key)
+    missing = [obj.name for obj in meshes if obj.data is None or len(obj.material_slots) == 0]
+    if missing:
+        raise RuntimeError(
+            "cached asset has meshes without materials for {}: {}".format(
+                asset_key, ", ".join(missing[:5])
+            )
+        )
+    return len(meshes)
 
 
 def _world_bounds(objects):
@@ -421,8 +545,10 @@ def place_cached_asset(project_root, asset_key, proxy_name, collection_name=None
     if canonical_key in {"grip_c_stand_kilianpohl", "light_led_soft_panel_roy"} and proxy_name.startswith("STAGE_LIGHT_"):
         raise RuntimeError("floor-standing light assets cannot replace overhead STAGE_LIGHT proxies")
     collection_name = collection_name or ("ASSET_" + proxy_name)
-    imported, collection, path = import_cached_asset(project_root, canonical_key, collection_name)
-    source_min, source_max = _world_bounds(imported)
+    source_objects, source_collection, path = _cached_asset_source(
+        project_root, canonical_key
+    )
+    source_min, source_max = _world_bounds(source_objects)
     source_size = source_max - source_min
     expected_source = Vector(spec["source_size_m"])
     for axis in range(3):
@@ -431,34 +557,214 @@ def place_cached_asset(project_root, asset_key, proxy_name, collection_name=None
             raise RuntimeError("cached asset bounds changed for {} axis {}: actual={} expected={}".format(canonical_key, axis, source_size[axis], expected_source[axis]))
     proxy_min, proxy_max = _world_bounds([proxy])
     target_anchor = Vector(((proxy_min.x + proxy_max.x) / 2.0, (proxy_min.y + proxy_max.y) / 2.0, proxy_min.z))
+    locked_proxy = REQUIRED_PROXY_FALLBACKS_INCHES.get(proxy_name)
+    if locked_proxy is not None:
+        cx, cy, z0, _width, _depth, height = locked_proxy
+        target_anchor = Vector((cx * INCH_TO_METER, cy * INCH_TO_METER, z0 * INCH_TO_METER))
     if spec["anchor"] == "world_floor":
         target_anchor.z = 0.0
     elif spec["anchor"] == "proxy_top":
-        target_anchor.z = proxy_max.z
+        target_anchor.z = (
+            (locked_proxy[2] + locked_proxy[5]) * INCH_TO_METER
+            if locked_proxy is not None
+            else proxy_max.z
+        )
     elif spec["anchor"] != "proxy_floor":
         raise RuntimeError("unknown fixed anchor mode: " + spec["anchor"])
     source_anchor = Vector(((source_min.x + source_max.x) / 2.0, (source_min.y + source_max.y) / 2.0, source_min.z))
     sx, sy, sz = spec["scale_xyz"]
-    transform = Matrix.Translation(target_anchor) @ Matrix.Diagonal((sx, sy, sz, 1.0)) @ Matrix.Translation(-source_anchor)
-    imported_set = set(imported)
-    imported_roots = [obj for obj in imported if obj.parent not in imported_set]
-    if not imported_roots:
-        raise RuntimeError("cached asset import has no transform root: " + canonical_key)
-    for obj in imported_roots:
-        obj.matrix_world = transform @ obj.matrix_world
-    for obj in imported:
-        obj["placement_proxy"] = proxy_name
-        obj["fixed_scale_xyz"] = "{:.9f},{:.9f},{:.9f}".format(sx, sy, sz)
+    rotation = Matrix.Identity(4)
+    camera_mark = CAMERA_ASSET_MARKS_INCHES.get(proxy_name)
+    if canonical_key == "camera_tripod_silver_key" and camera_mark is not None:
+        target_anchor = Vector(tuple(value * INCH_TO_METER for value in camera_mark["location"]))
+        target = camera_mark["target"]
+        location = camera_mark["location"]
+        yaw = math.atan2(target[1] - location[1], target[0] - location[0])
+        rotation = Matrix.Rotation(yaw, 4, "Z")
+    transform = Matrix.Translation(target_anchor) @ rotation @ Matrix.Diagonal((sx, sy, sz, 1.0)) @ Matrix.Translation(-source_anchor)
+    old = bpy.data.collections.get(collection_name)
+    if old is not None:
+        for obj in list(old.objects):
+            bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.collections.remove(old)
+    collection = bpy.data.collections.new(collection_name)
+    bpy.context.scene.collection.children.link(collection)
+    instance = bpy.data.objects.new(proxy_name + "_ASSET", None)
+    instance.instance_type = "COLLECTION"
+    instance.instance_collection = source_collection
+    instance.matrix_world = transform
+    instance.empty_display_type = "PLAIN_AXES"
+    instance.empty_display_size = 0.25
+    instance["asset_key"] = canonical_key
+    instance["asset_source_path"] = path
+    instance["placement_proxy"] = proxy_name
+    instance["fixed_scale_xyz"] = "{:.9f},{:.9f},{:.9f}".format(sx, sy, sz)
+    if camera_mark is not None:
+        instance["aim_target_inches"] = ",".join(str(value) for value in camera_mark["target"])
+        instance["camera_yaw_degrees"] = round(math.degrees(yaw), 6)
+    collection.objects.link(instance)
     proxy.hide_render = True
     proxy["replacement_asset"] = canonical_key
     bpy.context.view_layer.update()
-    final_min, final_max = _world_bounds(imported)
+    placed_points = [
+        transform @ (obj.matrix_world @ Vector(corner))
+        for obj in source_objects
+        for corner in obj.bound_box
+    ]
+    final_min = Vector(tuple(min(point[axis] for point in placed_points) for axis in range(3)))
+    final_max = Vector(tuple(max(point[axis] for point in placed_points) for axis in range(3)))
+    instance["placement_bounds_min_m"] = [float(value) for value in final_min]
+    instance["placement_bounds_max_m"] = [float(value) for value in final_max]
     final_size = final_max - final_min
     target_size = Vector(tuple(value * INCH_TO_METER for value in spec["target_size_in"]))
-    for axis in range(3):
-        if abs(final_size[axis] - target_size[axis]) > 0.003:
-            raise RuntimeError("fixed placement size verification failed for {} axis {}: actual={} target={}".format(canonical_key, axis, final_size[axis], target_size[axis]))
-    return imported, collection, path, tuple(final_size)
+    if canonical_key == "camera_tripod_silver_key" and camera_mark is not None:
+        # Measure in the camera's oriented frame by removing the known yaw.
+        # A sparse tripod is not a solid rectangle: after yaw, either world
+        # AABB axis can be smaller *or* larger than its 48-inch source bounds.
+        # De-rotating the actual imported corners gives the physical dimensions
+        # without relying on an invalid world-axis lower bound.
+        inverse_yaw = rotation.to_3x3().inverted()
+        oriented_points = [
+            inverse_yaw @ (point - target_anchor)
+            for point in placed_points
+        ]
+        oriented_min = Vector(tuple(min(point[axis] for point in oriented_points) for axis in range(3)))
+        oriented_max = Vector(tuple(max(point[axis] for point in oriented_points) for axis in range(3)))
+        oriented_size = oriented_max - oriented_min
+        for axis in range(3):
+            if abs(oriented_size[axis] - target_size[axis]) > 0.003:
+                raise RuntimeError(
+                    "fixed camera physical size verification failed for {} axis {}: actual={} target={}".format(
+                        canonical_key, axis, oriented_size[axis], target_size[axis]
+                    )
+                )
+        footprint_max = math.hypot(target_size.x, target_size.y) + 0.003
+        for axis in (0, 1):
+            if final_size[axis] > footprint_max:
+                raise RuntimeError(
+                    "rotated camera footprint verification failed for {} axis {}: actual={} maximum={}".format(
+                        canonical_key, axis, final_size[axis], footprint_max
+                    )
+                )
+        if abs(final_size.z - target_size.z) > 0.003:
+            raise RuntimeError(
+                "fixed placement height verification failed for {}: actual={} target={}".format(
+                    canonical_key, final_size.z, target_size.z
+                )
+            )
+    else:
+        for axis in range(3):
+            if abs(final_size[axis] - target_size[axis]) > 0.003:
+                raise RuntimeError("fixed placement size verification failed for {} axis {}: actual={} target={}".format(canonical_key, axis, final_size[axis], target_size[axis]))
+    return [instance], collection, path, tuple(final_size)
+
+
+def _validate_required_placement_clearances():
+    """Reject collisions and protected-zone intrusions before the PASS receipt."""
+    import bpy
+
+    expected = {
+        name
+        for names in REQUIRED_SET_DRESSING.values()
+        for name in names
+    }
+    instances = {
+        str(obj.get("placement_proxy")): obj
+        for obj in bpy.data.objects
+        if obj.get("placement_proxy") in expected
+    }
+    if set(instances) != expected:
+        missing = sorted(expected - set(instances))
+        raise RuntimeError("VP_SET_DRESSING_FAIL missing placement instances: " + ", ".join(missing))
+
+    bounds = {}
+    for name, instance in instances.items():
+        low = tuple(float(value) / INCH_TO_METER for value in instance["placement_bounds_min_m"])
+        high = tuple(float(value) / INCH_TO_METER for value in instance["placement_bounds_max_m"])
+        bounds[name] = (low, high)
+
+    names = sorted(bounds)
+    collisions = []
+    for index, left_name in enumerate(names):
+        left_low, left_high = bounds[left_name]
+        for right_name in names[index + 1:]:
+            right_low, right_high = bounds[right_name]
+            overlap = [
+                min(left_high[axis], right_high[axis])
+                - max(left_low[axis], right_low[axis])
+                for axis in range(3)
+            ]
+            if all(value > 0.04 for value in overlap):
+                collisions.append(left_name + "<->" + right_name)
+    if collisions:
+        raise RuntimeError("VP_SET_DRESSING_FAIL asset collisions: " + ", ".join(collisions))
+
+    camera_proxies = set(CAMERA_ASSET_MARKS_INCHES)
+    protected_rectangles = {
+        "talent_zone": (-300.0, 60.0, -360.0, -120.0),
+        "handheld_zone": (-600.0, -360.0, -360.0, -120.0),
+    }
+    intrusions = []
+    for name, (low, high) in bounds.items():
+        if name in camera_proxies:
+            continue
+        for zone_name, (xmin, xmax, ymin, ymax) in protected_rectangles.items():
+            if min(high[0], xmax) - max(low[0], xmin) > 0.04 and min(high[1], ymax) - max(low[1], ymin) > 0.04:
+                intrusions.append(name + "->" + zone_name)
+        # CAM_B dolly path: exact 480-inch line at Y=-540.
+        if low[1] < -540.0 < high[1] and min(high[0], 360.0) - max(low[0], -120.0) > 0.04:
+            intrusions.append(name + "->dolly_path")
+        # CAM_C crane swept radius: closest AABB point to (360,-240).
+        closest_x = min(max(360.0, low[0]), high[0])
+        closest_y = min(max(-240.0, low[1]), high[1])
+        if math.hypot(closest_x - 360.0, closest_y + 240.0) < 300.0:
+            intrusions.append(name + "->crane_sweep")
+    if intrusions:
+        raise RuntimeError("VP_SET_DRESSING_FAIL protected-zone intrusions: " + ", ".join(intrusions))
+    print("VP_SET_DRESSING_CLEARANCE_PASS overlaps=0 protected_zones=4")
+    return True
+
+
+def ensure_required_set_dressing_proxies():
+    """Restore missing locked anchors without re-running or weakening Rhino."""
+    import bpy
+
+    if not _validated_handoff_meshes():
+        raise RuntimeError("cannot restore anchors without a validated VP_STUDIO_RHINO handoff")
+    collection = bpy.data.collections.get("VP_RECOVERY_ANCHORS")
+    if collection is None:
+        collection = bpy.data.collections.new("VP_RECOVERY_ANCHORS")
+        bpy.context.scene.collection.children.link(collection)
+    restored = []
+    for name, values in REQUIRED_PROXY_FALLBACKS_INCHES.items():
+        if bpy.data.objects.get(name) is not None:
+            continue
+        cx, cy, z0, sx, sy, sz = (value * INCH_TO_METER for value in values)
+        x0, x1 = cx - sx / 2.0, cx + sx / 2.0
+        y0, y1 = cy - sy / 2.0, cy + sy / 2.0
+        z1 = z0 + sz
+        vertices = [
+            (x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+            (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1),
+        ]
+        faces = [
+            (0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1),
+            (1, 5, 6, 2), (2, 6, 7, 3), (4, 0, 3, 7),
+        ]
+        mesh = bpy.data.meshes.new(name + "_RECOVERY_MESH")
+        mesh.from_pydata(vertices, [], faces)
+        mesh.update()
+        proxy = bpy.data.objects.new(name, mesh)
+        collection.objects.link(proxy)
+        proxy.display_type = "WIRE"
+        proxy.hide_render = True
+        proxy["vp_recovery_anchor"] = True
+        proxy["source_units"] = "Inches"
+        proxy["unit_scale_to_meters"] = INCH_TO_METER
+        restored.append(name)
+    if restored:
+        print("VP_PROXY_RECOVERY_PASS restored={} names={}".format(len(restored), ",".join(restored)))
+    return restored
 
 
 def apply_required_set_dressing(project_root):
@@ -466,6 +772,7 @@ def apply_required_set_dressing(project_root):
     import bpy
 
     expected = sum(len(names) for names in REQUIRED_SET_DRESSING.values())
+    ensure_required_set_dressing_proxies()
     missing = [
         proxy_name
         for names in REQUIRED_SET_DRESSING.values()
@@ -499,6 +806,7 @@ def apply_required_set_dressing(project_root):
         raise RuntimeError(
             "VP_SET_DRESSING_FAIL placed={} expected={}".format(len(placed), expected)
         )
+    _validate_required_placement_clearances()
     print(
         "VP_SET_DRESSING_PASS categories={} placements={} cameras=3 chairs=8 "
         "monitors=6 roadcases=6 practical_lights=2 racks=2".format(
@@ -784,6 +1092,73 @@ def setup_manifest_hero_camera(name="VP_HERO_CAMERA"):
 def setup_beauty_camera(name="VP_BEAUTY_CAMERA"):
     """Use the unobstructed stage-wide presentation angle for the demo image."""
     return setup_manifest_camera("stage_wide", name=name)
+
+
+def validate_beauty_set_dressing_visibility(camera):
+    """Require hero production context inside the canonical camera frustum."""
+    import bpy
+    from bpy_extras.object_utils import world_to_camera_view
+    from mathutils import Vector
+
+    scene = bpy.context.scene
+    instances = {
+        str(obj.get("placement_proxy")): obj
+        for obj in bpy.data.objects
+        if obj.get("placement_proxy")
+    }
+    visible_by_role = {}
+    for role, (proxy_names, minimum) in BEAUTY_VISIBILITY_REQUIREMENTS.items():
+        visible = []
+        for proxy_name in proxy_names:
+            instance = instances.get(proxy_name)
+            if instance is None:
+                continue
+            low = Vector(instance["placement_bounds_min_m"])
+            high = Vector(instance["placement_bounds_max_m"])
+            ndc = world_to_camera_view(scene, camera, (low + high) / 2.0)
+            if 0.02 <= ndc.x <= 0.98 and 0.04 <= ndc.y <= 0.96 and ndc.z > 0.0:
+                visible.append(proxy_name)
+        if len(visible) < minimum:
+            raise RuntimeError(
+                "VP_BEAUTY_VISIBILITY_FAIL role={} visible={} required={}".format(
+                    role, len(visible), minimum
+                )
+            )
+        visible_by_role[role] = visible
+    print("VP_BEAUTY_VISIBILITY_PASS " + json.dumps(visible_by_role, sort_keys=True))
+    return visible_by_role
+
+
+def render_beauty_preview(project_root, resolution=(960, 540), samples=32):
+    """Atomically prepare, aim, render, and validate the canonical beauty."""
+    import bpy
+
+    root = _repo_root(project_root)
+    removed = remove_legacy_scene_debris()
+    look = prepare_production_look()
+    camera, alignment = setup_beauty_camera()
+    if bpy.context.scene.camera is not camera:
+        raise RuntimeError("beauty camera was not made active")
+    visibility = validate_beauty_set_dressing_visibility(camera)
+    output = (
+        root / "demos" / "virtual_production_studio" / "renders"
+        / "vp_studio_hero_preview.png"
+    )
+    rendered = render_preview(str(output), resolution=resolution, samples=samples)
+    receipt = {
+        "camera": camera.name,
+        "preset": camera.get("camera_preset", ""),
+        "alignment": round(alignment, 6),
+        "location_m": tuple(round(value, 6) for value in camera.location),
+        "lens_mm": float(camera.data.lens),
+        "removed": len(removed),
+        "materials": sum(look["materials"].values()),
+        "lights": len(look["lights"]),
+        "visible_roles": {key: len(value) for key, value in visibility.items()},
+        "path": rendered,
+    }
+    print("VP_BEAUTY_PASS " + json.dumps(receipt, sort_keys=True))
+    return receipt
 
 
 def render_preview(output_path, resolution=(960, 540), samples=32):
