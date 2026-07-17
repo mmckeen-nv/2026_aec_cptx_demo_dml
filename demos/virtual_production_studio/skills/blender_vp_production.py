@@ -20,7 +20,10 @@ def _expected_handoff_path():
     # Launchers normally export the repository root, but older profile
     # launchers exported the VP demo directory.  Accept both forms so the
     # canonical handoff and cache resolve without nested-path workarounds.
-    if (candidate / "rhino" / "vp_studio_01.3dm").is_file():
+    # Resolve by directory identity rather than requiring the handoff to exist
+    # already. Fresh/offline installs legitimately resolve this path before
+    # Rhino has produced the first 3dm.
+    if candidate.name.lower() == "virtual_production_studio":
         return candidate / "rhino" / "vp_studio_01.3dm"
     return candidate / "demos" / "virtual_production_studio" / "rhino" / "vp_studio_01.3dm"
 
