@@ -43,13 +43,30 @@ the teapot collection. Ask before changing more than one presentation dimension
 at once. A simple material request never triggers Rhino, reimport, DML ceremony,
 ComfyUI, or a full pipeline replay.
 
+## Explicit Teapot ComfyUI Request
+
+If the user explicitly asks for an AI-enhanced or stylized version of the
+current `renders/teapot_preview.png`, release Blender and run only:
+
+```bash
+python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py" --dry-run
+python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py"
+```
+
+The wrapper uses `user_prompts/comfy_style_prompt.txt`, runs SDXL depth
+conditioning followed by FLUX.2 Klein reference refinement, and writes
+`comfy_output/teapot_sdxl.png` plus `comfy_output/teapot_stylized.png`. Require
+`COMFY_SDXL_OUTPUT_PASS`, `COMFY_FLUX_OUTPUT_PASS`, and
+`COMFY_OUTPUT_PASS stage=sdxl+flux`. Never put ComfyUI HTTP or Python inside
+Blender MCP, and never silently trigger this phase for a normal material edit.
+
 ## Explicit HERO House Transition
 
 If the user explicitly asks to load or open the HERO house, stop the teapot
 interaction loop and read `../system_prompts/05_phase_comfyui.md`. Use its exact
 checked-in helper call. The HERO scene is not an asset to discover: it is always
-`{AEC_DEMO_ROOT}/demos/cliff_house/hero/cliff_house_02_HERO.blend`. Do not search
-the VP Studio tree or ask the user where the file is.
+`{AEC_DEMO_ROOT}/demos/teapot/hero/BAC_TEAPOT_HERO.blend`. Do not search
+the Cliff House or VP Studio trees or ask the user where the file is.
 
 ## REVIEW GATE 3 - Audience Choice
 

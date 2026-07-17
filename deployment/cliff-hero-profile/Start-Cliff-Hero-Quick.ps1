@@ -33,7 +33,7 @@ if(-not (Test-Http 'http://127.0.0.1:8000/v1/models') -or -not (Test-Http 'http:
 
 $preflight=Join-Path $env:HERMES_HOME 'bin\Test-RTX-Pro-Preflight.ps1'
 if(-not (Test-Path $preflight)){$preflight=Join-Path $projectRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1'}
-& $preflight -StartServices -ProfileName 'cliff_hero' -ProjectId 'cliff-house-hero-01' `
+& $preflight -StartServices -SkipRhino -ProfileName 'cliff_hero' -ProjectId 'cliff-house-hero-01' `
   -DmlStoreName 'cliff-house-hero-runtime-store' -CmaStoreName 'cma-cliff-house-hero-01' `
   -DmlLauncherName 'dml_mcp_server_cliff_hero.cmd' -CmaLauncherName 'cma_mcp_server_cliff_hero.cmd' `
   -DisplayName 'Cliff House HERO quick render'
@@ -46,6 +46,7 @@ Write-Host '============================================================'
 Write-Host ' Cliff House HERO - Blender to ComfyUI Quick Lane'
 Write-Host ' Profile: cliff_hero (independent session/logs/DML)'
 Write-Host ' Source: cliff_house_02_HERO.blend (verified, read-only input)'
+Write-Host ' Enhancement: SDXL depth -> FLUX.2 Klein reference refinement'
 Write-Host ' Note: only one Hermes session may mutate Blender port 9876 at a time.'
 Write-Host '============================================================'
 $hermesExe=Join-Path $hermesScripts 'hermes.exe'

@@ -32,9 +32,9 @@ this file.
 | Demo | Hard requirements | Optional / enhances |
 |---|---|---|
 | Cliff House (build-from-ground-up) | Blender 4.0+ (built/tested on 5.1) | Rhino 8 + rhino3dm (source geometry originated there; not required to just open/render the `.blend`) |
-| Cliff House Modification | Blender 4.0+, ComfyUI + SDXL checkpoint + depth ControlNet model | comfy-cli (convenience layer over ComfyUI's REST API) |
-| Virtual Production Studio | Blender 4.0+ | Rhino 8 + rhino3dm (base model source), ComfyUI (enhanced passes) |
-| Teapot | Blender 4.0+ | — (fully self-contained, no external deps beyond Blender itself) |
+| Cliff House Modification | Blender 4.0+, ComfyUI + SDXL checkpoint + depth ControlNet + FLUX.2 Klein model set | comfy-cli (convenience layer over ComfyUI's REST API) |
+| Virtual Production Studio | Blender 4.0+, Rhino 8, ComfyUI + SDXL depth + FLUX.2 Klein model set | rhino3dm tooling |
+| Teapot | Blender 4.0+ | ComfyUI SDXL + FLUX.2 model set for user-requested product enhancement |
 | **Agent-driven continuity** | **Daystrom DML — REQUIRED for persistent agent memory, see Section 2.5** | — |
 
 Nothing in this pack requires Maya, Unreal Engine, or Windows specifically
@@ -140,7 +140,7 @@ running headless scripts. Two pieces:
    server started on localhost:9876" line appears in Blender's system
    console/terminal output, THEN let Hermes connect.
 
-### 2.3 ComfyUI (required only for Cliff House Modification; optional/enhances VP Studio)
+### 2.3 ComfyUI (shared SDXL -> FLUX enhancement for Cliff House, VP Studio, and Teapot)
 
 - Version: this pack was built against ComfyUI **0.24.0**.
 - **Windows (native, not WSL2)** — this is how it's set up on the
@@ -187,11 +187,21 @@ running headless scripts. Two pieces:
 |---|---|---|
 | `sd_xl_base_1.0.safetensors` (SDXL base checkpoint) | Cliff House Modification | Install from the official `stabilityai/stable-diffusion-xl-base-1.0` model card or ComfyUI Manager |
 | An SDXL-compatible depth ControlNet | Cliff House Modification (depth-conditioned img2img) | Install through ComfyUI Manager and verify that it appears in `ControlNetLoader`; model filenames vary by release |
+| `flux-2-klein-base-4b-fp8.safetensors` | VP Studio, Cliff House, and Teapot FLUX.2 refinement | `scripts/install_comfy_flux2_models.ps1` downloads the official Black Forest Labs FP8 weight into `models/diffusion_models` |
+| `qwen_3_4b.safetensors` | Shared FLUX.2 text encoder | The same installer downloads the Comfy-Org split encoder into `models/text_encoders` |
+| `flux2-vae.safetensors` | Shared FLUX.2 VAE | The same installer downloads the Comfy-Org split VAE into `models/vae` |
 
-Verify both are present:
+The three FLUX.2 files total about 11.6 GiB. On Windows, install and verify
+their exact byte sizes and SHA-256 hashes with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install_comfy_flux2_models.ps1
+```
+
+Verify the complete shared model set is present:
 ```bash
 curl -s http://127.0.0.1:8188/object_info
-python scripts/comfyui_phase7.py --dry-run
+python demos/virtual_production_studio/skills/comfyui_vp_stylize.py --dry-run
 ```
 
 #### GPU / hardware

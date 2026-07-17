@@ -1,8 +1,8 @@
 # VP Studio ComfyUI cookbook
 
 This is the only supported ComfyUI execution path for the VP Studio demo.
-ComfyUI is already launcher-owned and running on Windows. The agent submits one
-approved Blender hero render through a checked-in API helper. It does not open
+ComfyUI is launcher-owned and running on Windows. The agent submits one approved
+Blender hero render through checked-in SDXL and FLUX.2 stages. It does not open
 the ComfyUI browser UI, create workflow JSON, launch services, or install models.
 
 ## Terminal and path rules
@@ -47,7 +47,10 @@ Do not perform any discovery before this command. The helper verifies:
 - the installed node inventory;
 - `sd_xl_base_1.0.safetensors`;
 - `controlnet-depth-sdxl-1.0/diffusion_pytorch_model.safetensors`;
-- `renders/vp_studio_hero_preview.png`.
+- `flux-2-klein-base-4b-fp8.safetensors`;
+- `qwen_3_4b.safetensors`;
+- `flux2-vae.safetensors`;
+- `renders/vp_studio_hero_preview.png`;
 - source-image contrast and visible foreground occupancy from the Blender
   production render.
 
@@ -61,15 +64,17 @@ Run exactly:
 python skills/comfyui_vp_stylize.py
 ```
 
-The same process uploads the render, queues the fixed depth-conditioned SDXL
-img2img graph, polls history, downloads the output, and exits. Do not poll with
-another tool while this command is running. Allow up to ten minutes.
+The same process uploads the render, queues fixed depth-conditioned SDXL,
+saves `comfy_enhanced/vp_studio_sdxl.png`, then feeds that image into fixed
+FLUX.2 Klein reference conditioning and writes the final output. Do not poll
+with another tool while this command is running. Allow up to ten minutes.
 
 Required stdout receipts are:
 
 1. `COMFY_PREFLIGHT_PASS`
-2. `COMFY_QUEUED prompt_id=...`
-3. `COMFY_OUTPUT_PASS ... bytes=...`
+2. `COMFY_SDXL_QUEUED` and `COMFY_SDXL_OUTPUT_PASS`
+3. `COMFY_FLUX_QUEUED` and `COMFY_FLUX_OUTPUT_PASS`
+4. `COMFY_OUTPUT_PASS stage=sdxl+flux ... bytes=...`
 
 The accepted artifact is:
 
@@ -87,17 +92,18 @@ python skills/comfyui_vp_stylize.py --denoise 0.20
 ```
 
 Otherwise accept the first result. Do not change the model, graph, seed, camera,
-dimensions, sampler, or ControlNet strength during the demo. Preserve the
-user-selected prompt across the initial run and optional correction.
+dimensions, sampler, ControlNet strength, or FLUX reference conditioning during
+the demo. Preserve the user-selected prompt across the initial run and optional
+correction.
 
 ## Failure matrix
 
 | Receipt or error | Meaning | Required action |
 |---|---|---|
 | `COMFY_SOURCE_FAIL` | Approved Blender render missing/empty | Report the exact source-render blocker; return to Blender only if authorized |
-| `COMFY_PREFLIGHT_FAIL` | Endpoint, model, or node absent | Report the exact named dependency; do not install or launch anything |
+| `COMFY_PREFLIGHT_FAIL` | Endpoint, SDXL/FLUX model, encoder, VAE, or node absent | Report the exact named dependency; do not install or launch anything |
 | `COMFY_QUEUE_FAIL` | Fixed graph rejected | Report the returned node errors; do not create alternate JSON |
-| Command timeout after `COMFY_QUEUED` | Generation still running or failed | Check once for the expected output file; do not resubmit blindly |
+| Command timeout after either queue receipt | Generation still running or failed | Check once for the expected stage output file; do not resubmit blindly |
 | `COMFY_OUTPUT_PASS` | Phase succeeded | Record the artifact and settings in one concise DML success lesson |
 
 ## Forbidden recovery paths

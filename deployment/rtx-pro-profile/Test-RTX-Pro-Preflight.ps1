@@ -63,6 +63,10 @@ foreach ($name in $requiredMcps) {
   $registered = $configText -match "(?m)^  $([regex]::Escape($name)):\s*$"
   Add-Result "MCP registration: $name" $registered $(if ($registered) { "configured in $ProfileName" } else { "missing from $ProfileName config.yaml" })
 }
+if ($SkipRhino) {
+  $rhinoAbsent = $configText -notmatch '(?m)^  rhino:\s*$'
+  Add-Result 'Rhino MCP absent for Blender-only profile' $rhinoAbsent $(if ($rhinoAbsent) { 'no Rhino MCP will be launched' } else { 'remove inherited Rhino MCP registration from this Blender-only profile' })
+}
 $serializedMcpArgs = $configText -match '(?m)^\s+args:\s+[''\"]\['
 Add-Result 'MCP arguments use YAML lists' (-not $serializedMcpArgs) $(if ($serializedMcpArgs) { 'one or more MCP args values are serialized JSON strings; rerun installer repair before Hermes' } else { 'MCP args are typed lists' })
 $blenderConfigMatch = [regex]::Match($configText, '(?ms)^  blender:\s*\r?\n(?<body>.*?)(?=^  \S|\z)')
@@ -159,6 +163,14 @@ $cmaStore = Join-Path $dmlRoot ("stores\" + $CmaStoreName)
 foreach ($item in @($dmlPython, $dmlServer, $cmaServer, $dmlConfig, $dmlStore, $cmaStore)) {
   Add-Result "DML asset: $(Split-Path -Leaf $item)" (Test-Path -LiteralPath $item) $item
 }
+$dmlLauncherText = if (Test-Path -LiteralPath $dmlServer -PathType Leaf) { Get-Content -LiteralPath $dmlServer -Raw } else { '' }
+$cmaLauncherText = if (Test-Path -LiteralPath $cmaServer -PathType Leaf) { Get-Content -LiteralPath $cmaServer -Raw } else { '' }
+$dmlLauncherModern = ($dmlLauncherText -match '[.]venv-dml[\\/]Scripts[\\/]python[.]exe') -and
+  ($dmlLauncherText -match '-m\s+dml_mcp[.]dml_mcp_server\b')
+$cmaLauncherModern = ($cmaLauncherText -match '[.]venv-dml[\\/]Scripts[\\/]python[.]exe') -and
+  ($cmaLauncherText -match '-m\s+cma[.]mcp_server\b')
+Add-Result 'DML launcher uses managed runtime' $dmlLauncherModern $(if ($dmlLauncherModern) { "$DmlLauncherName uses .venv-dml and dml_mcp.dml_mcp_server" } else { "$DmlLauncherName is stale or invokes the wrong Python/module" })
+Add-Result 'CMA launcher uses managed runtime' $cmaLauncherModern $(if ($cmaLauncherModern) { "$CmaLauncherName uses .venv-dml and cma.mcp_server" } else { "$CmaLauncherName is stale or invokes the wrong Python/module" })
 if (Test-Path -LiteralPath $dmlPython) {
   & $dmlPython -c "import dml_mcp.dml_mcp_server; import cma.mcp_server" 2>$null
   Add-Result 'DML/CMA Python imports' ($LASTEXITCODE -eq 0) 'dml_mcp and cma server modules import in the managed DML venv'
@@ -191,12 +203,30 @@ $comfyRoot = Join-Path $env:USERPROFILE 'ComfyUI'
 $comfyPython = Join-Path $comfyRoot '.venv\Scripts\python.exe'
 $comfyMain = Join-Path $comfyRoot 'main.py'
 Add-Result 'ComfyUI installation' ((Test-Path $comfyPython) -and (Test-Path $comfyMain)) $comfyRoot (-not $SkipComfyUI)
+$comfyModelSpecs = @(
+  @{ RelativePath = 'models\checkpoints\sd_xl_base_1.0.safetensors'; Bytes = 6938078334L },
+  @{ RelativePath = 'models\controlnet\controlnet-depth-sdxl-1.0\diffusion_pytorch_model.safetensors'; Bytes = 5004167860L },
+  @{ RelativePath = 'models\diffusion_models\flux-2-klein-base-4b-fp8.safetensors'; Bytes = 4089498488L },
+  @{ RelativePath = 'models\text_encoders\qwen_3_4b.safetensors'; Bytes = 8044982048L },
+  @{ RelativePath = 'models\vae\flux2-vae.safetensors'; Bytes = 336213556L }
+)
+$badComfyModels = @()
+foreach ($spec in $comfyModelSpecs) {
+  $modelPath = Join-Path $comfyRoot $spec.RelativePath
+  if (-not (Test-Path -LiteralPath $modelPath -PathType Leaf)) {
+    $badComfyModels += "missing $($spec.RelativePath)"
+  } elseif ((Get-Item -LiteralPath $modelPath).Length -ne $spec.Bytes) {
+    $badComfyModels += "wrong-size $($spec.RelativePath)"
+  }
+}
+$modelRepair = 'run scripts\install_comfy_flux2_models.ps1 for FLUX files and install the approved SDXL/depth files'
+Add-Result 'ComfyUI SDXL + FLUX.2 model set' ($badComfyModels.Count -eq 0) $(if ($badComfyModels.Count -eq 0) { 'all five model components have the approved byte sizes' } else { ($badComfyModels -join '; ') + "; $modelRepair" }) (-not $SkipComfyUI)
 if (-not $SkipComfyUI -and $StartServices -and -not (Test-TcpPort 8188) -and (Test-Path $comfyPython) -and (Test-Path $comfyMain)) {
   Start-Process -FilePath $comfyPython -ArgumentList @($comfyMain, '--listen', '127.0.0.1', '--port', '8188', '--enable-manager') -WorkingDirectory $comfyRoot -WindowStyle Hidden
 }
 if (-not $SkipComfyUI) {
   $comfyReady = if ($StartServices) { Wait-TcpPort 8188 } else { Test-TcpPort 8188 }
-  Add-Result 'ComfyUI REST service' $comfyReady $(if ($comfyReady) { '127.0.0.1:8188 is accepting connections' } else { 'installed but not running; use -StartServices when the stylization phase is needed' }) $false
+  Add-Result 'ComfyUI REST service' $comfyReady $(if ($comfyReady) { '127.0.0.1:8188 is accepting connections' } else { 'installed but not running; use -StartServices for the required SDXL -> FLUX phase' }) $true
 }
 
 Write-Host ''

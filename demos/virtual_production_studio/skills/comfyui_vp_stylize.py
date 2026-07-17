@@ -1,8 +1,9 @@
 """Run the VP Studio hero render through local ComfyUI's HTTP API.
 
-This is deliberately a single-image, geometry-preserving workflow.  It uses
-the installed SDXL checkpoint, depth preprocessor, and depth ControlNet; it
-does not launch ComfyUI, install models, or invent a graph at demo time.
+This is deliberately a bounded, geometry-preserving two-stage workflow. It
+first uses SDXL with depth ControlNet, then refines that accepted image with
+FLUX.2 Klein reference conditioning. It does not launch ComfyUI, install
+models, or invent a graph at demo time.
 """
 
 from __future__ import annotations
@@ -21,7 +22,10 @@ from PIL import Image, ImageStat
 DEFAULT_URL = "http://127.0.0.1:8188"
 DEFAULT_CHECKPOINT = "sd_xl_base_1.0.safetensors"
 DEFAULT_CONTROLNET = "controlnet-depth-sdxl-1.0\\diffusion_pytorch_model.safetensors"
-REQUIRED_NODES = {
+DEFAULT_FLUX_MODEL = "flux-2-klein-base-4b-fp8.safetensors"
+DEFAULT_FLUX_CLIP = "qwen_3_4b.safetensors"
+DEFAULT_FLUX_VAE = "flux2-vae.safetensors"
+SDXL_REQUIRED_NODES = {
     "CheckpointLoaderSimple",
     "CLIPTextEncode",
     "LoadImage",
@@ -34,6 +38,24 @@ REQUIRED_NODES = {
     "VAEDecode",
     "SaveImage",
 }
+FLUX_REQUIRED_NODES = {
+    "UNETLoader",
+    "CLIPLoader",
+    "VAELoader",
+    "CLIPTextEncode",
+    "LoadImage",
+    "ImageScale",
+    "VAEEncode",
+    "ReferenceLatent",
+    "EmptyFlux2LatentImage",
+    "RandomNoise",
+    "Flux2Scheduler",
+    "KSamplerSelect",
+    "CFGGuider",
+    "SamplerCustomAdvanced",
+    "VAEDecode",
+    "SaveImage",
+}
 
 POSITIVE = (
     "photorealistic virtual production studio interior, smooth curved LED volume, "
@@ -42,9 +64,9 @@ POSITIVE = (
     "preserve the exact camera, building, room, equipment, and LED wall layout"
 )
 NEGATIVE = (
-    "changed geometry, changed composition, added or removed objects, duplicate cameras, "
-    "extra chairs, missing equipment, warped walls, broken LED wall, altered openings, "
-    "floating objects, text, watermark, cartoon, sketch, blurry, low quality"
+    "changed geometry, changed composition, added or removed objects, duplicate objects, "
+    "missing parts, warped forms, altered openings, floating objects, text, watermark, "
+    "cartoon, sketch, blurry, low quality"
 )
 
 
@@ -156,6 +178,56 @@ def workflow(image_ref: str, checkpoint: str, controlnet: str, width: int, heigh
     }
 
 
+def flux_workflow(image_ref: str, model: str, clip: str, vae: str,
+                  width: int, height: int, seed: int, steps: int,
+                  cfg: float, positive_prompt: str = POSITIVE) -> dict:
+    """Build the fixed FLUX.2 Klein image-edit refinement graph."""
+    refinement_prompt = (
+        positive_prompt.rstrip(" .")
+        + ". Refine this exact supplied image with photorealistic materials and lighting. "
+        "Keep the camera, primary modeled subject, scene geometry, object count, object "
+        "positions, silhouettes, proportions, and clearances unchanged."
+    )
+    return {
+        "101": {"class_type": "UNETLoader", "inputs": {
+            "unet_name": model, "weight_dtype": "default"}},
+        "102": {"class_type": "CLIPLoader", "inputs": {
+            "clip_name": clip, "type": "flux2", "device": "default"}},
+        "103": {"class_type": "VAELoader", "inputs": {"vae_name": vae}},
+        "104": {"class_type": "CLIPTextEncode", "inputs": {
+            "text": refinement_prompt, "clip": ["102", 0]}},
+        "105": {"class_type": "CLIPTextEncode", "inputs": {
+            "text": "", "clip": ["102", 0]}},
+        "106": {"class_type": "LoadImage", "inputs": {"image": image_ref}},
+        "107": {"class_type": "ImageScale", "inputs": {
+            "image": ["106", 0], "upscale_method": "lanczos", "width": width,
+            "height": height, "crop": "disabled"}},
+        "108": {"class_type": "VAEEncode", "inputs": {
+            "pixels": ["107", 0], "vae": ["103", 0]}},
+        "109": {"class_type": "ReferenceLatent", "inputs": {
+            "conditioning": ["104", 0], "latent": ["108", 0]}},
+        "110": {"class_type": "ReferenceLatent", "inputs": {
+            "conditioning": ["105", 0], "latent": ["108", 0]}},
+        "111": {"class_type": "EmptyFlux2LatentImage", "inputs": {
+            "width": width, "height": height, "batch_size": 1}},
+        "112": {"class_type": "RandomNoise", "inputs": {"noise_seed": seed}},
+        "113": {"class_type": "CFGGuider", "inputs": {
+            "model": ["101", 0], "positive": ["109", 0],
+            "negative": ["110", 0], "cfg": cfg}},
+        "114": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler"}},
+        "115": {"class_type": "Flux2Scheduler", "inputs": {
+            "steps": steps, "width": width, "height": height}},
+        "116": {"class_type": "SamplerCustomAdvanced", "inputs": {
+            "noise": ["112", 0], "guider": ["113", 0],
+            "sampler": ["114", 0], "sigmas": ["115", 0],
+            "latent_image": ["111", 0]}},
+        "117": {"class_type": "VAEDecode", "inputs": {
+            "samples": ["116", 0], "vae": ["103", 0]}},
+        "118": {"class_type": "SaveImage", "inputs": {
+            "images": ["117", 0], "filename_prefix": "vp_studio/vp_studio_flux_refined"}},
+    }
+
+
 def wait_for_output(url: str, prompt_id: str, timeout: int) -> dict:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -192,13 +264,19 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, default=here / "renders" / "vp_studio_hero_preview.png")
     parser.add_argument("--output", type=Path, default=here / "comfy_enhanced" / "vp_studio_stylized.png")
+    parser.add_argument("--intermediate", type=Path, default=here / "comfy_enhanced" / "vp_studio_sdxl.png")
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
     parser.add_argument("--controlnet", default=DEFAULT_CONTROLNET)
+    parser.add_argument("--flux-model", default=DEFAULT_FLUX_MODEL)
+    parser.add_argument("--flux-clip", default=DEFAULT_FLUX_CLIP)
+    parser.add_argument("--flux-vae", default=DEFAULT_FLUX_VAE)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--denoise", type=float, default=0.28)
     parser.add_argument("--steps", type=int, default=24)
     parser.add_argument("--cfg", type=float, default=6.0)
+    parser.add_argument("--flux-steps", type=int, default=20)
+    parser.add_argument("--flux-cfg", type=float, default=5.0)
     parser.add_argument("--max-dimension", type=int, default=1216)
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument(
@@ -209,10 +287,15 @@ def main() -> int:
     parser.add_argument("--prompt", help="Positive prompt override for manual runs.")
     parser.add_argument("--negative-prompt", default=NEGATIVE)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--sdxl-only", action="store_true",
+        help="Operator recovery path: stop after the depth-controlled SDXL intermediate.",
+    )
     args = parser.parse_args()
 
     source = args.source.expanduser().resolve()
     output = args.output.expanduser().resolve()
+    intermediate = args.intermediate.expanduser().resolve()
     prompt_file = args.prompt_file.expanduser().resolve()
     if args.prompt is not None:
         positive_prompt = args.prompt.strip()
@@ -237,18 +320,27 @@ def main() -> int:
         info = inventory(args.url)
     except requests.RequestException as exc:
         raise SystemExit(f"COMFY_PREFLIGHT_FAIL endpoint unavailable: {args.url} ({exc})") from exc
-    missing = sorted(REQUIRED_NODES - set(info))
+    required_nodes = SDXL_REQUIRED_NODES | (set() if args.sdxl_only else FLUX_REQUIRED_NODES)
+    missing = sorted(required_nodes - set(info))
     if missing:
         raise SystemExit(f"COMFY_PREFLIGHT_FAIL missing nodes: {', '.join(missing)}")
     if args.checkpoint not in choices(info, "CheckpointLoaderSimple", "ckpt_name"):
         raise SystemExit(f"COMFY_PREFLIGHT_FAIL checkpoint unavailable: {args.checkpoint}")
     if args.controlnet not in choices(info, "ControlNetLoader", "control_net_name"):
         raise SystemExit(f"COMFY_PREFLIGHT_FAIL ControlNet unavailable: {args.controlnet}")
+    if not args.sdxl_only:
+        if args.flux_model not in choices(info, "UNETLoader", "unet_name"):
+            raise SystemExit(f"COMFY_PREFLIGHT_FAIL FLUX model unavailable: {args.flux_model}")
+        if args.flux_clip not in choices(info, "CLIPLoader", "clip_name"):
+            raise SystemExit(f"COMFY_PREFLIGHT_FAIL FLUX text encoder unavailable: {args.flux_clip}")
+        if args.flux_vae not in choices(info, "VAELoader", "vae_name"):
+            raise SystemExit(f"COMFY_PREFLIGHT_FAIL FLUX VAE unavailable: {args.flux_vae}")
 
     width, height = scaled_size(source, args.max_dimension)
     print(f"COMFY_PREFLIGHT_PASS source={source} size={width}x{height} "
           f"contrast={quality['contrast']} foreground_fraction={quality['foreground_fraction']} "
           f"checkpoint={args.checkpoint} controlnet={args.controlnet} "
+          f"flux={'disabled' if args.sdxl_only else args.flux_model} "
           f"prompt_source={prompt_source} prompt_sha256={prompt_sha256}")
     if args.dry_run:
         return 0
@@ -258,20 +350,52 @@ def main() -> int:
         graph = workflow(image_ref, args.checkpoint, args.controlnet, width, height,
                          args.seed, args.denoise, args.steps, args.cfg,
                          positive_prompt, negative_prompt)
-        queued = api(args.url, "POST", "/prompt", json={"prompt": graph, "client_id": "vp-studio-demo"}).json()
+        queued = api(args.url, "POST", "/prompt", json={"prompt": graph, "client_id": "vp-studio-demo-sdxl"}).json()
     except requests.RequestException as exc:
         raise SystemExit(f"COMFY_QUEUE_FAIL endpoint request failed: {exc}") from exc
     if queued.get("node_errors"):
         raise SystemExit(f"COMFY_QUEUE_FAIL {json.dumps(queued['node_errors'], indent=2)}")
     prompt_id = queued["prompt_id"]
-    print(f"COMFY_QUEUED prompt_id={prompt_id}")
+    print(f"COMFY_SDXL_QUEUED prompt_id={prompt_id}")
     try:
         image_info = wait_for_output(args.url, prompt_id, args.timeout)
-        download(args.url, image_info, output)
+        download(args.url, image_info, intermediate)
     except (requests.RequestException, RuntimeError, TimeoutError) as exc:
         raise SystemExit(f"COMFY_OUTPUT_FAIL prompt_id={prompt_id} error={exc}") from exc
-    print(f"COMFY_OUTPUT_PASS prompt_id={prompt_id} output={output} bytes={output.stat().st_size} "
-          f"seed={args.seed} denoise={args.denoise} prompt_sha256={prompt_sha256}")
+    print(f"COMFY_SDXL_OUTPUT_PASS prompt_id={prompt_id} output={intermediate} "
+          f"bytes={intermediate.stat().st_size} seed={args.seed} denoise={args.denoise}")
+    if args.sdxl_only:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(intermediate.read_bytes())
+        print(f"COMFY_OUTPUT_PASS stage=sdxl output={output} bytes={output.stat().st_size} "
+              f"prompt_sha256={prompt_sha256}")
+        return 0
+
+    try:
+        flux_image_ref = upload(args.url, intermediate)
+        flux_graph = flux_workflow(
+            flux_image_ref, args.flux_model, args.flux_clip, args.flux_vae,
+            width, height, args.seed, args.flux_steps, args.flux_cfg, positive_prompt,
+        )
+        flux_queued = api(
+            args.url, "POST", "/prompt",
+            json={"prompt": flux_graph, "client_id": "vp-studio-demo-flux"},
+        ).json()
+    except requests.RequestException as exc:
+        raise SystemExit(f"COMFY_FLUX_QUEUE_FAIL endpoint request failed: {exc}") from exc
+    if flux_queued.get("node_errors"):
+        raise SystemExit(f"COMFY_FLUX_QUEUE_FAIL {json.dumps(flux_queued['node_errors'], indent=2)}")
+    flux_prompt_id = flux_queued["prompt_id"]
+    print(f"COMFY_FLUX_QUEUED prompt_id={flux_prompt_id}")
+    try:
+        flux_image_info = wait_for_output(args.url, flux_prompt_id, args.timeout)
+        download(args.url, flux_image_info, output)
+    except (requests.RequestException, RuntimeError, TimeoutError) as exc:
+        raise SystemExit(f"COMFY_FLUX_OUTPUT_FAIL prompt_id={flux_prompt_id} error={exc}") from exc
+    print(f"COMFY_FLUX_OUTPUT_PASS prompt_id={flux_prompt_id} output={output} "
+          f"bytes={output.stat().st_size} model={args.flux_model} steps={args.flux_steps} cfg={args.flux_cfg}")
+    print(f"COMFY_OUTPUT_PASS stage=sdxl+flux output={output} bytes={output.stat().st_size} "
+          f"seed={args.seed} sdxl_denoise={args.denoise} prompt_sha256={prompt_sha256}")
     return 0
 
 

@@ -29,12 +29,35 @@ Start with these known cached keys and named Rhino proxies:
 - two complete `light_led_soft_panel_roy` practical floor-light assemblies
 - two `control_server_rack_anais` control-room racks
 
+The three physical camera assets are deliberately separated across the south
+side of the stage at `(-480,-420)`, `(120,-540)`, and `(600,-420)` inches. The
+placement helper ignores stale clustered camera proxy coordinates, uses these
+locked marks, and rotates each cached camera around Z so its lens points toward
+the LED performance target `(-120,60,72)`. None may sit on the beauty-camera
+sightline at `(0,-840)`.
+
+All eight required chairs must remain present: six review chairs and two stage
+director chairs. A passing set-dressing receipt also requires six workstation
+monitors, six road cases, two practical lights, and two server racks; camera
+placement alone never satisfies the scene-dressing gate.
+
 Run exactly `vp.apply_required_set_dressing(root)`. It replaces the 27 locked
 Rhino proxies and must print:
 
 ```text
+VP_SET_DRESSING_CLEARANCE_PASS overlaps=0 protected_zones=4
 VP_SET_DRESSING_PASS categories=6 placements=27 cameras=3 chairs=8 monitors=6 roadcases=6 practical_lights=2 racks=2
 ```
+
+Each repeated asset is imported once into an unlinked source collection; the
+27 visible placements are lightweight collection instances. A full GLB import
+per chair, camera, monitor, or case is a failure because it needlessly expands
+the scene and can destabilize Blender.
+
+This is one bounded deployment attempt. If it reports a missing cache payload,
+fixed-placement size failure, or `VP_SET_DRESSING_FAIL`, stop the asset phase and
+report that concrete blocker. Do not retry the same call, monkey-patch the
+helper, rewrite files, hand-scale assets, or substitute a different importer.
 
 The standalone `grip_c_stand_kilianpohl` asset is prohibited in the beauty
 scene. A visible stand must carry a fixture; the two required floor practicals
@@ -45,17 +68,20 @@ call `fit_to_proxy`, rotate axes, or guess an asset's native units. These fixed
 post-import dimensions are mandatory (X x Y x Z, inches):
 
 - cinema tripod: `48 x 48 x 72`, grounded at world floor
-- director chair: `22 x 22 x 36`, grounded at proxy floor
+- director chair: `24 x 24 x 42`, grounded at proxy floor
 - workstation monitor: `6 x 24 x 18`, placed on proxy top
 - road case: `48 x 24 x 30`, grounded at proxy floor
 - C-stand: `36 x 36 x 84`, grounded at proxy floor
 - LED soft-panel stand: `24 x 24 x 72`, grounded at proxy floor
 - server rack: `24 x 42 x 84`, grounded at proxy floor
 
-`apply_required_set_dressing` calls the tested fixed-scale placement helper for
-every locked proxy. Preserve its scale, orientation, anchor, materials, naming,
-and license metadata. Missing proxies, missing cached payloads, wrong dimensions,
-or a visible bare C-stand are hard failures, not permission to improvise.
+`apply_required_set_dressing` first restores any omitted locked proxy as an
+internal, deterministic recovery anchor at the exact manifest coordinate and
+size, then calls the tested fixed-scale placement helper for all 27 positions.
+This is the only approved missing-proxy recovery; do not create primitives or
+reopen Rhino just to recover anchors. Preserve asset scale, orientation, anchor,
+materials, naming, and license metadata. A missing cached payload, wrong final
+dimension, or visible bare C-stand remains a hard failure.
 
 Prefer CC0/public domain, then CC BY 4.0 with attribution. Reject unclear,
 editorial-only, NoDerivatives, NonCommercial, or NoAI assets for this workflow.
@@ -81,38 +107,41 @@ vp = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(vp)
 removed = vp.remove_legacy_scene_debris()
 dressing = vp.apply_required_set_dressing(root)
-look = vp.prepare_production_look()
-cam, alignment = vp.setup_beauty_camera()
-preview = vp.render_preview(
-    os.path.join(root, "demos", "virtual_production_studio", "renders", "vp_studio_hero_preview.png"),
-    resolution=(960, 540), samples=32
-)
-print("VP_HERO_PREVIEW_PASS removed={} materials={} lights={} alignment={:.6f} path={}".format(
-    removed, sum(look["materials"].values()), len(look["lights"]), alignment, preview
-))
+receipt = vp.render_beauty_preview(root)
+print("VP_HERO_PREVIEW_PASS " + repr(receipt))
 ```
 
 `VP_SET_DRESSING_PASS` is mandatory before `prepare_production_look()`, camera
-setup, or rendering. The beauty must visibly include production cameras,
-seating, monitors/workstations, road cases, complete practical lights, and
-control-room racks while preserving the clear stage floor and circulation.
+setup, or rendering. All categories must remain present in the production
+scene. The beauty must visibly include at least two physical cameras, a stage
+chair, a hero road case, and a complete practical light while preserving the
+clear stage floor and circulation; control-room monitors and racks may remain
+visible through their room composition rather than dominating the stage shot.
 
-`prepare_production_look()` is mandatory and owns the fixed Blender material
+`render_beauty_preview(root)` is the mandatory atomic beauty operation. Do not
+unpack `setup_beauty_camera()` or call `render_preview()` separately. The atomic
+helper refuses to render unless its newly created beauty camera is active and
+writes only to the canonical absolute render path.
+
+`prepare_production_look()` is owned by that helper and applies the fixed Blender material
 palette, emissive LED surface, world contribution, key, fill, rim, stage
 softbox, AgX look, and exposure. Do not create shader nodes or lights manually.
+Require `VP_BEAUTY_VISIBILITY_PASS`, `VP_MATERIAL_PASS`, `VP_LIGHTING_PASS`,
+and `VP_RENDER_PASS` before `VP_BEAUTY_PASS`.
 Require `VP_MATERIAL_PASS`, `VP_LIGHTING_PASS`, and `VP_RENDER_PASS` before
 `VP_HERO_PREVIEW_PASS`. `render_preview()` rejects a uniform gray, blank, or
 catastrophically misframed image; file existence alone never passes.
 
 The required beauty is the unobstructed `stage_wide` presentation composition:
-lens `(0,-588,144) in` -> `(0,-14.9352,3.6576) m`, aimed at
-`(-120,120,96) in` -> `(-3.048,3.048,2.4384) m`, with a 20 mm lens. This
-position is inside the clear stage envelope, faces the open side of the curved
+lens `(0,-840,96) in` -> `(0,-21.336,2.4384) m`, aimed at
+`(-120,60,72) in` -> `(-3.048,1.524,1.8288) m`, with a 14 mm lens. This
+position is inside the south clear volume, faces the open side of the curved
 LED volume, and avoids the exterior wall, control glazing, and physical camera
-proxies. It must show the curved LED wall, lit stage floor, overhead grid, and
-production equipment. Do not replace it with CAM_E, CAM_F, scene-center bounds,
-origin aiming, or guessed coordinates. Other physical cameras remain visible
-as production context.
+proxies. Its verified wide field of view must show the curved LED wall, lit
+stage floor, overhead grid, at least two physical production cameras, a hero
+chair, a hero road case, and a complete practical light. Do not replace it with
+CAM_E, CAM_F, scene-center bounds, origin aiming, or guessed coordinates. Other
+physical cameras remain visible as production context.
 The cleanup first requires a nonempty `VP_STUDIO_RHINO` mesh collection. It
 hard-stops if the checked-in importer was not run or its result was not retained.
 It removes only known stale aggregate/test objects such as
@@ -126,7 +155,8 @@ tighter reference close-up only. CAM_E and CAM_F are not production-render
 options because their locked marks can be occluded by modeled construction and
 equipment.
 Do not render secondary angles unless the beauty needs one occlusion check.
-The `setup_beauty_camera()` output is the required ComfyUI source.
+The validated canonical output from `render_beauty_preview(root)` is the
+required ComfyUI source.
 
 Only one passing initial preview and at most one targeted correction are allowed. Send
 the absolute preview path to vision. If vision reports a defect, change the

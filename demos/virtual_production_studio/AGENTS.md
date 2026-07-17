@@ -29,3 +29,11 @@ The launcher owns Rhino, Blender, and their MCP bridges. Never call Rhino slot
 spawn/close tools, close or reopen the active document, launch duplicate
 applications, repair add-ons, or replace a healthy service. If a bridge is
 missing, report the blocker.
+
+The final presentation phase is the checked-in two-stage ComfyUI pipeline.
+Only after `VP_RENDER_PASS`, run the approved helper through the terminal: SDXL
+plus depth ControlNet establishes the geometry-preserving image, then FLUX.2
+Klein reference conditioning refines materials, lighting, and production
+detail. Require `COMFY_OUTPUT_PASS stage=sdxl+flux`; never replace either graph,
+use Rhino or Blender as a ComfyUI execution path, or issue handwritten REST
+calls.

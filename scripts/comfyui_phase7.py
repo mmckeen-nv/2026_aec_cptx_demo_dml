@@ -2,8 +2,9 @@
 comfyui_phase7.py — Phase 7 automation: Blender renders → ComfyUI → enhanced MP4
 
 Connects to the configured ComfyUI endpoint, queries available
-models, uploads frame pairs (beauty + depth), queues depth-conditioned img2img
-workflows, downloads results, and encodes ocean_view_ai.mp4.
+models, uploads frame pairs (beauty + depth), queues depth-conditioned SDXL
+img2img, refines each accepted frame with FLUX.2 Klein reference conditioning,
+downloads results, and encodes ocean_view_ai_flux.mp4.
 
 Usage:
     python comfyui_phase7.py
@@ -17,6 +18,8 @@ Requires: pip install requests pillow tqdm
 
 import argparse
 import glob
+import hashlib
+import importlib.util
 import json
 import os
 import subprocess
@@ -27,6 +30,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from path_config import COMFYUI_URL as CONFIG_COMFYUI_URL, FFMPEG_BIN, RENDER_ROOT
+from PIL import Image
 
 try:
     import requests
@@ -44,6 +48,7 @@ BASE      = RENDER_ROOT
 PNG_DIR   = BASE / "png"
 DEPTH_DIR = BASE / "depth"
 OUT_DIR   = BASE / "ai_enhanced"
+SDXL_DIR  = BASE / "sdxl_enhanced"
 FFMPEG    = FFMPEG_BIN
 
 # ─── ComfyUI settings ─────────────────────────────────────────────────────────
@@ -71,6 +76,11 @@ POLL_INTERVAL      = 1.5      # seconds between history polls
 UPLOAD_TIMEOUT     = 30
 QUEUE_TIMEOUT      = 10
 DOWNLOAD_TIMEOUT   = 30
+FLUX_MODEL         = "flux-2-klein-base-4b-fp8.safetensors"
+FLUX_CLIP          = "qwen_3_4b.safetensors"
+FLUX_VAE           = "flux2-vae.safetensors"
+FLUX_STEPS         = 20
+FLUX_CFG           = 5.0
 
 
 # ─── ComfyUI API ──────────────────────────────────────────────────────────────
@@ -97,7 +107,7 @@ def check_server():
 
 
 def get_models():
-    """Return dict of available checkpoints and ControlNets."""
+    """Return the model choices required by both SDXL and FLUX stages."""
     info = api("GET", "/object_info").json()
     checkpoints = (info.get("CheckpointLoaderSimple", {})
                        .get("input", {})
@@ -107,7 +117,28 @@ def get_models():
                        .get("input", {})
                        .get("required", {})
                        .get("control_net_name", [None])[0]) or []
-    return checkpoints, controlnets
+    unets = (info.get("UNETLoader", {}).get("input", {}).get("required", {})
+                 .get("unet_name", [None])[0]) or []
+    clips = (info.get("CLIPLoader", {}).get("input", {}).get("required", {})
+                 .get("clip_name", [None])[0]) or []
+    vaes = (info.get("VAELoader", {}).get("input", {}).get("required", {})
+                .get("vae_name", [None])[0]) or []
+    return checkpoints, controlnets, unets, clips, vaes
+
+
+def load_flux_builder():
+    """Load the one checked-in FLUX graph builder shared by every demo."""
+    helper = (
+        Path(__file__).resolve().parents[1]
+        / "demos" / "virtual_production_studio" / "skills" / "comfyui_vp_stylize.py"
+    )
+    if not helper.is_file():
+        raise RuntimeError(f"Missing shared SDXL/FLUX helper: {helper}")
+    spec = importlib.util.spec_from_file_location("aec_comfy_two_stage", helper)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module.flux_workflow
 
 
 def pick_depth_controlnet(controlnets):
@@ -281,33 +312,45 @@ def download_image(image_info, out_path):
 
 
 def process_frame(frame_num, beauty_path, depth_path, checkpoint, controlnet,
-                  denoise, controlnet_strength, steps, cfg, seed):
+                  denoise, controlnet_strength, steps, cfg, seed,
+                  flux_builder, flux_model, flux_clip, flux_vae,
+                  flux_steps, flux_cfg):
     """Full pipeline for one frame: upload → queue → wait → download → return path."""
     label = f"{frame_num:04d}"
     out_path = OUT_DIR / f"frame_{label}.png"
+    sdxl_path = SDXL_DIR / f"frame_{label}.png"
 
-    if out_path.exists():
+    if out_path.exists() and sdxl_path.exists():
         return label, str(out_path), "skipped"
 
     # Upload both images
     beauty_ref = upload_image(beauty_path)
     depth_ref  = upload_image(depth_path)
 
-    # Build and queue workflow
-    wf = build_workflow(
-        beauty_ref, depth_ref, checkpoint, controlnet,
-        seed, denoise, controlnet_strength, steps, cfg,
-        POSITIVE_PROMPT, NEGATIVE_PROMPT
+    if not sdxl_path.exists():
+        wf = build_workflow(
+            beauty_ref, depth_ref, checkpoint, controlnet,
+            seed, denoise, controlnet_strength, steps, cfg,
+            POSITIVE_PROMPT, NEGATIVE_PROMPT
+        )
+        prompt_id = queue_prompt(wf)
+        images = wait_for_result(prompt_id, f"{label}-sdxl")
+        if not images:
+            raise RuntimeError(f"No SDXL output images returned for frame {label}")
+        download_image(images[0], sdxl_path)
+
+    with Image.open(sdxl_path) as image:
+        width, height = image.size
+    flux_ref = upload_image(sdxl_path, subfolder="phase7_flux")
+    flux_wf = flux_builder(
+        flux_ref, flux_model, flux_clip, flux_vae, width, height,
+        seed, flux_steps, flux_cfg, POSITIVE_PROMPT,
     )
-    prompt_id = queue_prompt(wf)
-
-    # Wait for completion
-    images = wait_for_result(prompt_id, label)
-    if not images:
-        raise RuntimeError(f"No output images returned for frame {label}")
-
-    # Download first output image
-    download_image(images[0], out_path)
+    flux_prompt_id = queue_prompt(flux_wf)
+    flux_images = wait_for_result(flux_prompt_id, f"{label}-flux")
+    if not flux_images:
+        raise RuntimeError(f"No FLUX output images returned for frame {label}")
+    download_image(flux_images[0], out_path)
     return label, str(out_path), "done"
 
 
@@ -333,7 +376,7 @@ def encode_mp4(frame_dir, out_mp4, fps=24):
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
-    global COMFYUI_URL, BASE, PNG_DIR, DEPTH_DIR, OUT_DIR, FFMPEG
+    global COMFYUI_URL, BASE, PNG_DIR, DEPTH_DIR, OUT_DIR, SDXL_DIR, FFMPEG, POSITIVE_PROMPT
     parser = argparse.ArgumentParser(description="Phase 7 — ComfyUI post-processing")
     parser.add_argument("--url",        default=COMFYUI_URL)
     parser.add_argument("--base",       type=Path, default=BASE, help="Render root containing png/ and depth/.")
@@ -344,6 +387,14 @@ def main():
     parser.add_argument("--strength",   type=float, default=CONTROLNET_STRENGTH)
     parser.add_argument("--steps",      type=int,   default=STEPS)
     parser.add_argument("--cfg",        type=float, default=CFG)
+    parser.add_argument("--flux-model", default=FLUX_MODEL)
+    parser.add_argument("--flux-clip",  default=FLUX_CLIP)
+    parser.add_argument("--flux-vae",   default=FLUX_VAE)
+    parser.add_argument("--flux-steps", type=int, default=FLUX_STEPS)
+    parser.add_argument("--flux-cfg",   type=float, default=FLUX_CFG)
+    parser.add_argument("--prompt", default=None, help="Positive prompt override.")
+    parser.add_argument("--prompt-file", type=Path, default=None,
+                        help="User-editable positive prompt file; overridden by --prompt.")
     parser.add_argument("--seed",       type=int,   default=SEED)
     parser.add_argument("--batch",      type=int,   default=BATCH_SIZE)
     parser.add_argument("--frames",     default=None, help="Range, e.g. 0-23 or comma list 0,1,2")
@@ -355,7 +406,22 @@ def main():
     PNG_DIR = BASE / "png"
     DEPTH_DIR = BASE / "depth"
     OUT_DIR = BASE / "ai_enhanced"
+    SDXL_DIR = BASE / "sdxl_enhanced"
     FFMPEG = args.ffmpeg
+    if args.prompt is not None:
+        POSITIVE_PROMPT = args.prompt.strip()
+        prompt_source = "--prompt"
+    elif args.prompt_file is not None:
+        prompt_path = args.prompt_file.expanduser().resolve()
+        if not prompt_path.is_file():
+            sys.exit(f"  ERROR: Prompt file not found: {prompt_path}")
+        POSITIVE_PROMPT = prompt_path.read_text(encoding="utf-8").strip()
+        prompt_source = str(prompt_path)
+    else:
+        prompt_source = "built-in Cliff House prompt"
+    if not POSITIVE_PROMPT:
+        sys.exit("  ERROR: Positive prompt is empty.")
+    prompt_sha256 = hashlib.sha256(POSITIVE_PROMPT.encode("utf-8")).hexdigest()[:12]
 
     print("=" * 60)
     print("Phase 7 — ComfyUI Post-Processing")
@@ -363,7 +429,10 @@ def main():
     print(f"  Denoise    : {args.denoise}")
     print(f"  CN Strength: {args.strength}")
     print(f"  Steps / CFG: {args.steps} / {args.cfg}")
+    print(f"  FLUX       : {args.flux_model}")
+    print(f"  FLUX steps : {args.flux_steps} / CFG {args.flux_cfg}")
     print(f"  Seed       : {args.seed}  (fixed for temporal consistency)")
+    print(f"  Prompt     : {prompt_source} sha256={prompt_sha256}")
     print("=" * 60)
 
     # 1. Verify ComfyUI is running
@@ -374,7 +443,7 @@ def main():
     # 2. Query available models
     print("\n[2] Querying available models...")
     try:
-        checkpoints, controlnets = get_models()
+        checkpoints, controlnets, unets, clips, vaes = get_models()
     except Exception as e:
         sys.exit(f"  ERROR fetching model list: {e}")
 
@@ -396,10 +465,22 @@ def main():
         sys.exit("  ERROR: No checkpoints found on ComfyUI.")
     if not controlnet:
         sys.exit("  ERROR: No ControlNets found. Install a depth ControlNet model.")
+    missing_flux = []
+    if args.flux_model not in unets:
+        missing_flux.append(args.flux_model)
+    if args.flux_clip not in clips:
+        missing_flux.append(args.flux_clip)
+    if args.flux_vae not in vaes:
+        missing_flux.append(args.flux_vae)
+    if missing_flux:
+        sys.exit("  ERROR: Missing FLUX.2 components: " + ", ".join(missing_flux))
 
     print(f"\n[3] Model selection:")
     print(f"  Checkpoint : {checkpoint}")
     print(f"  ControlNet : {controlnet}")
+    print(f"  FLUX model : {args.flux_model}")
+    print(f"  FLUX clip  : {args.flux_clip}")
+    print(f"  FLUX VAE   : {args.flux_vae}")
 
     if args.dry_run:
         print("\n  --dry-run set. Exiting without processing.")
@@ -428,6 +509,8 @@ def main():
         sys.exit("  No frames matched. Check png/ and depth/ directories.")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    SDXL_DIR.mkdir(parents=True, exist_ok=True)
+    flux_builder = load_flux_builder()
 
     # 5. Process frames in parallel batches
     print(f"\n[5] Processing {len(all_frames)} frames (batch={args.batch})...")
@@ -441,7 +524,9 @@ def main():
             str(depth_map[frame_num]),
             checkpoint, controlnet,
             args.denoise, args.strength,
-            args.steps, args.cfg, args.seed
+            args.steps, args.cfg, args.seed,
+            flux_builder, args.flux_model, args.flux_clip, args.flux_vae,
+            args.flux_steps, args.flux_cfg,
         )
 
     iter_frames = tqdm(all_frames, unit="frame") if HAS_TQDM else all_frames
@@ -481,8 +566,8 @@ def main():
         print(f"  WARNING: missing frames: {missing[:20]}{'...' if len(missing)>20 else ''}")
 
     # 7. Encode MP4
-    print("\n[7] Encoding ocean_view_ai.mp4...")
-    out_mp4 = BASE / "ocean_view_ai.mp4"
+    print("\n[7] Encoding ocean_view_ai_flux.mp4...")
+    out_mp4 = BASE / "ocean_view_ai_flux.mp4"
     try:
         encode_mp4(OUT_DIR, out_mp4)
         print(f"  Done: {out_mp4}")
@@ -492,7 +577,9 @@ def main():
 
     print("\n" + "=" * 60)
     print("Phase 7 complete.")
+    print(f"  SDXL frames     : {SDXL_DIR}")
     print(f"  Enhanced frames : {OUT_DIR}")
+    print("  COMFY_OUTPUT_PASS stage=sdxl+flux")
     print(f"  Final video     : {out_mp4}")
     print("=" * 60)
 

@@ -51,7 +51,7 @@ $demoRoot = Join-Path $projectRoot 'demos\cliff_house'
 
 $preflight = Join-Path $env:HERMES_HOME 'bin\Test-RTX-Pro-Preflight.ps1'
 if (-not (Test-Path $preflight)) { $preflight = Join-Path $projectRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1' }
-& $preflight -StartServices -SkipComfyUI -ProfileName 'aec-cptx' -ProjectId 'cliff-house-01' `
+& $preflight -StartServices -ProfileName 'aec-cptx' -ProjectId 'cliff-house-01' `
   -DmlStoreName 'cliff-house-01-runtime-store' -CmaStoreName 'cma-cliff-house-01' `
   -DmlLauncherName 'dml_mcp_server_cliff_house.cmd' -CmaLauncherName 'cma_mcp_server_cliff_house.cmd' `
   -DisplayName 'Cliff House'

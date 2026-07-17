@@ -39,6 +39,7 @@ NAME=vllm-qwen36
 IMAGE=vllm/vllm-openai:latest
 MODEL=nvidia/Qwen3.6-35B-A3B-NVFP4
 PORT=8000
+GPU_INDEX=0
 CACHE_ROOT=/root/.cache/huggingface
 MODEL_CACHE=${CACHE_ROOT}/hub/models--nvidia--Qwen3.6-35B-A3B-NVFP4
 OFFLINE_ENV=()
@@ -68,6 +69,7 @@ if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
         docker rm -f "$NAME"
     else
         echo "[run-vllm-qwen36] Container '$NAME' already exists, starting it..."
+        docker update --restart no "$NAME" >/dev/null
         docker start "$NAME"
         echo "[run-vllm-qwen36] Started. Poll http://localhost:${PORT}/v1/models until it returns 200."
         exit 0
@@ -76,11 +78,14 @@ fi
 
 echo "[run-vllm-qwen36] Creating and starting '$NAME'..."
 docker run -d --name "$NAME" \
+  --restart no \
   --gpus all \
   --shm-size=64m \
   --ipc=private \
   -p ${PORT}:${PORT} \
   -v /root/.cache/huggingface:/root/.cache/huggingface \
+  -e CUDA_VISIBLE_DEVICES=${GPU_INDEX} \
+  -e NVIDIA_VISIBLE_DEVICES=${GPU_INDEX} \
   "${OFFLINE_ENV[@]}" \
   "$IMAGE" \
   "$MODEL" \

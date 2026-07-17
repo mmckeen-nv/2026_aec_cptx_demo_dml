@@ -8,7 +8,7 @@
 ## Read this file first. Every session, every task.
 
 The project is an architectural visualization pipeline:
-brief + reference images + Rhino source -> Blender render -> optional ComfyUI post.
+brief + reference images + Rhino source -> Blender render -> SDXL depth -> FLUX.2 post.
 Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 
 ---
@@ -51,7 +51,7 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
     |
 [8] Test render (10_phase_test_render) -> Blender
     |
-[9] Final render (11_phase_final_render) -> Blender + optional ComfyUI
+[9] Final render (11_phase_final_render) -> Blender + SDXL -> FLUX.2 Klein
 ```
 
 ---
@@ -93,6 +93,7 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 | Skill                     | When to invoke                                    | File                              |
 |---------------------------|---------------------------------------------------|-----------------------------------|
 | Depth + segmentation      | Rendering depth maps or segmentation masks        | skills/depth_and_segmentation.md  |
+| Two-stage ComfyUI         | Final SDXL depth + FLUX.2 frame processing         | scripts/comfyui_phase7.py         |
 
 ### Persistent rules
 
@@ -110,7 +111,6 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 | Rhino construction via MCP         | [2-4]  | Given design intent + base Rhino -> built model with metadata    |
 | Iterative change loop              | [4]    | User says "wider patio" -> locate, derive, update, re-audit      |
 | Materials library                  | [7]    | Metadata tag -> correct Blender material setup                   |
-| ComfyUI integration                | [9]    | Submit frames + depth to ComfyUI, retrieve output               |
 | Retaining wall + footing           | [2]    | Wall from terrain + pad curve, continuous footing, frost depth   |
 
 ---
@@ -130,4 +130,4 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 | "retaining wall" / "footing" / "frost depth" | retaining_wall_footing.md                       |
 | "backup" / "checkpoint"                      | BACKUP_RULE.md                                  |
 | "reference image" / "show me"                | VISUAL_ENGAGEMENT_RULE.md                       |
-| "send to ComfyUI" / "AI render" / "Execute"  | claude_config/REBUILD_GUIDE.md (Phase 8)        |
+| "send to ComfyUI" / "AI render" / "Execute"  | 11_phase_final_render.md + scripts/comfyui_phase7.py |

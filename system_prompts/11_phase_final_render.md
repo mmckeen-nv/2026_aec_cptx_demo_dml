@@ -9,7 +9,8 @@
 ## Purpose
 
 Render the full-resolution beauty sequence, depth maps, and segmentation masks.
-Run the ComfyUI post-processing workflow on the beauty output. Deliver the final
+Run the checked-in two-stage ComfyUI workflow on the beauty output: SDXL depth
+conditioning followed by FLUX.2 Klein reference refinement. Deliver the final
 MP4 and all render passes to the project folder.
 
 ---
@@ -17,15 +18,17 @@ MP4 and all render passes to the project folder.
 ## Inputs
 
 - `[project]/blender_assets/base_model.blend` from Phase 10 (beauty materials restored)
-- `[project]/comfy_source/` — ComfyUI workflow JSON for this project
-- Delta notes — check for: final resolution, sample count, ComfyUI workflow type
+- `scripts/comfyui_phase7.py` — authoritative checked-in workflow
+- Delta notes — check for: final resolution, sample count, and style prompt
 
 ## Outputs
 
 - `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/` — full beauty sequence
 - `[project]/renders/depth/` — final 16-bit depth maps
 - `[project]/renders/segmentation/` — final segmentation masks
-- `[project]/comfy_output/` — ComfyUI processed frames
+- `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/sdxl_enhanced/` — SDXL intermediates
+- `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/ai_enhanced/` — FLUX final frames
+- `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/ocean_view_ai_flux.mp4` — enhanced video
 - `[project]/video_source/` — all render outputs ready for video editing
 
 ---
@@ -36,9 +39,9 @@ MP4 and all render passes to the project folder.
 - [ ] Beauty materials confirmed restored
 - [ ] GPU is available and not running other workloads
 - [ ] `[project]/renders/` folder exists
-- [ ] ComfyUI workflow JSON is in `[project]/comfy_source/`
-- [ ] Google Chrome is open (reserved for ComfyUI — no other tabs)
-- [ ] OBS COMFYUI source verified (screenshot check)
+- [ ] `scripts/comfyui_phase7.py --dry-run` reports the SDXL checkpoint, depth
+      ControlNet, FLUX.2 model, Qwen encoder, and FLUX VAE
+- [ ] ComfyUI is available at `http://127.0.0.1:8188`
 
 ---
 
@@ -105,19 +108,32 @@ Follow `depth_and_segmentation.md`. Output to `v_YYYYMMDD_HHMM/segmentation/`.
 
 **B6. Restore beauty materials after passes.**
 
-### Step C — ComfyUI post-processing (Chrome window)
+### Step C — checked-in SDXL -> FLUX post-processing
 
-- Load the ComfyUI workflow from `[project]/comfy_source/[workflow].json`
-  via the Hermes in Chrome MCP extension.
-- Connect the beauty PNG sequence from `v_YYYYMMDD_HHMM/png/` as the input.
-- Run the workflow. Monitor via Chrome MCP DOM inspection for completion.
-- Output processed frames to `[project]/comfy_output/`.
+Use terminal, never Chrome, handwritten JSON, Rhino MCP, or Blender MCP:
+
+```bash
+python scripts/comfyui_phase7.py --base "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM" --dry-run
+python scripts/comfyui_phase7.py --base "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM"
+```
+
+If the project has a user-approved style prompt, append
+`--prompt-file "[project]/user_prompts/comfy_style_prompt.txt"` to both commands.
+The helper prints the selected source and prompt SHA-256; never silently replace
+the user's wording.
+
+For every frame, the helper writes the accepted SDXL depth-conditioned image to
+`sdxl_enhanced/`, uses that exact image as FLUX.2 Klein reference conditioning,
+and writes the final to `ai_enhanced/`. Require
+`COMFY_OUTPUT_PASS stage=sdxl+flux` and `ocean_view_ai_flux.mp4`. Do not replace
+the graph, model names, seed, or conditioning path during the run.
 
 ### Final — copy to video_source
 Copy all deliverable files to `[project]/video_source/`:
 - `patio_sweep.mp4` (beauty)
 - A sample depth and segmentation frame (for editor reference)
-- ComfyUI output folder reference
+- SDXL and FLUX output folder references
+- `ocean_view_ai_flux.mp4`
 
 ---
 
@@ -128,7 +144,8 @@ Copy all deliverable files to `[project]/video_source/`:
 - [ ] MP4 plays at correct duration (~8 seconds at 24fps)
 - [ ] Depth maps correct (no shadows, correct near/far convention)
 - [ ] Segmentation masks correct (flat colours, no gradients)
-- [ ] ComfyUI output frames present in `[project]/comfy_output/`
+- [ ] SDXL intermediate and FLUX final frame counts match the beauty sequence
+- [ ] `COMFY_OUTPUT_PASS stage=sdxl+flux` is present
 - [ ] `depth_raw_temp/` deleted
 - [ ] `video_source/` populated
 - [ ] Beauty materials restored in Blender

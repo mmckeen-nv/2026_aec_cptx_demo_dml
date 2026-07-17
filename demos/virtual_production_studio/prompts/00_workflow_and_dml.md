@@ -37,7 +37,10 @@ Rhino geometry mutations execute only through `mcp_rhino_run_csharp` with the
 current phase's embedded scaffold. Python is read-only.
 
 Use direct metadata-preserving `.3dm` handoff. OBJ and FBX are prohibited.
-ComfyUI stylizes an approved Blender render and does not replace modeled design.
+ComfyUI processes only an approved Blender render. Its fixed first stage uses
+SDXL plus depth ControlNet; its fixed second stage uses the accepted SDXL image
+as FLUX.2 Klein reference conditioning. It enhances presentation and never
+replaces modeled design, changes camera/layout, or authorizes invented objects.
 
 At Blender handoff, remain in the launcher-owned generic scene. Do not open,
 append, or reuse any `.blend`. Call the checked-in current-handoff helper; it
@@ -48,7 +51,9 @@ The handoff is a one-way phase boundary. After `VP_HANDOFF_PASS`, never call
 any `mcp_rhino_*` tool again in that run. Blender MCP exclusively owns import,
 assets, materials, lighting, cameras, and rendering. After a composition-gated
 `VP_RENDER_PASS`, the registered terminal tool exclusively runs the checked-in
-ComfyUI helper. Rhino is never an execution path for Blender or ComfyUI.
+ComfyUI helper. Require `COMFY_SDXL_OUTPUT_PASS`, `COMFY_FLUX_OUTPUT_PASS`, and
+`COMFY_OUTPUT_PASS stage=sdxl+flux`. Rhino is never an execution path for
+Blender or ComfyUI.
 
 Daystrom active-read provides continuity automatically. Use memory sparingly at
 phase boundaries; never insert DML/CMA ceremony between visible modeling calls.

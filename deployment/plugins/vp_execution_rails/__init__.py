@@ -43,6 +43,11 @@ _COMFYUI_HELPER_COMMAND_RE = re.compile(
     r"(?:\s+--dry-run|\s+--denoise\s+0\.20)?\s*$",
     re.IGNORECASE,
 )
+_COMFYUI_DEMO_DIR_RE = re.compile(
+    r"^[A-Za-z]:/Users/[^/]+/2026_aec_cptx_demo_dml/"
+    r"demos/virtual_production_studio/?$",
+    re.IGNORECASE,
+)
 _COMFYUI_IMPROVISATION_RE = re.compile(
     r"(?:127\.0\.0\.1:8188|localhost:8188|/upload/image|/object_info|"
     r"/history/|/prompt\b|vp_studio_workflow\.json|comfy.*workflow.*\.json)",
@@ -77,7 +82,7 @@ _BLENDER_DIRECT_CAMERA_RENDER_RE = re.compile(
 )
 _BLENDER_APPROVED_CAMERA_RE = re.compile(
     r"blender_vp_production\.py[\s\S]{0,3000}"
-    r"(?:setup_(?:manifest_(?:hero_)?|beauty_)camera|render_preview)",
+    r"(?:setup_(?:manifest_(?:hero_)?|beauty_)camera|render_(?:beauty_)?preview)",
     re.IGNORECASE,
 )
 _BLENDER_DYNAMIC_ASSET_SCALE_RE = re.compile(
@@ -98,6 +103,11 @@ _BLENDER_DIRECT_SCENE_IO_RE = re.compile(
     r"libraries\.load\([^\r\n]*\.blend|\.blend\b)",
     re.IGNORECASE,
 )
+_BLENDER_HOST_EXIT_RE = re.compile(
+    r"\b(?:raise\s+SystemExit|sys[.]exit\s*\(|quit\s*\(|exit\s*\(|"
+    r"bpy[.]ops[.]wm[.]quit_blender\s*\()",
+    re.IGNORECASE,
+)
 _BLENDER_CURRENT_HANDOFF_RE = re.compile(
     r"blender_vp_production\.py[\s\S]{0,3000}import_current_handoff\s*\(",
     re.IGNORECASE,
@@ -106,6 +116,34 @@ _BLENDER_CURRENT_HANDOFF_RE = re.compile(
 
 def _active() -> bool:
     return os.environ.get("AEC_DEMO_ID", "").strip().lower() == "vp-studio-01"
+
+
+def _terminal_command(args: Dict[str, Any]) -> str:
+    """Return the command from the registered terminal's supported payload shapes."""
+    for key in ("command", "cmd"):
+        value = args.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _comfyui_helper_command(args: Dict[str, Any]) -> Optional[str]:
+    """Accept only the checked-in helper, optionally after one exact demo-root cd."""
+    command = _terminal_command(args)
+    if _COMFYUI_HELPER_COMMAND_RE.fullmatch(command):
+        return command
+
+    # Hermes' Bash terminal sometimes emits an explicit cwd prefix instead of
+    # the tool's workdir field. Permit only one `cd ... &&` prefix, and only to
+    # this demo root. No other shell chaining is accepted.
+    match = re.fullmatch(r"\s*cd\s+(['\"]?)(.+?)\1\s*&&\s*(.+?)\s*", command)
+    if not match:
+        return None
+    directory = match.group(2).replace("\\", "/").rstrip("/")
+    helper = match.group(3).strip()
+    if not _COMFYUI_DEMO_DIR_RE.fullmatch(directory):
+        return None
+    return helper if _COMFYUI_HELPER_COMMAND_RE.fullmatch(helper) else None
 
 
 def _sid(kwargs: Dict[str, Any]) -> str:
@@ -131,6 +169,8 @@ def _state(kwargs: Dict[str, Any]) -> Dict[str, Any]:
                 "blender_handoff_ready": False,
                 "blender_set_dressing_ready": False,
                 "blender_render_ready": False,
+                "blender_asset_retry_count": 0,
+                "blender_asset_deployment_blocked": False,
                 "comfy_preflight_ready": False,
                 "workflow_phase": "rhino",
             },
@@ -210,17 +250,25 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             "BLENDER PRODUCTION: cached payloads fall back to "
             "G:\\AEC-CPTX\\demos\\virtual_production_studio\\assets\\cache. "
             "Use skills/blender_vp_production.py and call apply_required_set_dressing(root) once. "
-            "Require VP_SET_DRESSING_PASS categories=6 placements=27 before camera/render. It places three "
+            "Require VP_SET_DRESSING_CLEARANCE_PASS overlaps=0 protected_zones=4 and then "
+            "VP_SET_DRESSING_PASS categories=6 placements=27 before camera/render. It imports each "
+            "approved payload once and uses collection instances for the 27 placements: three "
             "cameras, eight chairs, six monitors, six road cases, two complete LED soft-panel practicals, and "
             "two server racks. A standalone bare C-stand is prohibited. "
+            "This is one bounded asset deployment attempt: if it returns a cache, fixed-placement, or "
+            "VP_SET_DRESSING_FAIL, stop and report the blocker; never retry, monkey-patch, rewrite, or hand-scale assets. "
+            "If the validated handoff omitted a locked set-dressing proxy, apply_required_set_dressing itself "
+            "creates the exact manifest recovery anchor; never reopen Rhino or create a Blender primitive. "
             "For any approved optional placement, call place_cached_asset(root, asset_key, exact_proxy_name). "
             "That helper owns measured fixed XYZ scale, real-world dimensions, and grounding; "
             "never calculate asset scale from proxy bounds and never call fit_to_proxy, resolve_cached_asset, "
             "or import_cached_asset directly. Full floor-standing C-stands and soft panels never replace "
-            "overhead STAGE_LIGHT proxies. Then use "
-            "setup_beauty_camera, and render_preview. setup_beauty_camera owns the "
-            "unobstructed stage-wide presentation preset at (0,-588,144) in aimed at "
-            "(-120,120,96) in; never substitute CAM_E, CAM_F, a computed scene-bounds "
+            "overhead STAGE_LIGHT proxies. Then call render_beauty_preview(root) once; it atomically "
+            "applies the production look, activates the camera, renders the canonical absolute path, "
+            "and validates it. Require VP_BEAUTY_VISIBILITY_PASS before VP_RENDER_PASS. "
+            "setup_beauty_camera returns exactly (camera, alignment), never three values, and owns the "
+            "unobstructed stage-wide presentation preset at (0,-840,96) in aimed at "
+            "(-120,60,72) in with a 14 mm lens; never substitute CAM_E, CAM_F, a computed scene-bounds "
             "center, or guessed coordinates. CAM_A is a secondary close-up only. "
             "Call remove_legacy_scene_debris first so vp_studio_01_export and old "
             "camera-test objects cannot overlap the validated handoff. "
@@ -229,12 +277,13 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             " PHASE BOUNDARY: after import_current_handoff succeeds, every mcp_rhino_* tool is permanently "
             "out of scope for this run. Blender owns the scene until VP_RENDER_PASS. After that, ComfyUI owns "
             "the final phase; never use Rhino to inspect, launch, or operate ComfyUI. "
-            "COMFYUI FINAL: the registered terminal tool is available for the checked-in helper. Load skill "
-            "comfyui/comfyui-cookbook, then use terminal "
+            "COMFYUI FINAL: read skills/COMFYUI_COOKBOOK.md, then use the registered terminal "
+            "tool for the checked-in helper "
             "from the demo directory and run exactly one command per turn: "
             "python skills/comfyui_vp_stylize.py --dry-run, followed after PASS by "
             "python skills/comfyui_vp_stylize.py. The checked-in helper owns endpoint "
-            "inventory, upload, the fixed SDXL depth graph, queue, history polling, and download. "
+            "inventory, upload, the fixed SDXL depth graph, the FLUX.2 Klein reference-refinement "
+            "graph, both queues, history polling, and download. "
             "Never use browser tools, Windows paths, curl, Invoke-RestMethod, handwritten JSON, "
             "or launch/install ComfyUI or models."
         )
@@ -276,19 +325,26 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
 
     if tool in {"terminal", "execute_code"}:
         payload = json.dumps(args, ensure_ascii=False, default=str)
-        command = str(args.get("command") or args.get("code") or "")
-        if _COMFYUI_HELPER_COMMAND_RE.fullmatch(command):
+        command = _terminal_command(args)
+        comfy_command = _comfyui_helper_command(args) if tool == "terminal" else None
+        if comfy_command:
             if not state["blender_render_ready"]:
                 return _block(
                     "ComfyUI requires a composition-gated VP_RENDER_PASS from Blender; "
                     "repair materials, lighting, and the stage-wide camera in Blender first"
                 )
-            is_dry_run = "--dry-run" in command
+            is_dry_run = "--dry-run" in comfy_command
             if not is_dry_run and not state["comfy_preflight_ready"]:
                 return _block(
                     "run python skills/comfyui_vp_stylize.py --dry-run first and require COMFY_PREFLIGHT_PASS"
                 )
             return None
+        if tool == "execute_code" and _COMFYUI_HELPER_COMMAND_RE.fullmatch(
+            str(args.get("code") or "").strip()
+        ):
+            return _block(
+                "the checked-in ComfyUI helper must run through terminal, not execute_code"
+            )
         if _COMFYUI_IMPROVISATION_RE.search(payload):
             return _block(
                 "handwritten ComfyUI REST calls and workflow JSON are prohibited; from the demo "
@@ -305,6 +361,11 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
 
     if tool == "mcp_blender_execute_blender_code":
         code = str(args.get("code") or "")
+        if _BLENDER_HOST_EXIT_RE.search(code):
+            return _block(
+                "never terminate the Blender host; return or print diagnostic failures "
+                "instead of SystemExit, sys.exit, quit, exit, or quit_blender"
+            )
         if "grip_c_stand_kilianpohl" in code.lower():
             return _block(
                 "a standalone bare C-stand is prohibited; use the required complete "
@@ -321,9 +382,21 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
                 "follow prompts/07_phase_export_blender.md and execute skills/import_with_metadata.py"
             )
         if _BLENDER_DYNAMIC_ASSET_SCALE_RE.search(code) and not _BLENDER_APPROVED_ASSET_PLACEMENT_RE.search(code):
+            state["blender_asset_retry_count"] += 1
+            if state["blender_asset_retry_count"] >= 2:
+                state["blender_asset_deployment_blocked"] = True
+                return _block(
+                    "asset deployment retry budget exhausted after repeated unapproved import/scaling attempts; "
+                    "stop retrying and report the asset deployment blocker"
+                )
             return _block(
                 "dynamic asset import or scaling is prohibited; load skills/blender_vp_production.py "
                 "and call place_cached_asset(root, asset_key, exact_proxy_name)"
+            )
+        if state["blender_asset_deployment_blocked"]:
+            return _block(
+                "asset deployment is blocked after a failed/repeated retry; do not retry or bypass the "
+                "checked-in fixed-placement helper"
             )
         if _BLENDER_DIRECT_CAMERA_RENDER_RE.search(code) and not _BLENDER_APPROVED_CAMERA_RE.search(code):
             return _block(
@@ -336,12 +409,8 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
                     "camera/render requires apply_required_set_dressing(root) and VP_SET_DRESSING_PASS first; "
                     "the beauty must contain the locked cameras, furniture, road cases, complete practical lights, and racks"
                 )
-            state["blender_camera_retries"] += 1
-            if state["blender_camera_retries"] > 2:
-                return _block(
-                    "the manifest hero preview and one targeted correction are already spent; "
-                    "accept the last validated render or report the remaining blocker"
-                )
+            # Signature errors and helper exceptions are not camera attempts.
+            # The atomic checked-in helper plus VP_RENDER_PASS/REJECT own success.
         if _BLENDER_CAMERA_LOOP_RE.search(code):
             return _block(
                 "camera/render diagnostic scripts are prohibited; use a manifest camera preset once and permit one correction"
@@ -427,6 +496,8 @@ def on_post_tool_call(**kwargs: Any) -> None:
             blender_handoff_ready=False,
             blender_set_dressing_ready=False,
             blender_render_ready=False,
+            blender_asset_retry_count=0,
+            blender_asset_deployment_blocked=False,
             comfy_preflight_ready=False,
             workflow_phase="rhino",
         )
@@ -462,6 +533,12 @@ def on_post_tool_call(**kwargs: Any) -> None:
         state["saved"] = True
     elif tool == "mcp_blender_execute_blender_code":
         code = str(args.get("code") or "")
+        if any(marker in result for marker in (
+            "fixed placement size verification failed",
+            "VP_SET_DRESSING_FAIL",
+            "asset has no approved fixed placement spec",
+        )):
+            state["blender_asset_deployment_blocked"] = True
         if "VP_HANDOFF_PASS" in result or (
             _BLENDER_CURRENT_HANDOFF_RE.search(code) and "VP_HANDOFF_READY" in result
         ):
@@ -470,6 +547,8 @@ def on_post_tool_call(**kwargs: Any) -> None:
             state["blender_camera_retries"] = 0
             state["blender_visual_reviews"] = 0
             state["blender_render_ready"] = False
+            state["blender_asset_retry_count"] = 0
+            state["blender_asset_deployment_blocked"] = False
             state["comfy_preflight_ready"] = False
             state["workflow_phase"] = "blender"
         if "VP_SET_DRESSING_PASS" in result:
@@ -480,9 +559,8 @@ def on_post_tool_call(**kwargs: Any) -> None:
             and state["blender_set_dressing_ready"]
         ):
             state["blender_render_ready"] = True
-    elif tool in {"terminal", "execute_code"}:
-        command = str(args.get("command") or args.get("code") or "")
-        if _COMFYUI_HELPER_COMMAND_RE.fullmatch(command):
+    elif tool == "terminal":
+        if _comfyui_helper_command(args):
             if "COMFY_PREFLIGHT_PASS" in result:
                 state["comfy_preflight_ready"] = True
                 state["workflow_phase"] = "comfy"

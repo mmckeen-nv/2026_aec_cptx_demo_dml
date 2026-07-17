@@ -47,6 +47,8 @@ class SetupTests(unittest.TestCase):
         self.assertIn("demos\\virtual_production_studio", launcher)
         self.assertIn("Test-RTX-Pro-Preflight.ps1", launcher)
         self.assertIn("AEC_DEMO_ID = 'vp-studio-01'", launcher)
+        self.assertNotIn("-SkipComfyUI", launcher)
+        self.assertIn("SDXL depth -> FLUX.2 Klein", launcher)
 
     def test_rtx_preflight_requires_mcp_and_isolated_dml(self):
         preflight = (REPO_ROOT / "deployment" / "rtx-pro-profile" / "Test-RTX-Pro-Preflight.ps1").read_text()
@@ -61,6 +63,10 @@ class SetupTests(unittest.TestCase):
         self.assertIn("ProfileName = 'rtx_pro'", preflight)
         self.assertIn("DmlStoreName = 'vp-studio-01-runtime-store'", preflight)
         self.assertIn("RhinoTemplatePath", preflight)
+        self.assertIn("ComfyUI SDXL + FLUX.2 model set", preflight)
+        self.assertIn("flux-2-klein-base-4b-fp8.safetensors", preflight)
+        self.assertIn("qwen_3_4b.safetensors", preflight)
+        self.assertIn("flux2-vae.safetensors", preflight)
 
     def test_vp_studio_uses_datum_template_without_interactive_new(self):
         demo = REPO_ROOT / "demos" / "virtual_production_studio"
@@ -329,9 +335,22 @@ class SetupTests(unittest.TestCase):
     def test_vllm_launcher_repairs_network_and_waits_noninteractively(self):
         launcher = (REPO_ROOT / "deployment" / "wsl-vllm" / "start_vllm.bat").read_text()
         self.assertIn("docker network connect bridge", launcher)
+        self.assertIn("docker update --restart no", launcher)
+        self.assertIn("call :start_model vllm-qwen36 8000 chat", launcher)
+        self.assertIn("call :start_model vllm-nemotron-vision 8001 vision", launcher)
+        self.assertLess(
+            launcher.index("call :start_model vllm-qwen36 8000 chat"),
+            launcher.index("call :start_model vllm-nemotron-vision 8001 vision"),
+        )
+        self.assertIn("exited while loading", launcher)
         self.assertIn("--no-pause", launcher)
         self.assertIn("ping.exe -n 6", launcher)
         self.assertNotIn("timeout /t 5", launcher)
+
+        for script_name in ("run-vllm-qwen36.sh", "run-vllm-nemotron-vision.sh"):
+            model_script = (REPO_ROOT / "deployment" / "wsl-vllm" / script_name).read_text()
+            self.assertIn("--restart no", model_script)
+            self.assertIn('docker update --restart no "$NAME"', model_script)
 
     def test_bac_launcher_starts_vllm_when_endpoints_are_down(self):
         launcher = (REPO_ROOT / "deployment" / "bac-teapot-profile" / "Start-BAC_Teapot.ps1").read_text()

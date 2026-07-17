@@ -76,6 +76,18 @@ class VpExecutionRailsTests(unittest.TestCase):
                 tool_name="terminal", args={"command": command}
             ))
 
+        wrapped = (
+            "cd C:/Users/test/2026_aec_cptx_demo_dml/"
+            "demos/virtual_production_studio && "
+            "python skills/comfyui_vp_stylize.py --dry-run"
+        )
+        self.assertIsNone(self.rails.on_pre_tool_call(
+            tool_name="terminal", args={"command": wrapped}
+        ))
+        self.assertIsNone(self.rails.on_pre_tool_call(
+            tool_name="terminal", args={"cmd": "python skills/comfyui_vp_stylize.py"}
+        ))
+
         for command in (
             "curl http://127.0.0.1:8188/object_info",
             "python build_comfy_workflow.py",
@@ -173,7 +185,7 @@ class VpExecutionRailsTests(unittest.TestCase):
         )
         self.assertEqual("block", blocked["action"])
 
-    def test_only_allows_manifest_camera_helper_and_one_correction(self):
+    def test_only_allows_atomic_manifest_camera_helper_without_preconsuming_retries(self):
         direct = self.rails.on_pre_tool_call(
             tool_name="mcp_blender_execute_blender_code",
             args={"code": "cam.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()"},
@@ -182,7 +194,7 @@ class VpExecutionRailsTests(unittest.TestCase):
         approved = (
             "skill='skills/blender_vp_production.py'; "
             "vp.apply_required_set_dressing(root); "
-            "vp.setup_beauty_camera(); vp.render_preview(path)"
+            "vp.render_beauty_preview(root)"
         )
         self.assertIsNone(self.rails.on_pre_tool_call(
             tool_name="mcp_blender_execute_blender_code", args={"code": approved}
@@ -193,7 +205,8 @@ class VpExecutionRailsTests(unittest.TestCase):
         third = self.rails.on_pre_tool_call(
             tool_name="mcp_blender_execute_blender_code", args={"code": approved}
         )
-        self.assertEqual("block", third["action"])
+        self.assertIsNone(third)
+        self.assertEqual(0, self.rails._STATE["test-run"]["blender_camera_retries"])
 
     def test_limits_blender_visual_reviews(self):
         for _ in range(3):
@@ -290,6 +303,33 @@ class VpExecutionRailsTests(unittest.TestCase):
             )
             self.assertEqual("block", blocked["action"])
 
+        wrong_directory = (
+            "cd C:/Users/test/Desktop && "
+            "python skills/comfyui_vp_stylize.py --dry-run"
+        )
+        blocked = self.rails.on_pre_tool_call(
+            tool_name="terminal", args={"command": wrong_directory}
+        )
+        self.assertEqual("block", blocked["action"])
+        blocked = self.rails.on_pre_tool_call(
+            tool_name="execute_code", args={"code": "python skills/comfyui_vp_stylize.py"}
+        )
+        self.assertEqual("block", blocked["action"])
+
+    def test_blocks_blender_host_termination(self):
+        for code in (
+            "raise SystemExit('diagnostic failed')",
+            "import sys; sys.exit('no tripod')",
+            "quit()",
+            "exit('done')",
+            "bpy.ops.wm.quit_blender()",
+        ):
+            blocked = self.rails.on_pre_tool_call(
+                tool_name="mcp_blender_execute_blender_code", args={"code": code}
+            )
+            self.assertEqual("block", blocked["action"])
+            self.assertIn("never terminate the Blender host", blocked["message"])
+
     def test_allows_checked_in_blender_3dm_importer(self):
         allowed = self.rails.on_pre_tool_call(
             tool_name="mcp_blender_execute_blender_code",
@@ -327,7 +367,7 @@ class VpExecutionRailsTests(unittest.TestCase):
     def test_requires_set_dressing_receipt_before_camera_and_render(self):
         approved_camera = (
             "skill='skills/blender_vp_production.py'; "
-            "vp.setup_beauty_camera(); vp.render_preview(path)"
+            "vp.render_beauty_preview(root)"
         )
         blocked = self.rails.on_pre_tool_call(
             tool_name="mcp_blender_execute_blender_code",
@@ -384,6 +424,10 @@ class VpExecutionRailsTests(unittest.TestCase):
                 tool_name="mcp_blender_execute_blender_code", args={"code": code}
             )
             self.assertEqual("block", blocked["action"])
+            # Keep this test focused on the individual prohibition; retry
+            # exhaustion is covered by test_stops_repeated_unapproved_asset_retries.
+            self.rails._STATE["test-run"]["blender_asset_retry_count"] = 0
+            self.rails._STATE["test-run"]["blender_asset_deployment_blocked"] = False
 
         approved = (
             "skill='skills/blender_vp_production.py'; "
@@ -402,6 +446,47 @@ class VpExecutionRailsTests(unittest.TestCase):
         )
         self.assertEqual("block", blocked["action"])
         self.assertIn("bare C-stand", blocked["message"])
+
+    def test_stops_repeated_unapproved_asset_retries(self):
+        code = "obj.scale = (0.01, 0.01, 0.01)"
+        first = self.rails.on_pre_tool_call(
+            tool_name="mcp_blender_execute_blender_code", args={"code": code}
+        )
+        self.assertEqual("block", first["action"])
+        second = self.rails.on_pre_tool_call(
+            tool_name="mcp_blender_execute_blender_code", args={"code": code}
+        )
+        self.assertEqual("block", second["action"])
+        self.assertIn("retry budget exhausted", second["message"])
+        approved = (
+            "skill='skills/blender_vp_production.py'; "
+            "vp.place_cached_asset(root, 'roadcase_thomas_kole', 'ROAD_CASE_01')"
+        )
+        blocked = self.rails.on_pre_tool_call(
+            tool_name="mcp_blender_execute_blender_code", args={"code": approved}
+        )
+        self.assertEqual("block", blocked["action"])
+        self.assertIn("asset deployment is blocked", blocked["message"])
+
+    def test_stops_retries_after_fixed_placement_failure_receipt(self):
+        code = (
+            "skill='skills/blender_vp_production.py'; "
+            "vp.apply_required_set_dressing(root)"
+        )
+        self.assertIsNone(self.rails.on_pre_tool_call(
+            tool_name="mcp_blender_execute_blender_code", args={"code": code}
+        ))
+        self.rails.on_post_tool_call(
+            tool_name="mcp_blender_execute_blender_code",
+            args={"code": code},
+            status="ok",
+            result={"error": "fixed placement size verification failed for camera_tripod_silver_key"},
+        )
+        blocked = self.rails.on_pre_tool_call(
+            tool_name="mcp_blender_execute_blender_code", args={"code": code}
+        )
+        self.assertEqual("block", blocked["action"])
+        self.assertIn("asset deployment is blocked", blocked["message"])
 
     def test_requires_template_open_and_resets_mutation_state(self):
         self.rails._STATE.clear()

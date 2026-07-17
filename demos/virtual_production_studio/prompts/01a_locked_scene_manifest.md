@@ -184,11 +184,11 @@ tripod footprint 48 in diameter, nominal lens/eye Z 66 in unless stated.
 
 | Camera | Fixed mark / envelope | Exact requirement |
 |---|---|---|
-| CAM_A_HERO_TRACKED | lens point (-120,-420,66) | aimed at (-120,-60,72); 24-35 mm note |
-| CAM_B_DOLLY_TRACKED | path X -360..120 at Y -480, Z 0 | exactly 480 in long; lens Z 66; 35-50 mm note |
+| CAM_A_HERO_TRACKED | lens point (-480,-420,66) | aimed at (-120,60,72); 24-35 mm note |
+| CAM_B_DOLLY_TRACKED | path X -120..360 at Y -540, Z 0; home (120,-540,66) | exactly 480 in long; aimed at (-120,60,72); 35-50 mm note |
 | CAM_C_CRANE_TRACKED | base (360,-240,0) | 300 in swept radius; boom proxy 240 in |
 | CAM_D_HANDHELD_TRACKED | X -600..-360, Y -360..-120 | operating-zone outline only; no fixed tripod |
-| CAM_E_WITNESS | lens point (600,-540,120) | aimed at (-120,0,72); fixed wide view |
+| CAM_E_WITNESS | lens point (600,-420,66) | aimed at (-120,60,72); fixed wide view |
 | CAM_F_CONTROL_ROOM | lens point (750,684,66) | aimed at (-120,0,72); behind control glazing |
 
 Movement envelopes are named curves/surfaces, not opaque solids. Furniture,
@@ -218,7 +218,7 @@ Six operator chairs, each maximum **24 W x 24 D x 42 H in**, centers:
 
 ### Crew review chairs
 
-Twelve movable chair proxies, each maximum **22 W x 22 D x 36 H in**. Centers:
+Twelve movable, human-scale chair proxies, each **24 W x 24 D x 42 H in**. Centers:
 
 ```text
 (-1008,330), (-936,330), (-864,330),
@@ -234,7 +234,7 @@ Twelve movable chair proxies, each maximum **22 W x 22 D x 36 H in**. Centers:
 - Six road cases, each 48 x 24 x 30 in, centers:
   `(-1008,-408)`, `(-912,-408)`, `(-816,-408)`,
   `(-1008,-324)`, `(-912,-324)`, `(-816,-324)`.
-- Dolly base: 60 x 36 x 12 in, centered on CAM_B at `(-120,-480)`.
+- Dolly base: 60 x 36 x 12 in, centered on CAM_B at `(120,-540)`.
 - Crane base maximum: 72 x 72 x 24 in, centered at `(360,-240)`.
 - Two calibration targets: 48 W x 6 D x 72 H in, stored at
   `(588,456)` and `(648,456)` when not deployed.
@@ -247,10 +247,10 @@ talent zone and fixed camera-movement envelopes.
 
 | Proxy | Center (in) | Maximum size (in) | Blender role |
 |---|---:|---:|---|
-| STAGE_DIRECTOR_CHAIR_01 | (-600,-300,0) | 22 x 22 x 36 | production seating |
-| STAGE_DIRECTOR_CHAIR_02 | (600,-300,0) | 22 x 22 x 36 | production seating |
+| STAGE_DIRECTOR_CHAIR_01 | (-420,-60,0) | 24 x 24 x 42 | production seating |
+| STAGE_DIRECTOR_CHAIR_02 | (540,60,0) | 24 x 24 x 42 | production seating |
 | HERO_ROAD_CASE_01 | (-600,-420,0) | 48 x 24 x 30 | stage-edge road case |
-| HERO_ROAD_CASE_02 | (600,-420,0) | 48 x 24 x 30 | stage-edge road case |
+| HERO_ROAD_CASE_02 | (636,-60,0) | 48 x 24 x 30 | stage-edge road case |
 | FLOOR_LIGHT_01 | (-660,-120,0) | 24 x 24 x 72 | complete LED soft-panel stand |
 | FLOOR_LIGHT_02 | (660,-120,0) | 24 x 24 x 72 | complete LED soft-panel stand |
 | SERVER_RACK_01 | (786,390,0) | 24 x 42 x 84 | media-server rack |

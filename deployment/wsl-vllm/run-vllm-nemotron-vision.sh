@@ -63,6 +63,7 @@ if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
         docker rm -f "$NAME"
     else
         echo "[run-vllm-nemotron-vision] Container '$NAME' already exists, starting it..."
+        docker update --restart no "$NAME" >/dev/null
         docker start "$NAME"
         echo "[run-vllm-nemotron-vision] Started. Poll http://localhost:${PORT}/v1/models until it returns 200."
         exit 0
@@ -71,6 +72,7 @@ fi
 
 echo "[run-vllm-nemotron-vision] Creating and starting '$NAME'..."
 docker run -d --name "$NAME" \
+  --restart no \
   --gpus all \
   --shm-size=64m \
   --ipc=private \
