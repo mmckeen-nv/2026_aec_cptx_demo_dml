@@ -169,23 +169,7 @@ def _verify_pool_scene():
     return actual
 
 
-def add_pool_assets(root, reset=True):
-    """Place the approved pool set into locked, measured HERO-scene zones."""
-    bpy = _bpy()
-    _audit()
-    water_bounds = _verify_pool_scene()
-    if reset:
-        _remove_pool_collection()
-    elif bpy.data.collections.get(POOL_COLLECTION):
-        raise RuntimeError("BAC_POOL_ASSETS_FAIL collection already exists; call with reset=True")
-    collection = bpy.data.collections.new(POOL_COLLECTION)
-    bpy.context.scene.collection.children.link(collection)
-    asset_dir = Path(root).resolve() / "demos" / "teapot" / "hero" / "assets" / "pool"
-    results = []
-    for placement in POOL_PLACEMENTS:
-        anchor, objects, bounds = _append_pool_placement(asset_dir, collection, placement)
-        results.append((placement, anchor, objects, bounds))
-
+def _validate_pool_placements(results, water_bounds):
     water_min, water_max = water_bounds
     for placement, _anchor, _objects, bounds in results:
         if placement["category"] == "float":
@@ -197,17 +181,80 @@ def add_pool_assets(root, reset=True):
         elif placement["category"] == "furniture" and bounds[0][1] <= water_max[1] + 0.00050:
             raise RuntimeError("BAC_POOL_ASSETS_FAIL furniture not on north patio: {}".format(bounds))
 
+
+def _append_categories(root, collection, categories, water_bounds):
+    asset_dir = Path(root).resolve() / "demos" / "teapot" / "hero" / "assets" / "pool"
+    results = []
+    for placement in POOL_PLACEMENTS:
+        if placement["category"] in categories:
+            anchor, objects, bounds = _append_pool_placement(asset_dir, collection, placement)
+            results.append((placement, anchor, objects, bounds))
+    _validate_pool_placements(results, water_bounds)
+    return results
+
+
+def _save_working(root):
     working = _hero_working_copy(root)
-    bpy.ops.wm.save_as_mainfile(filepath=str(working))
+    _bpy().ops.wm.save_as_mainfile(filepath=str(working))
+    return working
+
+
+def add_pool_floaties(root, reset=True):
+    """Audience-gated stage 1: place only the ring and flamingo in the water."""
+    bpy = _bpy()
+    _audit()
+    water_bounds = _verify_pool_scene()
+    if reset:
+        _remove_pool_collection()
+    elif bpy.data.collections.get(POOL_COLLECTION):
+        raise RuntimeError("BAC_POOL_ASSETS_FAIL collection already exists; call with reset=True")
+    collection = bpy.data.collections.new(POOL_COLLECTION)
+    bpy.context.scene.collection.children.link(collection)
+    _append_categories(root, collection, {"float"}, water_bounds)
+    collection["bac_pool_stage"] = "floaties"
+    working = _save_working(root)
     receipt = (
-        "BAC_POOL_ASSETS_PASS floats=2 chairs=3 furniture=1 scene_scale=0.001 "
+        "BAC_POOL_FLOATIES_PASS floats=2 chairs=0 furniture=0 scene_scale=0.001 "
         "pool_x=-0.006503..-0.002648 pool_y=-0.011500..0.001001 working_copy={}"
     ).format(working)
     print(receipt)
     return receipt
 
 
-def open_verified_hero(root):
+def add_pool_furniture(root):
+    """Audience-gated stage 2: add loungers and dining set after floaties."""
+    bpy = _bpy()
+    _audit()
+    water_bounds = _verify_pool_scene()
+    collection = bpy.data.collections.get(POOL_COLLECTION)
+    if collection is None or collection.get("bac_pool_stage") != "floaties":
+        raise RuntimeError(
+            "BAC_POOL_FURNITURE_STOP floaties stage must pass first; wait for a separate user request"
+        )
+    anchors = {obj.name for obj in collection.objects if obj.type == "EMPTY"}
+    expected_floaties = {"BAC_POOL_FLOAT_RING", "BAC_POOL_POOL_FLAMINGO"}
+    if not expected_floaties.issubset(anchors):
+        raise RuntimeError("BAC_POOL_FURNITURE_FAIL missing validated floaties: {}".format(sorted(anchors)))
+    _append_categories(root, collection, {"chair", "furniture"}, water_bounds)
+    collection["bac_pool_stage"] = "complete"
+    working = _save_working(root)
+    receipt = (
+        "BAC_POOL_FURNITURE_PASS floats=2 chairs=3 furniture=1 scene_scale=0.001 "
+        "working_copy={}"
+    ).format(working)
+    print(receipt)
+    return receipt
+
+
+def add_pool_assets(root, reset=True):
+    raise RuntimeError(
+        "BAC_POOL_ASSETS_STOP all-at-once placement is prohibited; wait for the user, call "
+        "add_pool_floaties(root, reset=True), render/stylize, stop again, then call "
+        "add_pool_furniture(root) only after a second user request"
+    )
+
+
+def open_verified_hero(root, reset=False):
     bpy = _bpy()
     master = _hero_master(root)
     working = _hero_working_copy(root)
@@ -217,7 +264,7 @@ def open_verified_hero(root):
     if digest != MASTER_SHA256:
         raise RuntimeError("BAC_HERO_MASTER_FAIL sha256={} expected={}".format(digest, MASTER_SHA256))
     current = Path(bpy.data.filepath).resolve() if bpy.data.filepath else None
-    if current != working.resolve():
+    if reset or current != working.resolve():
         working.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(master, working)
         bpy.ops.wm.open_mainfile(filepath=str(working))
@@ -258,8 +305,10 @@ def render_hero(root, camera_name=DEFAULT_CAMERA, filename="bac_teapot_hero_sour
         raise RuntimeError("BAC_HERO_RENDER_FAIL missing/undersized output: " + str(output))
     lane_marker = Path(root).resolve() / "demos" / "teapot" / "work" / "active_render_lane.txt"
     lane_marker.parent.mkdir(parents=True, exist_ok=True)
-    lane_marker.write_text("bac_hero\n{}\n".format(output), encoding="utf-8")
-    receipt = "BAC_HERO_RENDER_PASS camera={} output={} bytes={}".format(
-        camera_name, output, output.stat().st_size)
+    pool = bpy.data.collections.get(POOL_COLLECTION)
+    stage = pool.get("bac_pool_stage", "base") if pool else "base"
+    lane_marker.write_text("bac_hero\n{}\n{}\n".format(output, stage), encoding="utf-8")
+    receipt = "BAC_HERO_RENDER_PASS camera={} stage={} output={} bytes={}".format(
+        camera_name, stage, output, output.stat().st_size)
     print(receipt)
     return receipt

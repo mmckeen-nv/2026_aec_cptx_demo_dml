@@ -17,7 +17,7 @@ root=os.environ["AEC_DEMO_ROOT"]
 path=os.path.join(root,"demos","teapot","skills","blender_bac_hero.py")
 spec=importlib.util.spec_from_file_location("bac_hero",path)
 hero=importlib.util.module_from_spec(spec);spec.loader.exec_module(hero)
-print(hero.open_verified_hero(root))
+print(hero.open_verified_hero(root, reset=True))
 print(hero.render_hero(root,camera_name="Camera_day"))
 ```
 
@@ -34,12 +34,14 @@ allowed only in the working copy.
 For another existing angle, call `hero.list_cameras()` and then
 `hero.render_hero(root,camera_name="<exact returned name>")` once.
 
-## Explicit pool-assets interaction
+After this base render, run the checked-in Comfy wrapper once, report the base
+artifact, and **STOP**. Do not add any pool asset until the user asks.
 
-When the user says **"Let's add the pool assets to the pool area"** (including
-the longer request naming the float ring, flamingo, chairs, and outdoor
-furniture), do not discover coordinates, inspect the asset files, or append
-objects manually. Reload the same helper inside Blender MCP and run exactly:
+## STOP GATE A - Floaties only
+
+Release this stage only after a new user turn explicitly asks to **add the
+floaties**, float ring, or flamingo. Do not interpret the earlier request to
+open/render the HERO house as authorization. Reload the helper and run exactly:
 
 ```python
 import os, importlib.util
@@ -47,28 +49,46 @@ root=os.environ["AEC_DEMO_ROOT"]
 path=os.path.join(root,"demos","teapot","skills","blender_bac_hero.py")
 spec=importlib.util.spec_from_file_location("bac_hero",path)
 hero=importlib.util.module_from_spec(spec);spec.loader.exec_module(hero)
-print(hero.add_pool_assets(root, reset=True))
-print(hero.render_hero(root,camera_name="Cam_Shot_A",filename="bac_teapot_pool_assets.png"))
+print(hero.add_pool_floaties(root, reset=True))
+print(hero.render_hero(root,camera_name="Cam_Shot_A",filename="bac_teapot_pool_floaties.png"))
 ```
 
-Require `BAC_POOL_ASSETS_PASS floats=2 chairs=3 furniture=1` followed by
-`BAC_HERO_RENDER_PASS camera=Cam_Shot_A`. The helper has measured the live HERO
-scene and locks these semantic zones:
+Require `BAC_POOL_FLOATIES_PASS floats=2 chairs=0 furniture=0` followed by
+`BAC_HERO_RENDER_PASS camera=Cam_Shot_A stage=floaties`. Run the Comfy wrapper;
+it automatically selects the floaties-only prompt and unique output names.
+Report that artifact and **STOP**. Do not add chairs or furniture in this turn.
 
-- pool water: numerical X `-0.006503..-0.002648`, Y
-  `-0.011500..0.001001`, water Z approximately `0.00050`;
-- float ring and flamingo: inside that water rectangle;
+The helper locks the float ring and flamingo inside the measured pool water at
+numerical X `-0.006503..-0.002648`, Y `-0.011500..0.001001`, Z approximately
+`0.00050`. It applies the required 1:1000 conversion and verifies both hashes.
+
+## STOP GATE B - Other pool assets
+
+Release this stage only after a later, separate user turn explicitly asks to
+**add the other pool assets**, chairs, loungers, or outdoor furniture. The
+validated floaties collection must already exist. Run exactly:
+
+```python
+import os, importlib.util
+root=os.environ["AEC_DEMO_ROOT"]
+path=os.path.join(root,"demos","teapot","skills","blender_bac_hero.py")
+spec=importlib.util.spec_from_file_location("bac_hero",path)
+hero=importlib.util.module_from_spec(spec);spec.loader.exec_module(hero)
+print(hero.add_pool_furniture(root))
+print(hero.render_hero(root,camera_name="Cam_Shot_A",filename="bac_teapot_pool_complete.png"))
+```
+
+Require `BAC_POOL_FURNITURE_PASS floats=2 chairs=3 furniture=1` followed by
+`BAC_HERO_RENDER_PASS camera=Cam_Shot_A stage=complete`. This stage adds only:
+
 - three normal-size beach loungers: east pool deck, facing the water and clear
   of its edge;
 - `OutdoorFurniture1`: north patio near the pool, outside both water and the
   lounger lane.
 
-The HERO geometry is stored at a numerical 1:1000 scale relative to the source
-assets. Only the helper may apply that conversion. Never use the source asset
-coordinates, Blender's automatic unit interpretation, arbitrary scaling, or
-visual guesswork. The helper verifies all six asset hashes, rejects changed
-pool bounds, validates each placement zone, saves only the working copy, and
-leaves the immutable HERO master unchanged.
+Never call `add_pool_floaties` and `add_pool_furniture` in one turn. Never call
+the disabled `add_pool_assets` all-at-once function. Only the helper may apply
+source coordinates, hashes, unit conversion, placement, or scale.
 
 Only after a valid HERO render should ComfyUI be considered. This prompt is the
 authoritative BAC HERO cookbook; do not substitute the Cliff House or VP source.
@@ -83,8 +103,10 @@ python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_bac_hero.py" --dry-run
 python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_bac_hero.py"
 ```
 
-The wrapper process may exit normally; Blender must remain running on port 9876.
+The wrapper reads the third line of the render-lane marker (`base`, `floaties`,
+or `complete`) and selects a stage-specific editable prompt and output filename.
+The process may exit normally; Blender must remain running on port 9876.
 It uses the approved SDXL depth stage followed by FLUX.2 Klein reference
 refinement. Require `COMFY_SDXL_OUTPUT_PASS`, `COMFY_FLUX_OUTPUT_PASS`, and
-`COMFY_OUTPUT_PASS stage=sdxl+flux`; the final artifact is
-`demos/teapot/hero/comfy_output/bac_teapot_hero_stylized.png`.
+`COMFY_OUTPUT_PASS stage=sdxl+flux`. Never reuse a previous stage's image as the
+current result.

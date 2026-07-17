@@ -132,7 +132,7 @@ class TeapotQuickDemoTests(unittest.TestCase):
         plugin = (ROOT / "deployment" / "plugins" / "teapot_execution_rails" / "__init__.py").read_text(encoding="utf-8")
         for text in (transition, interaction, plugin):
             self.assertIn("demos/teapot/hero/BAC_TEAPOT_HERO.blend", text)
-        self.assertIn("hero.open_verified_hero(root)", transition)
+        self.assertIn("hero.open_verified_hero(root, reset=True)", transition)
         self.assertIn("ComfyUI never runs inside Blender MCP", transition)
         self.assertIn("comfyui_bac_hero.py", transition)
         self.assertIn("COMFY_FLUX_OUTPUT_PASS", transition)
@@ -152,14 +152,18 @@ class TeapotQuickDemoTests(unittest.TestCase):
         ):
             self.assertIn(token, bac_helper)
         bac_wrapper = (TEAPOT / "skills" / "comfyui_bac_hero.py").read_text(encoding="utf-8")
-        self.assertIn("bac_teapot_hero_sdxl.png", bac_wrapper)
-        self.assertIn("bac_teapot_hero_stylized.png", bac_wrapper)
+        self.assertIn("bac_teapot_hero_base_stylized.png", bac_wrapper)
+        self.assertIn("bac_teapot_hero_floaties_stylized.png", bac_wrapper)
+        self.assertIn("bac_teapot_hero_complete_stylized.png", bac_wrapper)
+        self.assertIn('"base": ("comfy_style_prompt_base.txt"', bac_wrapper)
+        self.assertIn('"floaties": ("comfy_style_prompt_floaties.txt"', bac_wrapper)
+        self.assertIn('"floaties": ("comfy_style_prompt_floaties.txt", "bac_teapot_hero_floaties_sdxl.png", "bac_teapot_hero_floaties_stylized.png", "314")', bac_wrapper)
         self.assertIn("COMFY_SOURCE_PASS lane=bac_hero", bac_wrapper)
         self.assertIn("render_root not in source.parents", bac_wrapper)
         self.assertIn('marker_lines[1].strip()', bac_wrapper)
         self.assertIn('"--denoise", "0.18"', bac_wrapper)
         self.assertIn('"--flux-cfg", "3.5"', bac_wrapper)
-        self.assertIn('"--seed", "126"', bac_wrapper)
+        self.assertIn('"--seed", seed', bac_wrapper)
         hero_prompt = (TEAPOT / "hero" / "user_prompts" / "comfy_style_prompt.txt").read_text(encoding="utf-8")
         self.assertIn("circular magenta float", hero_prompt)
         self.assertIn("ring with a clearly open center", hero_prompt)
@@ -171,9 +175,15 @@ class TeapotQuickDemoTests(unittest.TestCase):
 
         teapot_wrapper = (TEAPOT / "skills" / "comfyui_teapot.py").read_text(encoding="utf-8")
         self.assertIn("comfyui_vp_stylize.py", teapot_wrapper)
-        self.assertIn("teapot_sdxl.png", teapot_wrapper)
-        self.assertIn("teapot_stylized.png", teapot_wrapper)
+        self.assertIn("STYLE_PROMPTS", teapot_wrapper)
+        self.assertIn("neon_noir", teapot_wrapper)
+        self.assertIn("botanical_porcelain", teapot_wrapper)
+        self.assertIn("molten_metal", teapot_wrapper)
+        self.assertIn('lines[1].strip()', teapot_wrapper)
+        self.assertIn('output_key + "_stylized.png"', teapot_wrapper)
         self.assertTrue((TEAPOT / "user_prompts" / "comfy_style_prompt.txt").is_file())
+        for style in ("neon_noir", "botanical_porcelain", "molten_metal"):
+            self.assertTrue((TEAPOT / "user_prompts" / "comfy_styles" / (style + ".txt")).is_file())
 
     def test_teapot_rails_block_blender_host_exit_but_allow_comfy_wrapper(self):
         import importlib.util
@@ -199,6 +209,21 @@ class TeapotQuickDemoTests(unittest.TestCase):
                 args={"code": "bpy.ops.wm.save_as_mainfile(filepath='demos/teapot/hero/BAC_TEAPOT_HERO.blend')"},
             )
             self.assertEqual(master_save["action"], "block")
+            all_at_once = rails.on_pre_tool_call(
+                tool_name="mcp_blender_execute_blender_code",
+                args={"code": "hero.add_pool_assets(root, reset=True)"},
+            )
+            self.assertEqual(all_at_once["action"], "block")
+            combined = rails.on_pre_tool_call(
+                tool_name="mcp_blender_execute_blender_code",
+                args={"code": "hero.add_pool_floaties(root, reset=True); hero.add_pool_furniture(root)"},
+            )
+            self.assertEqual(combined["action"], "block")
+            floaties_only = rails.on_pre_tool_call(
+                tool_name="mcp_blender_execute_blender_code",
+                args={"code": "hero.add_pool_floaties(root, reset=True)"},
+            )
+            self.assertIsNone(floaties_only)
             allowed = rails.on_pre_tool_call(
                 tool_name="terminal",
                 args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_bac_hero.py"'},
@@ -209,6 +234,16 @@ class TeapotQuickDemoTests(unittest.TestCase):
                 args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py"'},
             )
             self.assertIsNone(teapot_allowed)
+            style_allowed = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py" --style neon_noir --dry-run'},
+            )
+            self.assertIsNone(style_allowed)
+            style_blocked = rails.on_pre_tool_call(
+                tool_name="terminal",
+                args={"command": 'python "$AEC_DEMO_ROOT/demos/teapot/skills/comfyui_teapot.py" --style invented'},
+            )
+            self.assertEqual(style_blocked["action"], "block")
             native_root = str(Path(temp.name).resolve())
             msys_root = "/" + native_root.replace("\\", "/")[0].lower() + native_root.replace("\\", "/")[2:]
             msys_allowed = rails.on_pre_tool_call(
@@ -286,10 +321,15 @@ class TeapotQuickDemoTests(unittest.TestCase):
         )
         for token in (
             "def add_pool_assets",
+            "def add_pool_floaties",
+            "def add_pool_furniture",
             'POOL_COLLECTION = "BAC_POOL_ASSETS"',
             'POOL_WATER_OBJECT = "water_surface_new"',
             "POOL_SCENE_SCALE = 0.001",
-            "BAC_POOL_ASSETS_PASS floats=2 chairs=3 furniture=1",
+            "BAC_POOL_FLOATIES_PASS floats=2 chairs=0 furniture=0",
+            "BAC_POOL_FURNITURE_PASS floats=2 chairs=3 furniture=1",
+            "BAC_POOL_ASSETS_STOP all-at-once placement is prohibited",
+            "floaties stage must pass first; wait for a separate user request",
             '"category": "float"',
             '"category": "chair"',
             '"category": "furniture"',
@@ -297,11 +337,18 @@ class TeapotQuickDemoTests(unittest.TestCase):
             "furniture not on north patio",
         ):
             self.assertIn(token, helper)
-        for text in (prompt, phase, rails):
-            self.assertIn("add_pool_assets(root, reset=True)", text)
-            self.assertIn("BAC_POOL_ASSETS_PASS", text)
+        for text in (prompt, phase):
+            self.assertIn("add_pool_floaties(root, reset=True)", text)
+            self.assertIn("add_pool_furniture(root)", text)
+            self.assertIn("BAC_POOL_FLOATIES_PASS", text)
+            self.assertIn("BAC_POOL_FURNITURE_PASS", text)
             self.assertIn("Cam_Shot_A", text)
-        self.assertIn("Let's add the pool assets to the pool area", prompt)
+            self.assertIn("STOP", text)
+        for token in ("add_pool_floaties", "add_pool_furniture", "BAC_POOL_FLOATIES_PASS",
+                      "BAC_POOL_FURNITURE_PASS", "STOP", "_POOL_ALL_AT_ONCE"):
+            self.assertIn(token, rails)
+        self.assertIn("add the\nfloaties", prompt)
+        self.assertIn("add the other pool assets", prompt)
         self.assertIn("1:1000", prompt)
         self.assertEqual(helper.count('"rotation": math.radians(270.0)'), 3)
 

@@ -1,0 +1,7 @@
+Photorealistic museum product photograph of the exact supplied Utah teapot as
+fine white porcelain with delicate cobalt-blue botanical glazing, subtle
+hand-painted leaves and flowers following the existing body surface, soft
+daylight, warm museum plinth, and quiet pale backdrop. Preserve the exact
+canonical teapot geometry, lid, handle, spout, proportions, camera, position,
+object count, and silhouette. Decoration is surface-only: no added flowers,
+plants, text, extra parts, warping, or duplicate geometry.

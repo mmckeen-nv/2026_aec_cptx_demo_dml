@@ -159,6 +159,8 @@ def _state(kwargs: Dict[str, Any]) -> Dict[str, Any]:
                 "phase_mutations": 0,
                 "correction_mutations": 0,
                 "review_started": False,
+                "slot_checked": False,
+                "document_path_checked": False,
                 "document_ready": False,
                 "numeric_pass": False,
                 "viewport_ready": False,
@@ -238,6 +240,10 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             "values), convert with ToBrep(), create ObjectAttributes before add, "
             "and treat every Objects.Add* result as Guid, never an integer index. "
             "Do not probe or substitute APIs. Any exception means zero progress. "
+            "The launcher normally already opened source/vp_studio_01_template.3dm: inspect the slot once, "
+            "do not reopen an exact active template, and never call open_doc twice. VP00_TEMPLATE_DATUMS "
+            "must retain exactly its four original guides; never copy guides or create GUIDE_/TEST_ scratch objects. "
+            "skills/session_state.md, prompts, rails, and helpers are immutable inputs; never rewrite progress into them. "
             "BLENDER HANDOFF: bake joined Rhino Mesh companions, save the .3dm, "
             "stay in the launcher-owned generic Blender scene, then load "
             "skills/blender_vp_production.py and call import_current_handoff(root, reset_scene=True). "
@@ -286,6 +292,9 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
             "graph, both queues, history polling, and download. "
             "Never use browser tools, Windows paths, curl, Invoke-RestMethod, handwritten JSON, "
             "or launch/install ComfyUI or models."
+            " END-TO-END TERMINAL CONTRACT: Rhino completion is intermediate, never final. Continue immediately "
+            "through handoff, Blender production, and ComfyUI. Only COMFY_OUTPUT_PASS stage=sdxl+flux is successful "
+            "terminal completion; otherwise report one real rail-defined blocker."
         )
     }
 
@@ -318,6 +327,23 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     }:
         return _block(f"{tool} is prohibited; preserve launcher-owned Rhino and use direct MCP APIs")
 
+    if tool == "mcp_rhino_open_doc":
+        if not state["slot_checked"]:
+            return _block(
+                "inspect mcp_rhino_list_slots exactly once before open_doc; the launcher normally already owns "
+                "the required document and blind open_doc calls duplicate template datums"
+            )
+        if not state["document_path_checked"]:
+            return _block(
+                "after list_slots, run one read-only mcp_rhino_run_python call that prints "
+                "ACTIVE_DOCUMENT_PATH + __rhino_doc__.Path before deciding whether open_doc is necessary"
+            )
+        if state["document_ready"]:
+            return _block(
+                "the launcher-owned VP document is already active; do not reopen it because repeated "
+                "open_doc calls duplicate template datums"
+            )
+
     if tool in {"mcp_cma_get_prompt", "mcp_daystrom_dml_get_prompt"}:
         return _block(
             "memory prompt lookup is not part of this demo; use mcp_cma_augment or mcp_daystrom_dml_query for advisory retrieval"
@@ -339,6 +365,11 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
                     "run python skills/comfyui_vp_stylize.py --dry-run first and require COMFY_PREFLIGHT_PASS"
                 )
             return None
+        if "session_state.md" in payload.lower():
+            return _block(
+                "skills/session_state.md is immutable during the demo; use validated receipts, "
+                "application checkpoints, and DML for progress continuity"
+            )
         if tool == "execute_code" and _COMFYUI_HELPER_COMMAND_RE.fullmatch(
             str(args.get("code") or "").strip()
         ):
@@ -427,6 +458,10 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if tool in {"patch", "write_file"}:
         path = str(args.get("path") or args.get("file_path") or args.get("filename") or "")
         normalized_path = path.replace("\\", "/").lower()
+        if normalized_path.endswith("skills/session_state.md"):
+            return _block(
+                "skills/session_state.md is immutable during the demo; do not author completion state into configuration"
+            )
         if normalized_path.endswith(".json") and (
             "comfy" in normalized_path or "workflow" in normalized_path
         ):
@@ -482,12 +517,41 @@ def on_post_tool_call(**kwargs: Any) -> None:
     if not _rhino_execution_succeeded(tool, raw_result):
         return
 
-    if tool == "mcp_rhino_open_doc":
+    normalized_result = re.sub(r"[\\/]+", "/", result.lower())
+    if tool == "mcp_rhino_list_slots":
+        state["slot_checked"] = True
+    elif tool == "mcp_rhino_run_python" and "active_document_path" in normalized_result:
+        state["document_path_checked"] = True
+        if any(
+            name in normalized_result
+            for name in ("vp_studio_01_template.3dm", "rhino/vp_studio_01.3dm")
+        ):
+            state.update(
+            total_mutations=0,
+            phase_mutations=0,
+            correction_mutations=0,
+            review_started=False,
+            numeric_pass=False,
+            viewport_ready=False,
+            vision_reviewed=False,
+            saved=True,
+            document_ready=True,
+            blender_handoff_ready=False,
+            blender_set_dressing_ready=False,
+            blender_render_ready=False,
+            blender_asset_retry_count=0,
+            blender_asset_deployment_blocked=False,
+            comfy_preflight_ready=False,
+            workflow_phase="rhino",
+            )
+    elif tool == "mcp_rhino_open_doc":
         state.update(
             total_mutations=0,
             phase_mutations=0,
             correction_mutations=0,
             review_started=False,
+            slot_checked=True,
+            document_path_checked=True,
             numeric_pass=False,
             viewport_ready=False,
             vision_reviewed=False,

@@ -1,22 +1,33 @@
-# BAC HERO pool-assets interaction
+# BAC HERO pool dressing - two audience gates
 
-Trigger only after the BAC HERO working scene is open and the user explicitly
-asks to add the pool assets. The canonical audience prompt is:
+The base BAC HERO render and Comfy result must exist before pool dressing.
+Opening the house does not authorize either stage below.
 
-> Let's add the pool assets to the pool area. Put the float ring and flamingo
-> into the actual pool, place the chairs around the pool, and place Outdoor
-> Furniture 1 near the pool.
+## STOP GATE A - Floaties
 
-Do not use Blender file discovery, manual append operations, generic transforms,
-or estimated coordinates. Load `skills/blender_bac_hero.py` through Blender MCP,
-call `add_pool_assets(root, reset=True)`, require
-`BAC_POOL_ASSETS_PASS floats=2 chairs=3 furniture=1`, then call
-`render_hero(root, camera_name="Cam_Shot_A",
-filename="bac_teapot_pool_assets.png")`.
+Wait for a new user turn such as:
 
-The tested helper treats the HERO scene as a measured site plan. It places two
-floating assets inside the exact water bounds, three normal-size loungers on
-the east deck facing the pool, and the dining/umbrella set on the north patio.
-It converts metre-authored assets to the HERO scene's 1:1000 numerical scale,
-validates the resulting bounds, and saves only the working copy. Stop after the
-render and wait for the next audience interaction.
+> Let's add the floaties to the pool.
+
+Only then call `add_pool_floaties(root, reset=True)`. Require
+`BAC_POOL_FLOATIES_PASS floats=2 chairs=0 furniture=0`, render
+`Cam_Shot_A` to `bac_teapot_pool_floaties.png`, run the stage-aware Comfy
+wrapper, report its floaties artifact, and **STOP**. Do not add loungers,
+chairs, tables, umbrellas, or other furniture.
+
+## STOP GATE B - Other assets
+
+Wait for another, later user turn such as:
+
+> Now add the other pool assets: the chairs and Outdoor Furniture 1.
+
+Only then call `add_pool_furniture(root)`. It must reject a scene without a
+validated floaties stage. Require
+`BAC_POOL_FURNITURE_PASS floats=2 chairs=3 furniture=1`, then render
+`Cam_Shot_A` to `bac_teapot_pool_complete.png`.
+
+Never call both stage functions in one turn and never call the disabled
+`add_pool_assets` function. Do not discover asset files, append manually,
+estimate transforms, or alter the immutable HERO master. The helper owns the
+six hashes, measured water/deck/patio zones, normal sizes, chair orientation,
+and required 1:1000 scene conversion.

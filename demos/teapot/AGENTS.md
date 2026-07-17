@@ -7,11 +7,12 @@ lane uses the immutable `hero/BAC_TEAPOT_HERO.blend`; do not use the standalone
 Cliff House HERO scene. The Cliff House and Virtual Production Studio demos
 keep their workflows unchanged.
 
-In the BAC HERO lane, the explicit request "Let's add the pool assets to the
-pool area" is handled only by `skills/blender_bac_hero.py:add_pool_assets`.
-That helper owns the verified pool, deck, and north-patio coordinates plus the
-required 1:1000 asset conversion. Never append, scale, or place those assets by
-eye.
+BAC HERO pool dressing has two mandatory audience gates. Only an explicit
+"add the floaties" request may call `add_pool_floaties`; render and stylize that
+stage, then stop. Only a later, separate "add the other pool assets" request may
+call `add_pool_furniture`. Never call both functions in one turn and never call
+the disabled all-at-once helper. The checked-in helper exclusively owns the
+verified pool, deck, north-patio coordinates, hashes, and 1:1000 conversion.
 
 At startup read, in order:
 
