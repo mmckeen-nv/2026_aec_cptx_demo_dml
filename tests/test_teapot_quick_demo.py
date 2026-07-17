@@ -292,6 +292,7 @@ class TeapotQuickDemoTests(unittest.TestCase):
             self.assertIn("Cam_Shot_A", text)
         self.assertIn("Let's add the pool assets to the pool area", prompt)
         self.assertIn("1:1000", prompt)
+        self.assertEqual(helper.count('"rotation": math.radians(270.0)'), 3)
 
         expected = {
             "beach_chair_v1.blend": "7c27fe5b19bd211a6736342636876993fb04d91690feba0c3d49993d9adc1f9e",

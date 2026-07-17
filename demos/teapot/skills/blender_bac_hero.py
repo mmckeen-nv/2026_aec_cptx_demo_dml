@@ -36,13 +36,13 @@ POOL_PLACEMENTS = (
      "category": "float"},
     # Loungers: east pool deck, long axis facing the water, clear of its edge.
     {"name": "BEACH_CHAIR_1", "file": "beach_chair_v1.blend", "objects": ("Beach_Chair_v1",),
-     "location": (-0.00140, -0.00850, 0.000520), "rotation": math.radians(90.0), "span": 0.00200,
+     "location": (-0.00140, -0.00850, 0.000520), "rotation": math.radians(270.0), "span": 0.00200,
      "category": "chair"},
     {"name": "BEACH_CHAIR_2", "file": "beach_chair_v2.blend", "objects": ("Beach_Chair_V2",),
-     "location": (-0.00140, -0.00550, 0.000520), "rotation": math.radians(90.0), "span": 0.00200,
+     "location": (-0.00140, -0.00550, 0.000520), "rotation": math.radians(270.0), "span": 0.00200,
      "category": "chair"},
     {"name": "BEACH_CHAIR_3", "file": "beach_chair_v3.blend", "objects": ("Beach_Chair_V3",),
-     "location": (-0.00140, -0.00250, 0.000520), "rotation": math.radians(90.0), "span": 0.00200,
+     "location": (-0.00140, -0.00250, 0.000520), "rotation": math.radians(270.0), "span": 0.00200,
      "category": "chair"},
     # Dining set: north patio zone, outside the water and chair lane.
     {"name": "OUTDOOR_FURNITURE_1", "file": "OutdoorFurniture1.blend", "prefix": "outdoorfurniture1_",
