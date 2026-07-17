@@ -157,7 +157,12 @@ class TeapotQuickDemoTests(unittest.TestCase):
         self.assertIn("COMFY_SOURCE_PASS lane=bac_hero", bac_wrapper)
         self.assertIn("render_root not in source.parents", bac_wrapper)
         self.assertIn('marker_lines[1].strip()', bac_wrapper)
-        self.assertTrue((TEAPOT / "hero" / "user_prompts" / "comfy_style_prompt.txt").is_file())
+        self.assertIn('"--denoise", "0.18"', bac_wrapper)
+        self.assertIn('"--flux-cfg", "3.0"', bac_wrapper)
+        hero_prompt = (TEAPOT / "hero" / "user_prompts" / "comfy_style_prompt.txt").read_text(encoding="utf-8")
+        self.assertIn("circular magenta float", hero_prompt)
+        self.assertIn("ring with a clearly open center", hero_prompt)
+        self.assertIn("flamingo float", hero_prompt)
         attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
         self.assertIn("/demos/teapot/hero/BAC_TEAPOT_HERO.blend filter=lfs", attributes)
 
