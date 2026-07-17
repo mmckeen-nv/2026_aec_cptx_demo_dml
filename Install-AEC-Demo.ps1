@@ -1005,6 +1005,17 @@ if ($ProvisionVllm -or $StartVllm -or $PortableBundle) {
   Write-Host "WSL repository: $($wslRepo.Distro):$($wslRepo.Path)"
 }
 
+if ($ProvisionVllm -and $PSCmdlet.ShouldProcess($wslRepo.Distro, 'Provision Docker and NVIDIA vLLM runtime')) {
+  Write-Step 'Provision WSL2 Docker and NVIDIA Container Toolkit'
+  $provisionArgs = @('-d', $wslRepo.Distro, '-u', 'root', '-e')
+  $bundledImage = if ($PortableBundle) { Join-Path $PortableBundle 'offline\docker\vllm-openai.tar' } else { $null }
+  if ($bundledImage -and (Test-Path -LiteralPath $bundledImage -PathType Leaf)) {
+    $provisionArgs += @('env', 'AEC_SKIP_VLLM_PULL=1')
+  }
+  $provisionArgs += @('bash', "$($wslRepo.Path)/deployment/wsl-vllm/provision-wsl2.sh")
+  Invoke-Checked 'wsl.exe' $provisionArgs
+}
+
 if ($PortableBundle) {
   Write-Step 'Restore available portable runtime assets'
   Restore-PortableAssets $PortableBundle $wslRepo -RequireOffline:$OfflineOnly
@@ -1015,11 +1026,6 @@ Seed-DemoDmlKnowledge 'virtual_production_studio' 'vp-studio-01-runtime-store' '
 Seed-DemoDmlKnowledge 'cliff_house' 'cliff-house-01-runtime-store' 'project:cliff-house-01'
 Seed-DemoDmlKnowledge 'cliff_house' 'cliff-house-hero-runtime-store' 'project:cliff-house-hero-01'
 Seed-DemoDmlKnowledge 'teapot' 'teapot-01-runtime-store' 'project:teapot-01'
-
-if ($ProvisionVllm -and $PSCmdlet.ShouldProcess($wslRepo.Distro, 'Provision Docker and NVIDIA vLLM runtime')) {
-  Write-Step 'Provision WSL2 Docker and NVIDIA Container Toolkit'
-  Invoke-Checked 'wsl.exe' @('-d', $wslRepo.Distro, '-e', 'bash', "$($wslRepo.Path)/deployment/wsl-vllm/provision-wsl2.sh")
-}
 
 if ($StartVllm -and $PSCmdlet.ShouldProcess($wslRepo.Distro, 'Create/start local vLLM model containers')) {
   Write-Step 'Create or start local vLLM model containers'

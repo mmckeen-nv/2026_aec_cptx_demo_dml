@@ -9,7 +9,16 @@ The active project is `cliff_house_02`, a three-storey modernist cliff house.
 
 ## Start here
 
-On Windows, use the root bootstrapper for a guided installation:
+On Windows, double-click the one-click workstation setup. It self-elevates,
+enables WSL2, installs Ubuntu, resumes automatically after a required reboot,
+provisions the GPU containers, installs the demo, and runs full preflight:
+
+```powershell
+.\Setup-AEC-Demo.cmd
+```
+
+For an already-prepared workstation, the lower-level guided installer remains
+available:
 
 ```powershell
 .\Install-AEC-Demo.cmd -InstallDependencies

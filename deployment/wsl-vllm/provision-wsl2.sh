@@ -120,8 +120,12 @@ docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi \
 log "GPU visible inside containers. Good."
 
 # --- 6. Pull the vLLM image --------------------------------------------------
-log "Pulling vllm/vllm-openai:latest (this is a large image, can take a while)..."
-docker pull vllm/vllm-openai:latest
+if [ "${AEC_SKIP_VLLM_PULL:-0}" = "1" ]; then
+    log "Skipping registry pull; the Windows installer will load the bundled vLLM image next."
+else
+    log "Pulling vllm/vllm-openai:latest (this is a large image, can take a while)..."
+    docker pull vllm/vllm-openai:latest
+fi
 
 # --- 7. Create shared HF cache dir ------------------------------------------
 sudo mkdir -p /root/.cache/huggingface
