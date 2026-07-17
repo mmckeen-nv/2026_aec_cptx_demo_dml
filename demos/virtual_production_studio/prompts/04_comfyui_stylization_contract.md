@@ -59,6 +59,8 @@ Success requires the helper's stage receipts in order:
 - `COMFY_PREFLIGHT_PASS`
 - `COMFY_SDXL_QUEUED` then `COMFY_SDXL_OUTPUT_PASS`
 - `COMFY_FLUX_QUEUED` then `COMFY_FLUX_OUTPUT_PASS`
+- `COMFY_DESKTOP_OUTPUT_PASS` for the SDXL intermediate and final FLUX image;
+  the helper owns collision-safe copies under `Desktop/comfyui outputs`
 - `COMFY_OUTPUT_PASS stage=sdxl+flux ... output=... bytes=...`
 
 If dry-run fails, report the exact missing service, model, node, or source

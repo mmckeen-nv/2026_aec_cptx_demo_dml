@@ -74,7 +74,9 @@ Required stdout receipts are:
 1. `COMFY_PREFLIGHT_PASS`
 2. `COMFY_SDXL_QUEUED` and `COMFY_SDXL_OUTPUT_PASS`
 3. `COMFY_FLUX_QUEUED` and `COMFY_FLUX_OUTPUT_PASS`
-4. `COMFY_OUTPUT_PASS stage=sdxl+flux ... bytes=...`
+4. `COMFY_DESKTOP_OUTPUT_PASS` for SDXL and FLUX copies under the user's
+   `Desktop/comfyui outputs` directory
+5. `COMFY_OUTPUT_PASS stage=sdxl+flux ... bytes=...`
 
 The accepted artifact is:
 
