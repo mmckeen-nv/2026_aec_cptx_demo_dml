@@ -14,5 +14,9 @@ This is a fast Blender-only interaction demo.
 8. On an explicit teapot-stylization request, run `skills/comfyui_teapot.py`
    through terminal only after `TEAPOT_PREVIEW_PASS`; require the SDXL and FLUX
    stage receipts. Do not run it for ordinary Blender material changes.
+9. In the BAC HERO house, an explicit pool-dressing request uses only
+   `blender_bac_hero.py:add_pool_assets(root, reset=True)`. Require
+   `BAC_POOL_ASSETS_PASS floats=2 chairs=3 furniture=1`, then render
+   `Cam_Shot_A`. Never infer pool coordinates or asset scale.
 
 Target live duration: under five minutes to the first material change.

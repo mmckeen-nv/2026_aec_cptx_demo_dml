@@ -266,6 +266,49 @@ class TeapotQuickDemoTests(unittest.TestCase):
             else:
                 os.environ["AEC_DEMO_ROOT"] = old_root
 
+    def test_bac_hero_pool_assets_are_locked_to_measured_zones(self):
+        helper = (TEAPOT / "skills" / "blender_bac_hero.py").read_text(encoding="utf-8")
+        prompt = (TEAPOT / "system_prompts" / "05_phase_comfyui.md").read_text(encoding="utf-8")
+        phase = (TEAPOT / "prompts" / "05_phase_pool_assets.md").read_text(encoding="utf-8")
+        rails = (ROOT / "deployment" / "plugins" / "teapot_execution_rails" / "__init__.py").read_text(
+            encoding="utf-8"
+        )
+        for token in (
+            "def add_pool_assets",
+            'POOL_COLLECTION = "BAC_POOL_ASSETS"',
+            'POOL_WATER_OBJECT = "water_surface_new"',
+            "POOL_SCENE_SCALE = 0.001",
+            "BAC_POOL_ASSETS_PASS floats=2 chairs=3 furniture=1",
+            '"category": "float"',
+            '"category": "chair"',
+            '"category": "furniture"',
+            "chair intersects water",
+            "furniture not on north patio",
+        ):
+            self.assertIn(token, helper)
+        for text in (prompt, phase, rails):
+            self.assertIn("add_pool_assets(root, reset=True)", text)
+            self.assertIn("BAC_POOL_ASSETS_PASS", text)
+            self.assertIn("Cam_Shot_A", text)
+        self.assertIn("Let's add the pool assets to the pool area", prompt)
+        self.assertIn("1:1000", prompt)
+
+        expected = {
+            "beach_chair_v1.blend": "7c27fe5b19bd211a6736342636876993fb04d91690feba0c3d49993d9adc1f9e",
+            "beach_chair_v2.blend": "cbd8b8bef53865f6528859515ef55afeffd83e4dbfc6b5474686604f853db509",
+            "beach_chair_v3.blend": "560e94ffe989f5b0eec97163e99d4de7b1182c8f7e3fc35351d651f0b7438792",
+            "float_ring.blend": "04333a1b08d114412e591e89725cc660e29a6dda042be52ca5ccad7e21a06344",
+            "OutdoorFurniture1.blend": "11388046766d5fd5d39337d1a3cd9213d3ffccc84498ec308db2efcdbbbf935a",
+            "pool_flamingo.blend": "40e58bd288c8154345b5ee490f09d2fcefd027c3a04d7edeb3ded5ea43af9f37",
+        }
+        asset_dir = TEAPOT / "hero" / "assets" / "pool"
+        for name, digest in expected.items():
+            path = asset_dir / name
+            self.assertTrue(path.is_file(), name)
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("/demos/teapot/hero/assets/pool/*.blend filter=lfs", attributes)
+
     def test_installer_creates_independent_cliff_hero_profile(self):
         installer = (ROOT / "Install-AEC-Demo.ps1").read_text(encoding="utf-8")
         for token in (
