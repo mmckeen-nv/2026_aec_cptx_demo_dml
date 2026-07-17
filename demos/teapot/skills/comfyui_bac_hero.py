@@ -34,6 +34,11 @@ def main() -> None:
         "--output", str(hero / "comfy_output" / "bac_teapot_hero_stylized.png"),
         "--intermediate", str(hero / "comfy_output" / "bac_teapot_hero_sdxl.png"),
         "--prompt-file", str(hero / "user_prompts" / "comfy_style_prompt.txt"),
+        "--seed", "84",
+        "--denoise", "0.18",
+        "--steps", "28",
+        "--flux-steps", "24",
+        "--flux-cfg", "3.0",
     ]
     sys.argv = defaults + sys.argv[1:]
     runpy.run_path(str(helper), run_name="__main__")
