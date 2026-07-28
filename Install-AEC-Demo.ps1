@@ -1365,6 +1365,10 @@ if not exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
   pause
   exit /b 4
 )
+if /i "%~1"=="--smoke" (
+  echo CLI_LAUNCHER_SMOKE_PASS root=%AEC_DEMO_ROOT% profile=%HERMES_PROFILE%
+  exit /b 0
+)
 cd /d "%AEC_DEMO_ROOT%"
 "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" -p "%HERMES_PROFILE%" --cli
 set "HERMES_EXIT=%ERRORLEVEL%"

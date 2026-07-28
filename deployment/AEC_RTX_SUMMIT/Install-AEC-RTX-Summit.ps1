@@ -303,7 +303,7 @@ function Test-PortablePayload {
   }
   if (Test-Path -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf) {
     $demoInstaller = Get-Content -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -Raw
-    foreach ($marker in @('AEC_CLIFFHOUSE_CLI.bat', 'AEC Cliff House - Hermes CLI', '--cli')) {
+    foreach ($marker in @('AEC_CLIFFHOUSE_CLI.bat', 'AEC Cliff House - Hermes CLI', 'CLI_LAUNCHER_SMOKE_PASS', '--cli')) {
       if (-not $demoInstaller.Contains($marker)) {
         $failures.Add("CLI launcher marker is missing from the bundled demo installer: $marker")
       }

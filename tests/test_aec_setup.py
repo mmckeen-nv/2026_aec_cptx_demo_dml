@@ -425,6 +425,7 @@ class SetupTests(unittest.TestCase):
         self.assertIn("AEC Mission Control.bat", installer)
         self.assertIn("AEC_CLIFFHOUSE_CLI.bat", installer)
         self.assertIn("AEC Cliff House - Hermes CLI", installer)
+        self.assertIn("CLI_LAUNCHER_SMOKE_PASS", installer)
         self.assertIn('--cli', installer)
         self.assertIn("Install-DaystromAecPatch", installer)
         dml_patch = (
