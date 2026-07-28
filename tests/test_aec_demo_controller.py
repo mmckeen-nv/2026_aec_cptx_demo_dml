@@ -172,10 +172,87 @@ class AecDemoControllerTests(unittest.TestCase):
         self.post("mcp_daystrom_dml_query", {"query": "prior stage lesson"})
         self.assertTrue(controller._STATES["test-task"]["query"])
 
+    def test_cliff_automatic_starts_in_rhino_and_blocks_discovery(self):
+        with mock.patch.dict(
+            os.environ,
+            {"AEC_DEMO_ID": "cliff-house-01", "AEC_DEMO_ACTION": "automatic"},
+            clear=False,
+        ):
+            self.assertIn(
+                "must begin",
+                self.pre("mcp_blender_get_scene_info", {})["message"],
+            )
+            self.assertIn(
+                "self-contained",
+                self.pre("read_file", {"path": "hermes/DEMO_RULES.md"})["message"],
+            )
+            self.assertIsNone(
+                self.pre(
+                    "mcp_rhino_run_csharp",
+                    {"script": "doc.Objects.AddBrep(brep)"},
+                )
+            )
+
+    def test_cliff_automatic_normalizes_native_mcp_tool_names(self):
+        with mock.patch.dict(
+            os.environ,
+            {"AEC_DEMO_ID": "cliff-house-01", "AEC_DEMO_ACTION": "automatic"},
+            clear=False,
+        ):
+            self.assertIsNone(
+                self.pre(
+                    "mcp__rhino__run_csharp",
+                    {"script": "doc.Objects.AddBrep(brep)"},
+                )
+            )
+            blocked = self.pre("mcp__blender__get_scene_info", {})
+            self.assertIn("must begin", blocked["message"])
+
+    def test_cliff_automatic_handoff_unlocks_host_and_blender_tools(self):
+        with mock.patch.dict(
+            os.environ,
+            {"AEC_DEMO_ID": "cliff-house-01", "AEC_DEMO_ACTION": "automatic"},
+            clear=False,
+        ):
+            mutation = {"script": "doc.Objects.AddBrep(brep)"}
+            self.post("mcp_rhino_run_csharp", mutation)
+            self.assertIn(
+                "before the fresh Rhino handoff",
+                self.pre("terminal", {"command": "python scripts/build_mesh_bridge.py"})["message"],
+            )
+            self.assertIn(
+                "before the fresh Rhino handoff",
+                self.pre("mcp_blender_get_scene_info", {})["message"],
+            )
+            self.post("mcp_rhino_save_doc", {"path": "C:/demo/base_model.3dm"})
+            self.assertIsNone(
+                self.pre("terminal", {"command": "python scripts/build_mesh_bridge.py"})
+            )
+            self.assertIsNone(self.pre("mcp_blender_get_scene_info", {}))
+
+    def test_cliff_automatic_disables_rhino_viewport_calls(self):
+        with mock.patch.dict(
+            os.environ,
+            {"AEC_DEMO_ID": "cliff-house-01", "AEC_DEMO_ACTION": "automatic"},
+            clear=False,
+        ):
+            mutation = {"script": "doc.Objects.AddBrep(brep)"}
+            self.post("mcp_rhino_run_csharp", mutation)
+            blocked = self.pre("mcp_rhino_get_viewport_image", {})
+            self.assertIn("viewport calls are disabled", blocked["message"])
+
     def test_browser_and_blender_lifecycle_recovery_are_blocked(self):
         self.assertIn("browser fallback", self.pre("browser_snapshot", {})["message"])
         blocked = self.pre("terminal", {"command": 'Blender.exe --python-expr "bpy.ops.blendermcp.start_server()"'})
         self.assertIn("do not launch, configure, patch, or repair Blender", blocked["message"])
+
+    def test_legitimate_rhino_to_blender_pipeline_paths_are_not_recovery(self):
+        commands = (
+            'python scripts/build_mesh_bridge.py --source "run/rhino_assets/base_model.3dm" --output "run/blender_assets/fresh.mesh.json"',
+            'python scripts/comfyui_flux2_direct.py --source "run/renders/single_frame/comfy_source/frame_0000.png" --output "run/renders/single_frame/flux2_enhanced/frame_0000.png"',
+        )
+        for command in commands:
+            self.assertIsNone(self.pre("terminal", {"command": command}))
 
     def test_shell_rhino_python_and_live_config_repair_are_blocked(self):
         blocked = self.pre("terminal", {"command": 'Rhino.exe /runscript="_-RunPythonScript C:/demo/build.py"'})

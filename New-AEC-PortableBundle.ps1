@@ -193,7 +193,7 @@ if (-not $SkipDmlStores) {
   $storeNames = @(
     'vp-studio-01-runtime-store', 'cma-vp-studio-01',
     'teapot-01-runtime-store', 'cma-teapot-01',
-    'cliff-house-01-runtime-store', 'cma-cliff-house-01',
+    'cliff-house-01-rhino-store', 'cma-cliff-house-01',
     'cliff-house-hero-runtime-store', 'cma-cliff-house-hero-01',
     'aec-cptx-runtime-store', 'cma-store'
   )

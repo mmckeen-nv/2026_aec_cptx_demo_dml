@@ -33,6 +33,13 @@ _MEMORY_TOOLS = {
     "mcp_cma_augment",
     "mcp_cma_reinforce",
 }
+_AUTOMATIC_DISCOVERY_TOOLS = {
+    "skill_view",
+    "search_files",
+    "session_search",
+    "read_file",
+    "list_directory",
+}
 _MUTATION_RE = re.compile(
     r"(?:Objects\s*\.\s*(?:Add|Delete|Replace|Transform)|"
     r"doc\s*\.\s*Objects\s*\.\s*(?:Add|Delete|Replace|Transform)|"
@@ -50,12 +57,13 @@ _EXTERNAL_SCRIPT_RE = re.compile(
 )
 _RHINO_CAPTURE_SCRIPT = "capture_rhino_viewport.py"
 _RHINO_UI_RECOVERY_RE = re.compile(
-    r"(?:rhino(?:\.exe)?[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
-    r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino)",
+    r"(?:rhino\.exe\b[^\r\n]*(?:\.py\b|RunPythonScript|EditPythonScript|PythonScript)|"
+    r"(?:RunPythonScript|EditPythonScript|PythonScript)[^\r\n]*rhino\.exe\b|"
+    r"(?:Start-Process|subprocess|Popen|ProcessStartInfo)[^\r\n]{0,300}rhino\.exe\b)",
     re.IGNORECASE,
 )
 _BLENDER_RECOVERY_RE = re.compile(
-    r"(?:blender(?:\.exe)?|blender[_-]?mcp|blendermcp|scripts[\\/]addons|"
+    r"(?:blender\.exe\b|blender-mcp\b|blendermcp\b|scripts[\\/]addons|"
     r"bpy\.ops\.preferences\.addon|bpy\.utils\.register_module|"
     r"start_blender|enable_mcp|taskkill[^\r\n]*blender)",
     re.IGNORECASE,
@@ -73,6 +81,27 @@ def _active() -> bool:
 
 def _is_vp() -> bool:
     return os.environ.get("AEC_DEMO_ID", "").strip().lower() == _DEMO_ID
+
+
+def _is_cliff_automatic() -> bool:
+    return (
+        os.environ.get("AEC_DEMO_ID", "").strip().lower() == _CLIFF_ID
+        and os.environ.get("AEC_DEMO_ACTION", "").strip().lower() == "automatic"
+    )
+
+
+def _tool_name(value: Any) -> str:
+    """Normalize Hermes, Codex, and legacy MCP projections for one policy."""
+    tool = str(value or "")
+    if tool.startswith("mcp__"):
+        parts = tool.split("__", 2)
+        if len(parts) == 3:
+            return f"mcp_{parts[1]}_{parts[2]}"
+    if tool.startswith("mcp."):
+        parts = tool.split(".", 2)
+        if len(parts) == 3:
+            return f"mcp_{parts[1]}_{parts[2]}"
+    return tool
 
 
 def _session(kwargs: Dict[str, Any]) -> str:
@@ -241,6 +270,30 @@ def on_pre_llm_call(**kwargs: Any) -> Optional[Dict[str, str]]:
         return None
     _ensure_runtime_dirs()
     if not _is_vp():
+        if _is_cliff_automatic():
+            state = _state(kwargs)
+            phase = (
+                "RHINO_START"
+                if not state["mutations"]
+                else "RHINO_BUILD"
+                if not state["saved"]
+                else "BLENDER_AND_FINAL"
+            )
+            return {"context": (
+                f"AEC CLIFF AUTOMATIC HARD RAIL — current phase: {phase}. "
+                "The user prompt is the complete authority; never read/search project instructions, "
+                "skills, sessions, source scenes, or prior artifacts. The first successful operation "
+                "must be mcp_rhino_run_csharp. Until Rhino is saved, use only Rhino MCP calls; do not "
+                "call Blender, terminal, execute_code, or file/discovery tools. Use the literal "
+                "checked-in commands in the prompt only after the Rhino handoff. Do not use Rhino "
+                "viewport images in automatic mode. DML active-read is already injected. "
+                "When injected memory clearly matches the current phase, treat it as successful prior "
+                "tool experience, keep reasoning brief, and reuse its verified procedure; the current "
+                "prompt and live validation still win if conditions differ. "
+                f"Rhino geometry budget: {state['mutations']} successful mutations so far; target "
+                "four phase mutations plus one consolidated numeric QA/finalization call. A passed "
+                "phase is closed: never reopen or visually re-review it."
+            )}
         return {"context": (
             "AEC CLIFF GUARDRAILS: follow the original Cliff House phase rhythm. Use coherent bounded "
             "Rhino MCP Python/C# scripts, inspect at meaningful checkpoints, and save useful artifacts. "
@@ -349,12 +402,40 @@ def on_post_api_request(**kwargs: Any) -> None:
 def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
     if not _active():
         return None
-    tool = str(kwargs.get("tool_name") or "")
+    tool = _tool_name(kwargs.get("tool_name"))
     args = kwargs.get("args") if isinstance(kwargs.get("args"), dict) else {}
     state = _state(kwargs)
     state["calls"] += 1
 
     sig = _signature(tool, args)
+
+    if _is_cliff_automatic():
+        if tool in _AUTOMATIC_DISCOVERY_TOOLS:
+            return _block(
+                kwargs,
+                f"{tool} is prohibited in automatic mode; the shared prompt is self-contained",
+            )
+        if not state["mutations"] and tool != "mcp_rhino_run_csharp":
+            return _block(
+                kwargs,
+                "automatic mode must begin with a successful mcp_rhino_run_csharp geometry mutation",
+            )
+        if not state["saved"]:
+            if tool.startswith("mcp_blender_"):
+                return _block(
+                    kwargs,
+                    "automatic mode cannot enter Blender before the fresh Rhino handoff is saved",
+                )
+            if tool in {"terminal", "execute_code", "patch", "write_file"}:
+                return _block(
+                    kwargs,
+                    "automatic mode cannot use host/file execution before the fresh Rhino handoff is saved",
+                )
+        if tool in {"mcp_rhino_get_viewport_image", "mcp_rhino_set_camera"}:
+            return _block(
+                kwargs,
+                "automatic mode uses numeric Rhino validation and one Blender review frame; Rhino viewport calls are disabled",
+            )
 
     if tool in {"run", "mcp_rhino_spawn_slot", "mcp_rhino_close_slot", "mcp_rhino_close_doc"}:
         return _block(kwargs, f"{tool} is prohibited in this workflow; preserve the healthy launcher-owned Rhino slot")
@@ -402,7 +483,7 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
                 "Rhino MCP 0.1.5 does not return a usable remote viewport URL; save the active view to work/*.png with ActiveView.CaptureToBitmap in a read-only Rhino Python call, then pass that absolute local path",
             )
 
-    if _is_vp() and tool in _BLENDER_MUTATION_TOOLS and state["mutations"]:
+    if tool in _BLENDER_MUTATION_TOOLS and state["mutations"]:
         if not state["saved"]:
             return _block(
                 kwargs,
@@ -416,7 +497,7 @@ def on_pre_tool_call(**kwargs: Any) -> Optional[Dict[str, str]]:
 def on_post_tool_call(**kwargs: Any) -> None:
     if not _active():
         return
-    tool = str(kwargs.get("tool_name") or "")
+    tool = _tool_name(kwargs.get("tool_name"))
     args = kwargs.get("args") if isinstance(kwargs.get("args"), dict) else {}
     state = _state(kwargs)
     status = str(kwargs.get("status") or "ok").lower()

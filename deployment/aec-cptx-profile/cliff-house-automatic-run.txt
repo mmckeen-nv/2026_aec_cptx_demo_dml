@@ -1,0 +1,334 @@
+Run a fresh, timed Cliff House build from empty Rhino and Blender sessions to one final stylized frame. This is an authorized automatic production run, not a planning exercise.
+
+MEMORY HARNESS RECALL KEY: retrieve the prior successful canonical Cliff House
+procedure for phase-batched Rhino `mcp__rhino__run_csharp`, the one-call Blender
+mesh-bridge/lookdev/render path, and direct FLUX.2 provenance validation. Prefer
+records whose verified result was PASS; exclude object-by-object construction,
+failed tool envelopes, viewport loops, terminal recovery, and ad-hoc hash
+repair. The automatically injected memory is an execution checklist, not
+background prose: follow its validated tool envelope and batching pattern
+unless a literal geometry or output requirement below supersedes it.
+
+You are already the resident Hermes agent that must perform this work. Execute
+the complete workflow directly in this session using the registered Rhino,
+Blender, DML, terminal, and file tools. Never launch or delegate to another
+Hermes process. Do not run `Run-Cliff-House-Automatic.py`,
+`Run-Cliff-House-Automatic.ps1`, `Run-Cliff-House-Real-Workload.ps1`,
+`hermes chat`, or any benchmark/demo launcher. Do not poll a child agent. A
+nested Hermes session is a failed fast-path run.
+
+Automatic-run project: aa_demo_versions/cliff_house_single_frame_01
+Design brief source only: aa_demo_versions/cliff_house_02/user_prompts/project_prompt.md
+DML namespace/project: project:cliff-house-01
+
+The dashboard control plane has already completed Reset Scenes and then made
+one direct live poke to Rhino and Blender. That post-reset receipt proved Rhino
+has zero total objects including hidden objects and Blender has zero objects or
+only its allowed untouched defaults. This is authoritative. Do not perform
+preflight, do not repeat either scene check, and do not write
+`automatic_run_preflight.json`. Remove any allowed Blender defaults only when
+the workflow reaches the Blender import phase.
+
+The first tool call in your first response MUST be the first phase-level Rhino
+`run_csharp` geometry mutation. Do not call Blender before
+`rhino_build_complete`. Do not call `skill_view`, `search_files`,
+`session_search`, `read_file`, `terminal`, `execute_code`, `clarify`, or any
+other discovery/planning tool before that Rhino mutation. Do not explain the
+workflow first. Begin construction.
+
+Do not use any existing Cliff House geometry, 3DM, BLEND, mesh bridge, depth
+image, or stylized output as construction or generative input. The exact
+checked-in scripts and prompt-file commands named below are executable black
+boxes: invoke them by their literal paths without opening, searching for, or
+rewriting their source. Do not inspect any old artifact or source scene.
+
+Execute the canonical workflow sequentially, but produce only one final camera frame. Do not create animation paths, frame sequences, videos, an SDXL intermediate, or a second generative refinement stage. The complete locked Cliff House dimensions and relevant design language are embedded below. Treat review gates as automatically approved only after their validation checklists pass. Do not read the design brief, DEMO_RULES.md, canonical geometry contract, numbered phase prompts, skills, session history, or prior-run artifacts at startup.
+
+Control-plane fast path: this automatic prompt contains the complete locked
+geometry, design-language, Blender, and FLUX.2 contracts needed for the run.
+For the entire automatic run, do not call `skill_view`, `search_files`,
+`session_search`, `read_file`, `list_directory`, or any equivalent discovery
+tool. Do not search for or reread the design brief, DEMO_RULES.md, canonical
+geometry contract, numbered phase prompts, or prior-run artifacts. Execute
+only the exact checked-in script commands named later in this prompt.
+Consume the memory automatically injected by the configured DML active-read
+provider and begin Rhino construction immediately.
+
+Startup latency contract: after the automatic DML injection, the first tool
+call must be the first Rhino phase-level `run_csharp` mutation. All required
+construction values are already in this prompt.
+
+Geometry authority is strict. Reproduce the checked-in geometry contract,
+including its operator-approved 2026-07-27 site-grading correction, without
+further redesign, numerical reinterpretation, or inferred additions:
+
+1. The canonical source-plan and terrain values listed below.
+2. The exact named massing bounds listed below.
+3. The original architectural intent copied into this prompt below.
+
+Do not invent glazing percentages, window counts, facade axes, room layouts,
+extra volumes, alternate roof forms, or different balcony placements. When a
+generic phase example conflicts with a filled project answer, the filled
+project answer wins. In particular, this house has the project's flat white
+roof and understated pivot-door entry with no canopy.
+
+Canonical source-plan bounds, copied from the original upstream 3DM:
+
+- `building_plan`: `(1.5,-15.5,0)` to `(13.5,4.5,0)`
+- `garage_plan`: `(7,4.5,0)` to `(17,15,0)`
+- `driveway_plan`: `(17,6.5,0)` to `(25,13.5,0)`
+- `patio_stairs_plan`: `(-3,-3,0)` to `(1,-1,0)`
+- original `patio_plan`: `(-6,-16,-1)` to `(0,5,-1)`; the approved rendered
+  patio solid supersedes this elevation with bottom `Z=-0.03`, top `Z=+0.15`
+
+The eleven canonical massing objects must match these literal names and
+bounding boxes exactly, within 1mm:
+
+- `L1_east`: `(5,3,0.25)` to `(17,14,4)`
+- `L1_west`: `(5,-15,0.3)` to `(13.5,3,4)`
+- `L2_east`: `(5,3,4.25)` to `(17,14,7.75)`
+- `L2_west`: `(3.5,-15,4.25)` to `(13.5,3,7.75)`
+- `L2_balcony_south`: `(1.5,-17.05,4)` to `(13.5,3,5.25)`
+- `L2_balcony_north`: `(5,14,4)` to `(17,16.25,5.15)`
+- `L2_balcony_step`: `(1.5,3,4)` to `(5,14,5.25)`
+- `L2_roof_garage`: `(2.5,1.16,7.75)` to `(18.97,16.55,8.35)`
+- `L3_main`: `(1.5,-10,7.75)` to `(13.5,3,11.5)`
+- `L3_balcony_south`: `(1.5,-17,7.75)` to `(13.5,-10,8.9)`
+- `L3_roof_slab`: `(-1,-13.5,11.5)` to `(15,4.5,12.3)`
+
+Write
+`geometry_parity.json` containing all source-plan bounds plus every canonical
+L1/L2/L3 massing object, its expected bounds, actual bounds, per-axis error,
+and PASS/FAIL. Additional detailing objects are allowed only when explicitly
+required by the architectural intent copied into this prompt.
+
+The configured DML provider performs one active-read automatically before the
+first model response. DML memory represents information about tool calls that
+worked successfully in earlier runs. When an injected procedure clearly
+applies to the current phase, prefer its verified envelope and scaffold, keep
+reasoning brief, and proceed to the batched tool call instead of deriving or
+debating the same procedure again. This is a soft preference: current scene
+state, the canonical geometry contract, and live validation always win when
+they differ from memory. Do not make a redundant explicit DML query during
+startup merely for reassurance. The control plane records `dml_ready` and
+`automatic_run_start`; do not spend a tool call writing either milestone.
+Begin the first Rhino mutation promptly when applicable memory is available.
+
+Use the memory harness at high-value transitions instead of wandering:
+
+- Immediately after `rhino_build_complete`, make exactly one focused DML query:
+  "What exact previously successful Blender mesh-bridge, environment-filter,
+  frontal review, beauty/depth, and Comfy source tool batch should I reuse?
+  Return only verified PASS procedure and known Blender 5.2 pitfalls."
+- Before direct FLUX.2, make one focused DML query only if elapsed run time is
+  below eight minutes: "What exact successful direct FLUX.2 command and
+  provenance-validation checklist avoided SDXL, prompt-hash repair, and
+  geometry drift? Return only verified PASS procedure."
+- After a successful `validation_complete`, perform exactly one concise DML
+  ingest for this run containing the successful phase batching, exact tool
+  names, argument shapes, timings, and avoided failure signatures. Never store
+  geometry payloads, images, or verbose logs.
+
+Heed each returned memory once. Do not ask the model to rediscover or debate a
+procedure that memory already supplied. Re-query only when that exact recalled
+procedure fails.
+
+Rhino mutation is C# run_csharp only. Geometry QA is deliberately calm and
+bounded. Use exactly four phase-level mutation calls: (1) site/foundations,
+(2) architectural massing, (3) openings/glazing, and (4) exterior details/site
+amenities. Then use one consolidated numeric QA/finalization `run_csharp` call
+that writes all Rhino validation receipts and returns one compact PASS/FAIL
+manifest. Each call may create many separately named visible objects and must
+internally validate created GUIDs, names, layers, and bounds. Once a phase
+returns PASS it is closed: do not reopen it, visually inspect it, repeat it, or
+issue per-object QA calls. One repair call is allowed only when the consolidated
+manifest names a literal failing object or check. Do not spend a separate model
+turn or DML query on each object.
+
+Run-efficiency budget: target no more than 22 model-visible tool attempts and
+24 model calls from first response through final memory write. A rejected call
+counts. Combine timeline writes, validation receipts, and artifact bookkeeping
+inside the phase tool call that produced the evidence. Never use a standalone
+tool turn merely to write a milestone, inspect a file already produced by the
+previous call, recompute a hash already present in a sidecar, or restate PASS.
+
+Rhino 8 host API constraints learned from the verified run:
+
+- For terrain meshing, use `Mesh.CreateFromBrep(terrain,
+  MeshingParameters.QualityRenderMesh)`. Do not access
+  `MeshingParameters.MinimumInitialGridQuads`; that member does not exist.
+- Use `doc.Objects.FindByLayer(layerName)` only. Do not pass a Boolean second
+  argument to `FindByLayer`.
+- Keep C# return payloads compact JSON; never return geometry, image data, or
+  large object dumps to the model.
+
+The site/foundations script must recreate these five corrected non-rational
+cubic NURBS grading curves exactly:
+
+- south E-W: `(25,-20,0)`, `(5,-20,0)`, `(-8,-20,-0.70)`, `(-15,-20,-1.25)`
+- north E-W: `(25,16,0)`, `(5,16,0)`, `(-4,16,-0.15)`, `(-15,16,-0.60)`
+- east N-S: `(25,16,0)`, `(25,6.349829,0)`, `(25,-11.812446,0)`, `(25,-20,0)`
+- west N-S: `(-15,16,-0.60)`, `(-15,7.633730,-0.50)`,
+  `(-15,-11.713384,-0.95)`, `(-15,-20,-1.25)`
+- center N-S: `(-0.049451,16,-0.10)`, `(-0.049451,6,-0.06)`,
+  `(-0.049451,-9,-0.12)`, `(-0.118379,-20,-0.35)`
+
+Build one smooth open network terrain surface from those curves.
+`SITE_TERRAIN` must never be a Box/CreateFromBox result, extrusion, closed
+Brep, capped solid, six-face mesh, or rectangular pedestal. Write
+`site_validation.json` proving exact source-control-point parity, one open
+non-planar terrain face, `IsSolid=false`, no bottom cap or vertical perimeter
+faces, and a presentation mesh with more than 8 vertices and 6 faces. The
+same Rhino C# script must set `SITE_TERRAIN` User Text
+`blender_disposition=REMOVE_BEFORE_RENDER` and
+`comfy_environment_role=GENERATIVE_COASTAL_CLIFF`, commit the attributes, and
+include both exact values in `site_validation.json`. The separate building pad
+must have bounds `(1.5,-16.9,-0.5)` to `(17,14,0.25)` and the retaining
+curtain wall must have bounds `(1,-17.4,-2)` to `(17.5,14.5,0.25)`; neither
+may be substituted for terrain.
+Build the corrected patio/pool elevations exactly as documented in the
+canonical contract: patio top `+0.15`, pool basin rim `+0.15`, pool water top
+`+0.21`, bronze edge top `+0.29`, and pad top unchanged at `+0.25`.
+If DML recalls a prior scaffold that constructed terrain as a box or solid,
+reuse only its validated `run_csharp` tool-call envelope; discard its site
+geometry body and rebuild that phase from the canonical curve contract.
+
+The openings/glazing and exterior-detail scripts must follow the original
+language exactly: maximum floor-to-ceiling glazing on the west face for every
+habitable room; smaller punched windows north and south; minimal glazing east;
+regular separate mullions and transoms; full-width cantilevered balconies on
+the west face of all upper floors; thin horizontal steel cable railings; a
+ground-floor west veranda; the understated pivot-door entry with no canopy;
+and the original garage doors, patio, infinity pool, and driveway. Do not
+replace these qualitative requirements with invented ratios or counts.
+
+Operator-approved outdoor-furniture correction: omit outdoor furniture from
+this single-frame run. Do not create `PATIO_LOUNGE_CHAIR_0` through
+`PATIO_LOUNGE_CHAIR_3`, any other `PATIO_LOUNGE_CHAIR_*` object, a simplified
+rectangular chair proxy, stool, stepping stone, plinth, or loose square block.
+No non-pool geometry may overlap the `INFINITY_POOL_WATER` footprint. The
+original brief's lounge-chair sentence is intentionally superseded for this
+run by this operator correction. Require
+`outdoor_furniture_objects=0`, `rectangular_furniture_proxies=0`, and
+`pool_obstruction=PASS` in `design_detail_validation.json`.
+
+Do not ingest or write DML during geometry construction, Blender import,
+rendering, or stylization. The single post-validation procedural ingest above
+is the only write authorized for an automatic run.
+
+Required single-frame result:
+
+- Build the complete canonical Cliff House from scratch in the empty Rhino document.
+- Reconstruct the canonical gently curved terrain from the original five source curves; any terrain block, capped box, or massive pedestal is an automatic failure.
+- Save the Rhino model and a validated checkpoint.
+- Export/bridge the fresh geometry into the empty Blender scene.
+- Add the documented materials, HDRI/lighting, and one ocean-view hero camera.
+- Render exactly one full-resolution 1920x1080 Cycles beauty frame plus its aligned depth frame. A single segmentation validation frame is allowed, but no sequence.
+- Run the checked-in direct FLUX.2 reference-conditioning workflow for that one
+  beauty frame. Do not run SDXL or a depth ControlNet.
+- Validate that the final stylized frame preserves the modeled massing, balconies, glazing, railings, patio, and pool, with no outdoor furniture or square blocks and no obstruction of the pool-water surface.
+- Save `design_detail_validation.json` before `rhino_build_complete`. It must
+  check each original qualitative requirement without adding numeric design
+  criteria that do not exist upstream.
+- Do not call any Rhino viewport-image or camera tool during the automatic
+  fast path. Rhino acceptance is numeric: exact named bounds, object/layer
+  manifests, open non-solid terrain topology, and obstruction tests.
+- Perform the only visual geometry review from the single frontal Blender
+  review render. Write `hero_geometry_validation.json` with explicit PASS/FAIL
+  findings for three stacked levels, continuous curtain-wall bands, offset
+  horizontal plates, balcony/terrace edges, roof-deck railing, site profile,
+  and overall silhouette. Do not search for or load an external visual oracle.
+  Do not continue to FLUX.2 if the frame reads as a broad stone L-shaped
+  rebuild rather than the slender stacked-glass original.
+- Save an artifact_manifest.json with counts, sizes, dimensions, and PASS/FAIL.
+
+Timing is part of the run diagnostics. Append one JSON object per line to aa_demo_versions/cliff_house_single_frame_01/automatic_run_timeline.jsonl at these exact milestones, using local ISO-8601 timestamps:
+
+- dml_ready (after automatic DML injection; the control plane already verified the scenes)
+- automatic_run_start (immediately after dml_ready)
+- rhino_build_complete
+- blender_import_complete
+- materials_lighting_complete
+- source_render_complete
+- flux2_complete
+- validation_complete
+
+On Windows, generate every timeline timestamp in Python with
+`datetime.now().astimezone().isoformat(timespec="seconds")`. Never invoke
+`date --iso-8601`, shell out for a timestamp, or improvise a second timestamp
+helper. A timeline timestamp failure is not a reason to retry geometry or
+rendering.
+
+The launcher records process_start and process_end separately. Do not rewrite or remove existing timeline entries.
+
+Do not use OBS. Do not launch or close Rhino, Blender, ComfyUI, or Ollama. If a recoverable tool problem occurs, diagnose it once, use DML recall, repair within project scope, and continue. Use dcn.iteration_extension when unfinished; 30-turn extensions are authorized up to 120 total turns.
+
+Completion requires verified fresh Rhino and Blender models and exactly one accepted final stylized frame. Stop immediately after final validation and manifest creation.
+
+Blender 5.2 fast-path contract for this host:
+
+- Blender tool budget is three mutation calls plus one vision review: one
+  import/filter/lookdev/review/beauty/depth/source call, one compact correction
+  call only if the review explicitly fails, and one final artifact/provenance
+  validation call after FLUX.2. Do not split materials, camera, render, depth,
+  save, metadata, hashes, or manifest work into separate Blender turns.
+
+- Use `BLENDER_EEVEE`, never `BLENDER_EEVEE_NEXT`.
+- The compositor tree is `scene.compositing_node_group`, not `scene.node_tree`.
+- Do not create `CompositorNodeMapRange`, `CompositorNodeMath`, or `CompositorNodeClamp`; those compositor node types are absent in Blender 5.2. Generate aligned real camera-space depth by executing checked-in `scripts/render_camera_depth_pass.py` inside Blender with `__file__` set. Require `CAMERA_DEPTH_PASS`, a nontrivial near/far span, and its 16-bit validation receipt. A constant gray material or silhouette/occupancy mask is not a depth pass.
+- Do not import PIL inside Blender. Validate PNG dimensions and counts from the host terminal after Blender writes the files.
+- Use the operator-approved frontal west-elevation camera immediately:
+  location `(-55, -1.45, 14.5)`, target `(4.0, -1.45, 4.8)`, lens `52mm`,
+  perspective mode, exposure `0.6`, sun energy `1.5`, warm area energy `900`.
+  Keep the facade centered, verticals vertical, all three levels visible, and
+  the complete pool in the foreground. The supplied operator screenshot is
+  the composition authority. Do not revert to the former southwest
+  three-quarter camera or spend a generative call discovering framing.
+- Set Cycles samples to 24 with denoising. This Windows ARM64 Blender 5.2 build exposes only the CPU Cycles device even when `scene.cycles.device` reports `GPU`; do not spend turns probing or retrying CUDA/OptiX during the run.
+- Perform lookdev, accepted camera setup, one Cycles beauty render, one Eevee depth render, save, and compact JSON validation in one Blender MCP code call.
+- Blender 5.2 sky textures accept `SINGLE_SCATTERING`, `MULTIPLE_SCATTERING`, `PREETHAM`, or `HOSEK_WILKIE`; use `SINGLE_SCATTERING`, never `NISHITA`.
+- Do not import OBJ. After Rhino saves the fresh 3DM, obtain the validated
+  visible-object count from the Rhino build manifest and run
+  `python scripts/build_mesh_bridge.py --source "aa_demo_versions/cliff_house_single_frame_01/rhino_assets/base_model.3dm" --output "aa_demo_versions/cliff_house_single_frame_01/blender_assets/fresh_cliff_house.mesh.json" --expect-objects <validated-rhino-count>`.
+  Substitute the integer from the current Rhino manifest; do not preserve a
+  historical object count by omitting required windows.
+  In the single Blender MCP code call, load `skills/import_with_metadata.py` with
+  `__file__` set and call
+  `import_mesh_bridge(bridge_path, root_name="CLIFF_HOUSE_FRESH")`. Require the
+  same validated current-run count of imported meshes, `rotation_mode == 'XYZ'`,
+  zero object rotations, source-bounds parity, and geometry-parity
+  before lookdev or rendering. The imported `SITE_TERRAIN` must carry
+  `blender_disposition=REMOVE_BEFORE_RENDER`; the bridge must supply this
+  disposition for older files if Hermes omitted it. Do not rotate imported
+  geometry. Immediately after parity passes, execute the checked-in
+  `scripts/remove_tagged_blender_environment.py` inside Blender with one
+  `execute_blender_code` call:
+  `from pathlib import Path; p=Path(r"scripts/remove_tagged_blender_environment.py").resolve(); exec(compile(p.read_text(encoding="utf-8"), str(p), "exec"), {"__name__":"__main__"})`.
+  Do not rewrite this operation ad hoc. Require
+  `BLENDER_ENVIRONMENT_FILTER_PASS`, `SITE_TERRAIN.hide_render == True`, and
+  `SITE_TERRAIN.hide_viewport == True`. The operation must not hide or delete
+  the building pad, patio, pool basin, pool water, or bronze overflow edge.
+  Save the filtered Blender scene before lookdev and rendering.
+- Keep the frontal `ocean_view` camera for the operator's Blender review
+  frame. Render the ComfyUI input separately with the checked-in
+  `scripts/render_cliff_house_comfy_source.py`. Its dedicated
+  `comfy_ocean_view` camera uses location `(-50,-42,18)`, target `(2,2,4.5)`,
+  and lens `50mm`; it writes exactly one 1920x1080 terrain-free Cycles frame
+  to `renders/single_frame/comfy_source/frame_0000.png`, then restores the
+  frontal review camera.
+- For the final generative stage, delete only the prior
+  `renders/single_frame/flux2_enhanced/frame_0000.png`, then run:
+  `python scripts/comfyui_flux2_direct.py --source "aa_demo_versions/cliff_house_single_frame_01/renders/single_frame/comfy_source/frame_0000.png" --output "aa_demo_versions/cliff_house_single_frame_01/renders/single_frame/flux2_enhanced/frame_0000.png" --prompt-file "aa_demo_versions/cliff_house_single_frame_01/user_prompts/comfy_style_prompt.txt"`.
+  Require `COMFY_OUTPUT_PASS stage=flux2-direct`, exactly one final 1920x1080
+  FLUX.2 output, its adjacent `.comfy.json` provenance sidecar, and record that
+  this run generated zero SDXL intermediates. The sidecar prompt source and
+  prompt-file SHA-256 must match the project prompt file. Record separate
+  normalized source-prompt and effective-prompt SHA-256 values after text
+  decoding and after the geometry lock, respectively.
+  The direct FLUX prompt must retain its architecture-geometry lock even when
+  a custom prompt or prompt file is supplied. Preserve every building, patio,
+  and pool silhouette. Treat the missing `SITE_TERRAIN` and neutral background
+  as an explicit generative-environment mask. Generate the operator-approved
+  rocky coastal cliff, native scrub, ocean, horizon, and sky around the
+  architecture. Reject a rectangular generated ground plane, artificial
+  pedestal, moat, covered pool, or any architectural redesign.

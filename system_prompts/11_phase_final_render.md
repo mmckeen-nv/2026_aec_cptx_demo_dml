@@ -9,16 +9,16 @@
 ## Purpose
 
 Render the full-resolution beauty sequence, depth maps, and segmentation masks.
-Run the checked-in two-stage ComfyUI workflow on the beauty output: SDXL depth
-conditioning followed by FLUX.2 Klein reference refinement. Deliver the final
-MP4 and all render passes to the project folder.
+Run the checked-in direct FLUX.2 Klein reference-conditioning workflow on each
+accepted beauty output. Do not run an SDXL intermediate or depth ControlNet.
+Deliver the final MP4 and all render passes to the project folder.
 
 ---
 
 ## Inputs
 
 - `[project]/blender_assets/base_model.blend` from Phase 10 (beauty materials restored)
-- `scripts/comfyui_phase7.py` — authoritative checked-in workflow
+- `scripts/comfyui_flux2_direct.py` — authoritative checked-in direct FLUX.2 workflow
 - Delta notes — check for: final resolution, sample count, and style prompt
 
 ## Outputs
@@ -26,8 +26,7 @@ MP4 and all render passes to the project folder.
 - `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/` — full beauty sequence
 - `[project]/renders/depth/` — final 16-bit depth maps
 - `[project]/renders/segmentation/` — final segmentation masks
-- `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/sdxl_enhanced/` — SDXL intermediates
-- `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/ai_enhanced/` — FLUX final frames
+- `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/flux2_enhanced/` — FLUX.2 final frames
 - `[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/ocean_view_ai_flux.mp4` — enhanced video
 - `[project]/video_source/` — all render outputs ready for video editing
 
@@ -37,10 +36,14 @@ MP4 and all render passes to the project folder.
 
 - [ ] Phase 10 gate approved
 - [ ] Beauty materials confirmed restored
+- [ ] `scripts/clear_terrain_under_hardscape.py` has passed in Blender; no
+      terrain face overlaps the infinity-pool footprint
+- [ ] The full rectangular infinity-pool water surface and perimeter are
+      visible in the source camera, with no terrain cutting through them
 - [ ] GPU is available and not running other workloads
 - [ ] `[project]/renders/` folder exists
-- [ ] `scripts/comfyui_phase7.py --dry-run` reports the SDXL checkpoint, depth
-      ControlNet, FLUX.2 model, Qwen encoder, and FLUX VAE
+- [ ] `scripts/comfyui_flux2_direct.py --dry-run` reports the FLUX.2 model,
+      Qwen encoder, FLUX VAE, required nodes, and source-image quality
 - [ ] ComfyUI is available at `http://127.0.0.1:8188`
 
 ---
@@ -108,13 +111,14 @@ Follow `depth_and_segmentation.md`. Output to `v_YYYYMMDD_HHMM/segmentation/`.
 
 **B6. Restore beauty materials after passes.**
 
-### Step C — checked-in SDXL -> FLUX post-processing
+### Step C — checked-in direct FLUX.2 post-processing
 
-Use terminal, never Chrome, handwritten JSON, Rhino MCP, or Blender MCP:
+Use terminal, never Chrome, handwritten JSON, Rhino MCP, or Blender MCP. Run
+the helper once per accepted beauty frame:
 
 ```bash
-python scripts/comfyui_phase7.py --base "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM" --dry-run
-python scripts/comfyui_phase7.py --base "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM"
+python scripts/comfyui_flux2_direct.py --source "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/png/frame_0000.png" --output "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/flux2_enhanced/frame_0000.png" --dry-run
+python scripts/comfyui_flux2_direct.py --source "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/png/frame_0000.png" --output "[project]/renders/patio_sweep/v_YYYYMMDD_HHMM/flux2_enhanced/frame_0000.png"
 ```
 
 If the project has a user-approved style prompt, append
@@ -122,17 +126,18 @@ If the project has a user-approved style prompt, append
 The helper prints the selected source and prompt SHA-256; never silently replace
 the user's wording.
 
-For every frame, the helper writes the accepted SDXL depth-conditioned image to
-`sdxl_enhanced/`, uses that exact image as FLUX.2 Klein reference conditioning,
-and writes the final to `ai_enhanced/`. Require
-`COMFY_OUTPUT_PASS stage=sdxl+flux` and `ocean_view_ai_flux.mp4`. Do not replace
-the graph, model names, seed, or conditioning path during the run.
+For every frame, the helper uses the accepted Blender beauty image directly as
+FLUX.2 Klein reference conditioning and writes the final to
+`flux2_enhanced/`. Require `COMFY_OUTPUT_PASS stage=flux2-direct`. Do not insert
+an SDXL stage or replace the graph, model names, seed, or conditioning path
+during the run. After all frames pass, encode `flux2_enhanced/frame_%04d.png`
+to `ocean_view_ai_flux.mp4` with the standard ffmpeg settings from Step B3.
 
 ### Final — copy to video_source
 Copy all deliverable files to `[project]/video_source/`:
 - `patio_sweep.mp4` (beauty)
 - A sample depth and segmentation frame (for editor reference)
-- SDXL and FLUX output folder references
+- FLUX.2 output folder reference
 - `ocean_view_ai_flux.mp4`
 
 ---
@@ -144,8 +149,8 @@ Copy all deliverable files to `[project]/video_source/`:
 - [ ] MP4 plays at correct duration (~8 seconds at 24fps)
 - [ ] Depth maps correct (no shadows, correct near/far convention)
 - [ ] Segmentation masks correct (flat colours, no gradients)
-- [ ] SDXL intermediate and FLUX final frame counts match the beauty sequence
-- [ ] `COMFY_OUTPUT_PASS stage=sdxl+flux` is present
+- [ ] FLUX.2 final frame count matches the beauty sequence
+- [ ] `COMFY_OUTPUT_PASS stage=flux2-direct` is present for every frame
 - [ ] `depth_raw_temp/` deleted
 - [ ] `video_source/` populated
 - [ ] Beauty materials restored in Blender

@@ -1,0 +1,12 @@
+Verify and save the already-clean live Rhino and Blender sessions for a fresh single-frame benchmark.
+
+Do not launch, close, replace, delete, create, or modify geometry in either application. Do not run C# and do not issue Rhino commands.
+
+1. Call Blender get_scene_info exactly once. It must report zero scene objects. If it is zero, use one Blender execute_blender_code call to save the current empty scene to:
+   C:/Users/test/Documents/RX Spark AEC/2026_aec_cptx_demo_dml/aa_demo_versions/cliff_house_single_frame_01/blender_assets/base_model.blend
+   Print BLENDER_EMPTY_SAVE_PASS with the verified scene object count.
+2. Call Rhino list_objects exactly once. Its returned visible object list is authoritative. It must report zero objects. If it is zero, call Rhino save_doc once to save the current empty document to:
+   C:/Users/test/Documents/RX Spark AEC/2026_aec_cptx_demo_dml/aa_demo_versions/cliff_house_single_frame_01/rhino_assets/base_model.3dm
+3. Create aa_demo_versions/cliff_house_single_frame_01/benchmark_preflight.json containing the current local ISO-8601 timestamp, Rhino object count 0, Blender object count 0, both saved paths, model `nvidia/Qwen3.6-35B-A3B-NVFP4`, provider `custom:vllm_local`, and status PASS.
+
+If either authoritative MCP count is not zero, stop and report FAIL without mutating either application. Stop immediately after both saves and the JSON file. Do not begin modeling.

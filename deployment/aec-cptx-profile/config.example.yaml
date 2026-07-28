@@ -3,29 +3,58 @@
 # Do not commit live config.yaml, .env, auth files, state.db, sessions, logs, caches, or DML runtime stores.
 
 model:
-  # Remote deployment used a provider/model configured in the live profile.
-  # Set these locally with `hermes -p aec-cptx model` or `hermes -p aec-cptx config set ...`.
-  provider: custom
-  default: azure/anthropic/claude-opus-4-6
-  base_url: https://inference-api.nvidia.com/v1
-  api_key: ${AEC_DEMO_MODEL_API_KEY}
-  api_mode: codex_responses
+  default: aws/anthropic/claude-opus-4-5
+  provider: custom:nvidia_claude
+  openai_runtime: auto
   context_length: 200000
-  ollama_num_ctx: 65536
+  max_tokens: 32768
+  supports_vision: true
+
+custom_providers:
+  - name: nvidia_claude
+    base_url: https://inference-api.nvidia.com/v1
+    api_mode: chat_completions
+    key_env: NVIDIA_API_KEY
+    model: aws/anthropic/claude-opus-4-5
+    models:
+      aws/anthropic/claude-opus-4-5:
+        context_length: 200000
+        supports_vision: true
+  - name: nvidia_omni
+    base_url: https://inference-api.nvidia.com/v1
+    api_mode: chat_completions
+    key_env: NVIDIA_API_KEY
+    model: nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    models:
+      nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:
+        context_length: 262144
+        supports_vision: true
+  - name: vllm_local
+    base_url: http://localhost:8000/v1
+    api_mode: chat_completions
+    model: nvidia/Qwen3.6-35B-A3B-NVFP4
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    models:
+      nvidia/Qwen3.6-35B-A3B-NVFP4:
+        context_length: 262144
+        supports_vision: true
 
 agent:
-  gateway_auto_continue_freshness: 3600
+  max_turns: 60
   max_turns_auto_extend: true
   max_turns_extension_policy: cognition
   max_turns_extension: 30
-  max_turns_hard_cap: 300
+  max_turns_hard_cap: 120
+  reasoning_effort: low
 
 compression:
   enabled: true
-  # 2026-06-11: lowered from 0.95 after aux-provider verification so
-  # compression triggers before the custom endpoint/model gets too close to
-  # its practical 200K context ceiling.
-  threshold: 0.5
+  threshold: 0.85
   target_ratio: 0.2
   protect_last_n: 4
   hygiene_hard_message_limit: 400
@@ -36,73 +65,52 @@ compression:
   codex_gpt55_autoraise: true
   preserve_first_n_turns: 0
 
-# Auxiliary LLM tasks must not be left on blind auto-detect for this demo.
-# The remote profile explicitly pins side-task summarization to the same
-# working custom NVIDIA-compatible endpoint/model as chat, while keeping the
-# API key only in the live profile config/.env.
-# 2026-06-30 remote sync also captured GLM 5.2 as the NVIDIA vision/model-catalog option.
 auxiliary:
   vision:
-    provider: custom:vllm_vision
-    model: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4
-    base_url: http://localhost:8001/v1
-    temperature: 0.2
-    max_tokens: 512
-    extra_body:
-      top_k: 1
-      chat_template_kwargs:
-        enable_thinking: false
+    provider: custom:nvidia_omni
+    model: nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
   compression:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
-    context_length: 200000
+    provider: main
+    reasoning_effort: low
   title_generation:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   web_extract:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   goal_judge:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   approval:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   mcp:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   skills_hub:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   profile_describer:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   triage_specifier:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   kanban_decomposer:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   curator:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
   tts_audio_tags:
-    provider: custom
-    model: azure/anthropic/claude-opus-4-6
+    provider: main
 
 memory:
   memory_enabled: true
+  memory_char_limit: 2200
   # Disable post-turn background review forks during deterministic demos.
   nudge_interval: 0
   provider: daystrom_dml
   daystrom_dml:
     retrieval_policy: always
-    top_k: 8
-    max_context_chars: 3200
+    top_k: 3
+    max_context_chars: 2200
+    fast_retrieval: true
     preflight_strict: true
-    timeout_seconds: 8
+    timeout_seconds: 60
     # Valid DCN modes: active_read, active_learn, observe_only, disabled.
-    # The Windows AEC demo uses active_read plus sync_turns for stable retrieval/writeback.
+    # Active reads accelerate the run; durable writes are explicit after validation.
+    sync_turns: false
     dcn:
       mode: active_read
 
@@ -115,14 +123,6 @@ plugins:
 
 sessions:
   write_json_snapshots: true
-
-providers:
-  nvidia:
-    name: NVIDIA NIM
-    api: https://inference-api.nvidia.com/v1
-    key_env: NVIDIA_API_KEY
-    default_model: nvidia/zai-org/glm-5.2
-    transport: chat_completions
 
 model_catalog:
   enabled: true

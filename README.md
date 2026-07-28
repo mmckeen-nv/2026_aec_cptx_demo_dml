@@ -2,7 +2,7 @@
 
 An agent-driven architectural visualization demo: Hermes interprets a design
 brief, controls Rhino and Blender through MCP, renders the scene, and can send
-the output through deterministic SDXL depth and FLUX.2 ComfyUI stages. Daystrom DML/DCN provides optional cross-session
+the output directly through the FLUX.2 ComfyUI stage. Daystrom DML/DCN provides optional cross-session
 continuity for the full agent-driven deployment.
 
 The active project is `cliff_house_02`, a three-storey modernist cliff house.
@@ -16,6 +16,10 @@ provisions the GPU containers, installs the demo, and runs full preflight:
 ```powershell
 .\Setup-AEC-Demo.cmd
 ```
+
+The setup also builds the local AEC Mission Control dashboard and installs
+`AEC Mission Control.bat` on the Desktop. The installer prompts securely for
+the NVIDIA inference key when the `aec-cptx` profile does not already have one.
 
 For an already-prepared workstation, the lower-level guided installer remains
 available:

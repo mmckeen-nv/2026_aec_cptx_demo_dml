@@ -1,0 +1,235 @@
+CANONICAL CLIFF HOUSE GEOMETRY CONTRACT
+
+This contract prevents prompt drift while preserving the upstream prompt files
+verbatim. It is an execution and validation supplement, not a redesign.
+
+Authority and precedence:
+
+1. Exact source curves and plan footprints extracted from the checked-in
+   upstream `aa_demo_versions/cliff_house_02/rhino_assets/base_model.3dm`.
+2. Exact named massing bounds in the upstream `hermes/DEMO_RULES.md`.
+3. Filled architectural answers in the upstream project prompt.
+4. Numbered upstream phase prompts. Generic examples and adjustable defaults
+   never override a filled project answer.
+5. The accepted original HERO render is the final silhouette oracle.
+
+Original source-plan bounds:
+
+- `building_plan`: `(1.5,-15.5,0)` to `(13.5,4.5,0)`
+- `garage_plan`: `(7,4.5,0)` to `(17,15,0)`
+- `driveway_plan`: `(17,6.5,0)` to `(25,13.5,0)`
+- `patio_stairs_plan`: `(-3,-3,0)` to `(1,-1,0)`
+- `patio_plan`: `(-6,-16,-1)` to `(0,5,-1)`
+
+Terrain curves, all non-rational cubic NURBS:
+
+- south E-W: `(25,-20,0)`, `(5,-20,0)`, `(-8,-20,-2.435513)`, `(-15,-20,-5)`
+- north E-W: `(25,16,0)`, `(5,16,0)`, `(-4,16,0)`, `(-15,16,-2)`
+- east N-S: `(25,16,0)`, `(25,6.349829,0)`, `(25,-11.812446,0)`, `(25,-20,0)`
+- west N-S: `(-15,16,-1.800003)`, `(-15,7.633730,-1)`,
+  `(-15,-11.713384,-3.569228)`, `(-15,-20,-5)`
+- center N-S: `(-0.049451,16,-0.264660)`, `(-0.049451,6,-0.264660)`,
+  `(-0.049451,-9,0)`, `(-0.118379,-20,-1.572709)`
+
+Build one smooth open terrain surface through these curves. A box, extrusion,
+closed Brep, capped solid, six-face mesh, rectangular cliff, or massive
+pedestal is not the original terrain.
+
+Operator-approved grading correction (2026-07-27):
+
+The original source geometry placed the patio top at `Z=-0.82`, the pool water
+at `Z=-0.76`, and the building-pad top at `Z=+0.25`. It also dropped the outer
+terrain to `Z=-5`. This produced a one-metre patio/pad mismatch and forced a
+flat pool through terrain varying by more than a metre across its footprint.
+For the corrected single-frame presentation and subsequent production runs, this
+grading correction supersedes only those site elevations:
+
+- patio solid: bottom `Z=-0.03`, top `Z=+0.15`;
+- pool basin: bottom `Z=-1.25`, rim/top `Z=+0.15`;
+- pool water: bottom `Z=+0.17`, top `Z=+0.21`;
+- bronze overflow edge: bottom `Z=+0.15`, top `Z=+0.29`;
+- building pad remains unchanged with top `Z=+0.25`;
+- patio transition occupies `Z=+0.15` through `Z=+0.25`.
+
+Use these five non-rational cubic terrain curves for the corrected grading:
+
+- south E-W: `(25,-20,0)`, `(5,-20,0)`, `(-8,-20,-0.70)`, `(-15,-20,-1.25)`
+- north E-W: `(25,16,0)`, `(5,16,0)`, `(-4,16,-0.15)`, `(-15,16,-0.60)`
+- east N-S: `(25,16,0)`, `(25,6.349829,0)`, `(25,-11.812446,0)`, `(25,-20,0)`
+- west N-S: `(-15,16,-0.60)`, `(-15,7.633730,-0.50)`,
+  `(-15,-11.713384,-0.95)`, `(-15,-20,-1.25)`
+- center N-S: `(-0.049451,16,-0.10)`, `(-0.049451,6,-0.06)`,
+  `(-0.049451,-9,-0.12)`, `(-0.118379,-20,-0.35)`
+
+These still define one smooth open, uncapped terrain surface. Do not introduce
+a solid ground plane, perimeter wall, terrain box, or platform.
+
+`SITE_TERRAIN` is Rhino coordination geometry, not final presentation
+geometry. Hermes must set these Rhino object User Text values when it creates
+or updates the object:
+
+- `blender_disposition=REMOVE_BEFORE_RENDER`
+- `comfy_environment_role=GENERATIVE_COASTAL_CLIFF`
+
+The mesh bridge defensively supplies the same disposition for the exact object
+name `SITE_TERRAIN` if an older Rhino document lacks the tag. Blender must keep
+the imported object through source-parity validation, then hide it from the
+viewport and renderer before producing the ComfyUI source frame. Do not delete
+or hide `BUILDING_PAD`, `PATIO`, `INFINITY_POOL_BASIN`,
+`INFINITY_POOL_WATER`, or `POOL_BRONZE_OVERFLOW`.
+
+Operator-approved final Blender composition (2026-07-27):
+
+The supplied `Screenshot 2026-07-27 at 12.49.16 PM.png` is the visual
+authority for the final Blender composition. Use a nearly orthogonal,
+straight-on view from west looking east, not the earlier southwest
+three-quarter hero view.
+
+- Center the complete west facade horizontally.
+- Keep verticals vertical and floor plates visually horizontal.
+- Show all three stacked levels and both outer cantilevers.
+- Keep the complete rectangular infinity pool in the foreground.
+- The pool may overlap the lower edge of the house in projection, but it must
+  not crop out of frame.
+- Show the broad site surface as a shallow foreground band beneath the house;
+  do not expose an exaggerated terrain cliff, pedestal, or deep platform.
+- Use a long-lens perspective close to an architectural elevation rather than
+  an oblique wide-angle view.
+- Validated camera: location `(-55,-1.45,14.5)`, target `(4,-1.45,4.8)`,
+  perspective lens `52mm`.
+- Use a neutral architectural proof exposure of `0.6`, sun energy `1.5`, and
+  warm area energy `900`; the earlier `2.2 / 4.0 / 3500` combination clips the
+  white slabs and destroys the facade detail visible in the reference.
+- Roof slabs use exposed concrete, not the white-ashlar wall material. Use a
+  neutral grey world and neutral grey site proof material so the Blender
+  source matches the operator reference instead of reading as beige terrain.
+
+Canonical massing bounds, with 1mm maximum error:
+
+- `L1_east`: `(5,3,0.25)` to `(17,14,4)`
+- `L1_west`: `(5,-15,0.3)` to `(13.5,3,4)`
+- `L2_east`: `(5,3,4.25)` to `(17,14,7.75)`
+- `L2_west`: `(3.5,-15,4.25)` to `(13.5,3,7.75)`
+- `L2_balcony_south`: `(1.5,-17.05,4)` to `(13.5,3,5.25)`
+- `L2_balcony_north`: `(5,14,4)` to `(17,16.25,5.15)`
+- `L2_balcony_step`: `(1.5,3,4)` to `(5,14,5.25)`
+- `L2_roof_garage`: `(2.5,1.16,7.75)` to `(18.97,16.55,8.35)`
+- `L3_main`: `(1.5,-10,7.75)` to `(13.5,3,11.5)`
+- `L3_balcony_south`: `(1.5,-17,7.75)` to `(13.5,-10,8.9)`
+- `L3_roof_slab`: `(-1,-13.5,11.5)` to `(15,4.5,12.3)`
+
+Original filled design requirements:
+
+- minimalist three-level modernist composition with strong horizontal
+  cantilevers and no ornament;
+- flat white roof/parapet language, never a shed roof;
+- maximum floor-to-ceiling west glazing for every habitable room, smaller
+  punched windows north and south, and minimal east glazing;
+- lightly tinted glass with bronze anodized frames;
+- full-width cantilevered west balconies on all upper floors with thin
+  horizontal steel cable railings;
+- ground-floor west veranda under the first cantilever;
+- understated oversized pivot-door entry in a deep reveal, with no canopy;
+- white ashlar upper volumes, exposed-concrete slabs and soffits, and a dark
+  concrete base;
+- west patio and near-black infinity pool with thin bronze overflow edge.
+
+Do not convert those words into invented percentages, mandatory window counts,
+new room layouts, alternate footprints, extra wings, or different balcony
+locations.
+
+Operator-approved outdoor-furniture correction (2026-07-27):
+
+- Omit outdoor furniture from this single-frame run. The accepted visual
+  target does not require visible lounge chairs.
+- Do not create `PATIO_LOUNGE_CHAIR_0` through `PATIO_LOUNGE_CHAIR_3`, any other
+  `PATIO_LOUNGE_CHAIR_*` objects, simplified rectangular chair proxies,
+  stepping stones, stools, plinths, or loose square blocks on the patio or in
+  the pool.
+- No non-pool object may overlap the `INFINITY_POOL_WATER` footprint. Keep the
+  complete pool-water surface and the dry patio visually clear.
+- Validation must report `outdoor_furniture_objects=0`,
+  `rectangular_furniture_proxies=0`, and `pool_obstruction=PASS`.
+
+Accepted visual oracle:
+
+- Render:
+  `demos/cliff_house/source/renders/cliff_house_02_hero_20260615_0920.png`
+- Render SHA-256:
+  `68dab75009a9214339229e95a4bbe055c9cbea56a7f7de640230e433066ff188`
+- Detailed source scene, validation only:
+  `demos/cliff_house/source/base_model_final_20260615_0920.blend`
+- Detailed source SHA-256:
+  `58ac4070f5d2369fa36ee01eaa959dafccb52fbe37f70852cb75589e9dc7ef17`
+- Protected HERO scene, validation only:
+  `demos/cliff_house/hero/cliff_house_02_HERO.blend`
+- HERO SHA-256:
+  `d0756bfa299b89d51642bf5688eba875f68cf99a9a72978bc24fac1f23d4413a`
+
+For a from-scratch run, never import, append, link, copy geometry from,
+or render these `.blend` files. Use the accepted PNG only as a read-only visual
+comparison after the Rhino geometry and Blender handoff have been created.
+
+The rebuilt silhouette must read as the accepted original: a slender stacked
+three-level glass tower with continuous curtain-wall bands, offset horizontal
+plates, full-width balcony/terrace edges, and a roof-deck railing. A broad
+opaque stone L-shaped house, sparse punched-window villa, oversized monolithic
+roof cap, or rectangular cliff pedestal is a geometry-parity failure.
+
+Operator-approved ComfyUI target (2026-07-27):
+
+- Reference:
+  `C:\Users\test\Desktop\Screenshot 2026-07-27 at 1.05.29 PM.png`
+- Preserve the modeled house, pool, patio, camera, and all architectural
+  silhouettes.
+- Keep the patio and pool free of outdoor furniture, square blocks, stools,
+  stepping stones, and chair proxies.
+- Replace the deliberately absent `SITE_TERRAIN` and empty/neutral background
+  with a photorealistic rocky coastal cliff, sparse native scrub, ocean,
+  distant horizon, and blue sky.
+- The cliff descends beside and below the patio. It must integrate naturally
+  with the structural edge without covering the pool or changing architecture.
+- Do not generate a separate rectangular ground plane, artificial terrain
+  pedestal, moat, or platform beneath the house.
+
+At the Blender presentation stage, run
+`scripts/remove_tagged_blender_environment.py`. Require
+`BLENDER_ENVIRONMENT_FILTER_PASS` and `SITE_TERRAIN.hide_render == True`.
+The full rectangular pool water surface must remain visible and unobstructed.
+
+Shared production optimizations for manual and automatic modes:
+
+- Before authoring Rhino geometry, query Daystrom DML for the exact validated
+  `mcp__rhino__run_csharp` envelope and reuse it. Manual mode may create one
+  visible object per call; automatic mode may batch a complete validated phase.
+  In both modes, reject empty GUIDs and nested errors and never repeat the same
+  failed call.
+- Build the mesh bridge with `scripts/build_mesh_bridge.py`, supplying the
+  current validated Rhino object count. Import it with
+  `skills/import_with_metadata.py`; require matching object counts, zero
+  imported rotations, source-bounds parity, and geometry parity.
+- Blender 5.2 uses `BLENDER_EEVEE`, not `BLENDER_EEVEE_NEXT`. Its compositor
+  tree is `scene.compositing_node_group`, not `scene.node_tree`. Do not create
+  `CompositorNodeMapRange`, `CompositorNodeMath`, or
+  `CompositorNodeClamp`. Do not import PIL inside Blender.
+- Generate the depth control pass by executing
+  `scripts/render_camera_depth_pass.py`. Require a true camera-space
+  distance gradient and its `CAMERA_DEPTH_PASS` validation receipt; a
+  constant-gray material pass, object mask, or silhouette is invalid.
+- After parity validation, execute the checked-in
+  `scripts/remove_tagged_blender_environment.py`; do not rewrite the operation
+  ad hoc. Require `SITE_TERRAIN.hide_render == True` and
+  `SITE_TERRAIN.hide_viewport == True`, while retaining the building pad,
+  patio, pool basin, pool water, and bronze overflow edge.
+- Use the operator-approved frontal `ocean_view` camera for Blender review:
+  location `(-55,-1.45,14.5)`, target `(4,-1.45,4.8)`, lens `52mm`.
+- For the ComfyUI source, use `scripts/render_cliff_house_comfy_source.py` and
+  its dedicated `comfy_ocean_view` camera at location `(-50,-42,18)`, target
+  `(2,2,4.5)`, lens `50mm`. Restore the frontal review camera afterward.
+- Use 24 Cycles samples with denoising. This host exposes only the CPU Cycles
+  device; do not spend turns retrying CUDA or OptiX.
+- Use `SINGLE_SCATTERING` for Blender sky textures, never `NISHITA`.
+- Send accepted source frames directly through
+  `scripts/comfyui_flux2_direct.py`. Do not run SDXL or a depth ControlNet.
+- Validate output dimensions, counts, provenance, prompt hashes, and visible
+  geometry before accepting the final result.

@@ -8,7 +8,7 @@
 ## Read this file first. Every session, every task.
 
 The project is an architectural visualization pipeline:
-brief + reference images + Rhino source -> Blender render -> SDXL depth -> FLUX.2 post.
+brief + reference images + Rhino source -> Blender render -> direct FLUX.2 post.
 Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 
 ---
@@ -51,7 +51,7 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
     |
 [8] Test render (10_phase_test_render) -> Blender
     |
-[9] Final render (11_phase_final_render) -> Blender + SDXL -> FLUX.2 Klein
+[9] Final render (11_phase_final_render) -> Blender -> FLUX.2 Klein
 ```
 
 ---
@@ -93,7 +93,7 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 | Skill                     | When to invoke                                    | File                              |
 |---------------------------|---------------------------------------------------|-----------------------------------|
 | Depth + segmentation      | Rendering depth maps or segmentation masks        | skills/depth_and_segmentation.md  |
-| Two-stage ComfyUI         | Final SDXL depth + FLUX.2 frame processing         | scripts/comfyui_phase7.py         |
+| Direct FLUX.2             | Geometry-preserving FLUX.2 frame processing        | scripts/comfyui_flux2_direct.py   |
 
 ### Persistent rules
 
@@ -130,4 +130,6 @@ Deliverable: a demo that runs end-to-end, suitable for stakeholders.
 | "retaining wall" / "footing" / "frost depth" | retaining_wall_footing.md                       |
 | "backup" / "checkpoint"                      | BACKUP_RULE.md                                  |
 | "reference image" / "show me"                | VISUAL_ENGAGEMENT_RULE.md                       |
-| "send to ComfyUI" / "AI render" / "Execute"  | 11_phase_final_render.md + scripts/comfyui_phase7.py |
+| "send to ComfyUI" / "AI render" / "Execute"  | 11_phase_final_render.md + scripts/comfyui_flux2_direct.py |
+| "Run the Cliff House build automatically"     | deployment/aec-cptx-profile/cliff-house-automatic-run.txt |
+| "manual" / "step by step" / individual phase  | canonical numbered phases with object-by-object pacing |

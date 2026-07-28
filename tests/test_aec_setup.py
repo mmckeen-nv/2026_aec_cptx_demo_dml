@@ -30,10 +30,25 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual(os.environ["NEW_VALUE"], "hello")
                 os.environ.pop("NEW_VALUE", None)
 
-    def test_every_tier_has_python_and_blender(self):
-        for components in aec_setup.TIERS.values():
+    def test_every_visual_tier_has_python_and_blender(self):
+        for name, components in aec_setup.TIERS.items():
             self.assertIn("python", components)
-            self.assertIn("blender", components)
+            if name != "summit":
+                self.assertIn("blender", components)
+
+    def test_summit_tier_is_compact_dml_only(self):
+        components = aec_setup.TIERS["summit"]
+        self.assertIn("ollama_embedding", components)
+        self.assertIn("dml", components)
+        self.assertNotIn("ollama_models", components)
+        self.assertNotIn("comfy_models", components)
+        installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
+        summit = (REPO_ROOT / "deployment" / "AEC_RTX_SUMMIT" / "Install-AEC-RTX-Summit.ps1").read_text()
+        self.assertIn("The summit tier is remote-inference + DML only", installer)
+        self.assertIn("-RemoteOnly:$SummitMode", installer)
+        self.assertIn("qwen3-embedding:0.6b", summit)
+        self.assertNotIn("llama3:8b", summit)
+        self.assertNotIn("ProvisionVllm", summit)
 
     def test_windows_install_commands_use_exact_package_ids(self):
         with mock.patch("platform.system", return_value="Windows"):
@@ -158,7 +173,7 @@ class SetupTests(unittest.TestCase):
         installer = (REPO_ROOT / "Install-AEC-Demo.ps1").read_text()
         self.assertIn("Sync-CliffStyleProfileFiles", installer)
         self.assertIn("Repair-CliffStyleProfileRuntime", installer)
-        self.assertIn("'${1}0.5'", installer)
+        self.assertIn("{ '0.85' } else { '0.5' }", installer)
         self.assertIn("'${1}0.2'", installer)
         for profile in ("aec-cptx-profile", "bac-teapot-profile", "rtx-pro-profile"):
             soul = (REPO_ROOT / "deployment" / profile / "SOUL.md").read_text()
@@ -391,11 +406,41 @@ class SetupTests(unittest.TestCase):
         self.assertIn("Restore-PortableDaystromStores", installer)
         self.assertIn("Preserved existing Daystrom store", installer)
         self.assertIn("Seed-DemoDmlKnowledge", installer)
-        self.assertIn("--tenant-id aec-cptx", installer)
+        self.assertIn("--tenant-id $TenantId", installer)
         self.assertIn("--project-id $ProjectId", installer)
         self.assertIn("teapot-01-runtime-store", installer)
-        self.assertIn("cliff-house-01-runtime-store", installer)
+        self.assertIn("cliff-house-01-rhino-store", installer)
+        self.assertIn("knowledge\\dml\\tool_memory_v2", installer)
+        self.assertIn("'openclaw' 'snips2'", installer)
+        self.assertIn("Repair-AecCptxNvidiaRuntime", installer)
+        self.assertIn("aws/anthropic/claude-opus-4-5", installer)
+        self.assertIn("context_length: 200000", installer)
+        self.assertIn("max_tokens: 32768", installer)
+        self.assertIn(
+            "nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+            installer,
+        )
+        self.assertIn("provider: custom:nvidia_omni", installer)
+        self.assertIn("Install-AecMissionControl", installer)
+        self.assertIn("AEC Mission Control.bat", installer)
+        self.assertIn("Install-DaystromAecPatch", installer)
+        dml_patch = (
+            REPO_ROOT / "deployment" / "daystrom-dml" / "aec-agent-memory.patch"
+        ).read_text()
+        for marker in (
+            "mirror_agentic_memory_to_rag",
+            "item_session_id not in",
+            "Daystrom DML background preload failed",
+            "dcn.iteration_extension",
+        ):
+            self.assertIn(marker, dml_patch)
         self.assertNotIn("C:\\Users\\", installer)
+
+        control_launcher = (
+            REPO_ROOT / "deployment" / "aec-control-plane" / "Start-AEC-Control-Plane.ps1"
+        ).read_text()
+        self.assertIn("Resolve-AecDemoRoot", control_launcher)
+        self.assertNotIn("C:\\Users\\", control_launcher)
 
         for relative in (
             "deployment/bac-teapot-profile/Start-BAC_Teapot.ps1",
@@ -456,7 +501,14 @@ class SetupTests(unittest.TestCase):
 
     def test_dml_seed_knowledge_is_profile_retrievable(self):
         seed = (REPO_ROOT / "scripts/seed_demo_dml.py").read_text(encoding="utf-8")
-        for required in ("tenant_id", "client_id", "project_id", '"kind": "note"', '"no_merge": True'):
+        for required in (
+            "tenant_id",
+            "client_id",
+            "project_id",
+            'kind = "action" if "memory_class: procedural_tool_call"',
+            '"kind": kind',
+            '"no_merge": True',
+        ):
             self.assertIn(required, seed)
 
     def test_portable_bundle_builder_exports_only_tracked_source(self):

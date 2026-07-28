@@ -12,6 +12,10 @@ Add `-ProvisionVllm -StartVllm` on a connected machine to provision and start
 the local model backend. For USB-drive and disconnected workflows, see
 [`docs/portable_install.md`](docs/portable_install.md).
 
+For the `agent` and `full` tiers, the installer also builds AEC Mission Control
+and installs a Desktop launcher. Set `NVIDIA_API_KEY` before running unattended,
+or enter it at the secure prompt when the `aec-cptx` profile is configured.
+
 ## 1. Clone and run preflight
 
 ```bash
