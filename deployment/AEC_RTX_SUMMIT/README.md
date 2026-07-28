@@ -11,6 +11,8 @@ Double-click `Setup-AEC-RTX-Summit.cmd`. The installer configures:
 - The verified Cliff House procedural-memory seed.
 - ComfyUI 0.24.0 and the exact FLUX.2 Klein 4B FP8 model set used by the
   golden run.
+- Signed offline installers for Rhino 8 and Blender 5.2. Both Blender ARM64
+  and x64 packages are included; setup selects the host architecture.
 - AEC Mission Control and the Desktop launchers, including
   `AEC_CLIFFHOUSE_CLI.bat` for direct Hermes CLI operation.
 
@@ -34,8 +36,10 @@ Python 3.13 ComfyUI runtime, installs the
 official CUDA 13 PyTorch packages, and starts ComfyUI on
 `http://127.0.0.1:8188`.
 
-Rhino, Blender, and their application-side MCP add-ons remain machine
-prerequisites for the complete visual workflow.
+Rhino and Blender are installed from the verified USB payload when absent.
+Existing installations are preserved. Rhino account sign-in and license
+activation remain interactive, and the Rhino/Blender application-side MCP
+add-ons are configured by the AEC demo setup.
 
 The demo source is installed under
 `%LOCALAPPDATA%\AEC_RTX_SUMMIT\aec-demo`; desktop launchers do not depend on
@@ -49,7 +53,8 @@ Setup-AEC-RTX-Summit.cmd -SmokeTest
 ```
 
 The smoke test parses every packaged PowerShell script, validates all payload
-checksums, streams and verifies every model chunk, and performs a disposable
+checksums, verifies the Authenticode signatures on every Rhino and Blender
+installer, streams and verifies every model chunk, and performs a disposable
 reassembly test.
 
 The NVIDIA API key is requested securely during profile setup and stored only

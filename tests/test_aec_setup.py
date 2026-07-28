@@ -49,6 +49,27 @@ class SetupTests(unittest.TestCase):
         self.assertIn("qwen3-embedding:0.6b", summit)
         self.assertNotIn("llama3:8b", summit)
         self.assertNotIn("ProvisionVllm", summit)
+        for marker in (
+            "Ensure-Rhino",
+            "Ensure-Blender",
+            "blender-5.2.0-windows-arm64.msi",
+            "blender-5.2.0-windows-x64.msi",
+            "LanguagePack-en-us.msi",
+            "Get-AuthenticodeSignature",
+        ):
+            self.assertIn(marker, summit)
+
+    def test_summit_bundle_requires_offline_cad_installers(self):
+        generator = (REPO_ROOT / "New-AEC-RTX-SummitBundle.ps1").read_text()
+        for marker in (
+            "RhinoCoreInstaller",
+            "RhinoLanguagePackInstaller",
+            "BlenderArm64Installer",
+            "BlenderX64Installer",
+            "includes_rhino_8_offline_installer",
+            "application_installers",
+        ):
+            self.assertIn(marker, generator)
 
     def test_windows_install_commands_use_exact_package_ids(self):
         with mock.patch("platform.system", return_value="Windows"):

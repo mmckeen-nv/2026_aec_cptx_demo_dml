@@ -4,7 +4,11 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Destination,
   [string]$HermesHome = (Join-Path $env:LOCALAPPDATA 'hermes'),
-  [string]$ComfyRoot = (Join-Path $env:USERPROFILE 'ComfyUI')
+  [string]$ComfyRoot = (Join-Path $env:USERPROFILE 'ComfyUI'),
+  [string]$RhinoCoreInstaller,
+  [string]$RhinoLanguagePackInstaller,
+  [string]$BlenderArm64Installer,
+  [string]$BlenderX64Installer
 )
 
 Set-StrictMode -Version Latest
@@ -32,6 +36,32 @@ $ComfyModels = @(
     relative_path = 'vae\flux2-vae.safetensors'
     bytes = 336213556L
     sha256 = 'd64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5'
+  }
+)
+$ApplicationInstallers = @(
+  [ordered]@{
+    name = 'Rhino 8 core'
+    source = $RhinoCoreInstaller
+    relative_path = 'rhino\rhino.msi'
+    signer_pattern = 'ROBERT MCNEEL'
+  },
+  [ordered]@{
+    name = 'Rhino 8 English language pack'
+    source = $RhinoLanguagePackInstaller
+    relative_path = 'rhino\LanguagePack-en-us.msi'
+    signer_pattern = 'ROBERT MCNEEL'
+  },
+  [ordered]@{
+    name = 'Blender 5.2 ARM64'
+    source = $BlenderArm64Installer
+    relative_path = 'blender\blender-5.2.0-windows-arm64.msi'
+    signer_pattern = 'BLENDER'
+  },
+  [ordered]@{
+    name = 'Blender 5.2 x64'
+    source = $BlenderX64Installer
+    relative_path = 'blender\blender-5.2.0-windows-x64.msi'
+    signer_pattern = 'BLENDER'
   }
 )
 
@@ -91,6 +121,33 @@ function Copy-ChunkedFile {
   }
 }
 
+function Get-VerifiedInstallerMetadata {
+  param([Collections.IDictionary]$Installer)
+  if ([string]::IsNullOrWhiteSpace($Installer.source) -or
+      -not (Test-Path -LiteralPath $Installer.source -PathType Leaf)) {
+    throw ("Required offline installer is missing for {0}. Pass its path to the bundle generator." -f
+      $Installer.name)
+  }
+  $source = [IO.Path]::GetFullPath($Installer.source)
+  if ([IO.Path]::GetExtension($source) -notin @('.msi', '.exe')) {
+    throw "Unsupported installer type for $($Installer.name): $source"
+  }
+  $signature = Get-AuthenticodeSignature -LiteralPath $source
+  $signer = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { '' }
+  if ($signature.Status -ne 'Valid' -or $signer -notmatch $Installer.signer_pattern) {
+    throw "Authenticode verification failed for $($Installer.name): status=$($signature.Status) signer=$signer"
+  }
+  $file = Get-Item -LiteralPath $source
+  return [ordered]@{
+    name = $Installer.name
+    relative_path = $Installer.relative_path.Replace('\', '/')
+    bytes = $file.Length
+    sha256 = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
+    signer = $signer
+    file_version = $file.VersionInfo.FileVersion
+  }
+}
+
 if (-not (Test-Path -LiteralPath (Join-Path $DmlSource 'pyproject.toml') -PathType Leaf)) {
   throw "Daystrom source is missing: $DmlSource"
 }
@@ -111,12 +168,18 @@ foreach ($model in $ComfyModels) {
     throw "ComfyUI model SHA-256 mismatch: $source"
   }
 }
+$ApplicationInstallerMetadata = @(
+  $ApplicationInstallers | ForEach-Object { Get-VerifiedInstallerMetadata $_ }
+)
 if (Test-Path -LiteralPath $Destination) {
   throw "Destination already exists. Choose a new empty directory: $Destination"
 }
 $destinationDrive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($Destination))
 $modelBytes = [long](($ComfyModels | ForEach-Object { $_.bytes } | Measure-Object -Sum).Sum)
-$requiredBundleBytes = $modelBytes + 2GB
+$applicationInstallerBytes = [long]((
+  $ApplicationInstallerMetadata | ForEach-Object { $_.bytes } | Measure-Object -Sum
+).Sum)
+$requiredBundleBytes = $modelBytes + $applicationInstallerBytes + 2GB
 if ($destinationDrive.AvailableFreeSpace -lt $requiredBundleBytes) {
   throw ("The destination needs at least {0:N1} GiB free; only {1:N1} GiB is available." -f
     ($requiredBundleBytes / 1GB), ($destinationDrive.AvailableFreeSpace / 1GB))
@@ -185,6 +248,13 @@ foreach ($model in $ComfyModels) {
   $targetBase = Join-Path (Join-Path $Destination 'payload\comfyui-models') $model.relative_path
   Copy-ChunkedFile $source $targetBase
 }
+for ($index = 0; $index -lt $ApplicationInstallers.Count; $index++) {
+  $installer = $ApplicationInstallers[$index]
+  $metadata = $ApplicationInstallerMetadata[$index]
+  $target = Join-Path (Join-Path $Destination 'payload\application-installers') `
+    $metadata.relative_path.Replace('/', '\')
+  Copy-ManagedFile $installer.source $target
+}
 
 $forbidden = @(Get-ChildItem -LiteralPath $Destination -File -Recurse -Force | Where-Object {
   $_.Extension -eq '.safetensors' -or
@@ -209,6 +279,9 @@ $manifest = [ordered]@{
   comfyui_source_commit = (& git.exe -C $ComfyRoot rev-parse HEAD | Select-Object -Last 1).Trim()
   includes_flux2_model_payload = $true
   comfyui_models = $ComfyModels
+  includes_rhino_8_offline_installer = $true
+  includes_blender_5_2_offline_installers = $true
+  application_installers = $ApplicationInstallerMetadata
   includes_vllm = $false
   includes_unrelated_heavy_model_payloads = $false
 }
@@ -228,3 +301,4 @@ Write-Host "Destination: $Destination"
 Write-Host "Files:       $($measure.Count)"
 Write-Host ("Size:        {0:N1} MiB" -f ($measure.Sum / 1MB))
 Write-Host 'Models:      FLUX.2 Klein 4B FP8 + Qwen 3 4B encoder + FLUX.2 VAE'
+Write-Host 'Applications: Rhino 8 core + English language pack; Blender 5.2 ARM64 + x64'

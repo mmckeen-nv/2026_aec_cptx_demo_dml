@@ -145,4 +145,5 @@ aa_demo_versions/cliff_house_02/rhino_assets/base_model_checkpoint_*.3dm
 *.safetensors.part[0-9][0-9][0-9]
 *.gguf
 **/payload/comfyui-models/
+**/payload/application-installers/
 /AEC_RTX_SUMMIT*/

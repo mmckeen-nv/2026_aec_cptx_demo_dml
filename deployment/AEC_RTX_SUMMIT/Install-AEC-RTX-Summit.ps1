@@ -20,8 +20,31 @@ $DmlSource = Join-Path $DmlRoot 'source'
 $DmlVenv = Join-Path $DmlRoot '.venv-dml'
 $ComfyPayload = Join-Path $PackageRoot 'payload\comfyui-source'
 $ComfyModelPayload = Join-Path $PackageRoot 'payload\comfyui-models'
+$ApplicationInstallerRoot = Join-Path $PackageRoot 'payload\application-installers'
 $ComfyRoot = Join-Path $env:USERPROFILE 'ComfyUI'
 $LogRoot = Join-Path $env:ProgramData 'AEC_RTX_SUMMIT\logs'
+$ApplicationInstallers = @(
+  @{
+    Name = 'Rhino 8 core'
+    RelativePath = 'rhino\rhino.msi'
+    SignerPattern = 'ROBERT MCNEEL'
+  },
+  @{
+    Name = 'Rhino 8 English language pack'
+    RelativePath = 'rhino\LanguagePack-en-us.msi'
+    SignerPattern = 'ROBERT MCNEEL'
+  },
+  @{
+    Name = 'Blender 5.2 ARM64'
+    RelativePath = 'blender\blender-5.2.0-windows-arm64.msi'
+    SignerPattern = 'BLENDER'
+  },
+  @{
+    Name = 'Blender 5.2 x64'
+    RelativePath = 'blender\blender-5.2.0-windows-x64.msi'
+    SignerPattern = 'BLENDER'
+  }
+)
 $ComfyModels = @(
   @{
     RelativePath = 'diffusion_models\flux-2-klein-base-4b-fp8.safetensors'
@@ -85,6 +108,103 @@ function Test-Http([string]$Uri) {
   } catch {
     return $false
   }
+}
+
+function Test-SignedInstaller {
+  param([string]$Path, [string]$SignerPattern)
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+  $signature = Get-AuthenticodeSignature -LiteralPath $Path
+  $signer = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { '' }
+  return $signature.Status -eq 'Valid' -and $signer -match $SignerPattern
+}
+
+function Invoke-MsiInstall {
+  param([string]$Path, [string]$Label)
+  if (-not (Test-SignedInstaller $Path (
+    $ApplicationInstallers | Where-Object { $_.Name -eq $Label } |
+      Select-Object -ExpandProperty SignerPattern
+  ))) {
+    throw "Refusing to run an unsigned or unexpected $Label installer: $Path"
+  }
+  Write-Step "Install $Label from the verified offline payload"
+  $process = Start-Process -FilePath 'msiexec.exe' -Verb RunAs -Wait -PassThru `
+    -ArgumentList @('/i', "`"$Path`"", '/qn', '/norestart')
+  if ($process.ExitCode -notin @(0, 3010, 1641)) {
+    throw "$Label installation failed with Windows Installer code $($process.ExitCode)."
+  }
+  if ($process.ExitCode -in @(3010, 1641)) {
+    Write-Host "$Label installed; Windows requested a restart." -ForegroundColor Yellow
+  }
+}
+
+function Find-RhinoExecutable {
+  $candidates = @(
+    (Join-Path $env:ProgramFiles 'Rhino 8\System\Rhino.exe'),
+    (Join-Path ${env:ProgramFiles(x86)} 'Rhino 8\System\Rhino.exe')
+  ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  return $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    Select-Object -First 1
+}
+
+function Find-BlenderExecutable {
+  $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}) |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  $candidates = foreach ($root in $roots) {
+    Get-ChildItem -LiteralPath (Join-Path $root 'Blender Foundation') `
+      -Filter 'blender.exe' -File -Recurse -ErrorAction SilentlyContinue
+  }
+  return $candidates | Sort-Object {
+    try { [version]$_.VersionInfo.ProductVersion } catch { [version]'0.0' }
+  } -Descending | Select-Object -ExpandProperty FullName -First 1
+}
+
+function Ensure-Rhino {
+  $rhino = Find-RhinoExecutable
+  if ($rhino) {
+    Write-Host "Preserving existing Rhino installation: $rhino"
+    return $rhino
+  }
+  if ($SkipDependencies) { throw 'Rhino 8 is missing and dependency installation was skipped.' }
+  if (-not (Confirm-Action 'Install Rhino 8 from the bundled, signed offline installers?')) {
+    throw 'Rhino 8 is required for the complete AEC workflow.'
+  }
+  $core = Join-Path $ApplicationInstallerRoot 'rhino\rhino.msi'
+  $language = Join-Path $ApplicationInstallerRoot 'rhino\LanguagePack-en-us.msi'
+  Invoke-MsiInstall $core 'Rhino 8 core'
+  Invoke-MsiInstall $language 'Rhino 8 English language pack'
+  $rhino = Find-RhinoExecutable
+  if (-not $rhino) {
+    throw 'Rhino 8 installation finished but Rhino.exe was not found. A Windows restart may be required.'
+  }
+  Write-Host 'Rhino was installed. Rhino account sign-in and license activation remain interactive.'
+  return $rhino
+}
+
+function Ensure-Blender {
+  $blender = Find-BlenderExecutable
+  if ($blender) {
+    Write-Host "Preserving existing Blender installation: $blender"
+    return $blender
+  }
+  if ($SkipDependencies) { throw 'Blender is missing and dependency installation was skipped.' }
+  if (-not (Confirm-Action 'Install Blender 5.2 from the bundled, signed offline installer?')) {
+    throw 'Blender is required for the complete AEC workflow.'
+  }
+  $architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+  $relativePath = if ($architecture -eq 'Arm64') {
+    'blender\blender-5.2.0-windows-arm64.msi'
+  } elseif ($architecture -eq 'X64') {
+    'blender\blender-5.2.0-windows-x64.msi'
+  } else {
+    throw "No bundled Blender installer supports Windows architecture $architecture."
+  }
+  $label = if ($architecture -eq 'Arm64') { 'Blender 5.2 ARM64' } else { 'Blender 5.2 x64' }
+  Invoke-MsiInstall (Join-Path $ApplicationInstallerRoot $relativePath) $label
+  $blender = Find-BlenderExecutable
+  if (-not $blender) {
+    throw 'Blender installation finished but blender.exe was not found. A Windows restart may be required.'
+  }
+  return $blender
 }
 
 function Get-Uv {
@@ -296,9 +416,23 @@ function Test-PortablePayload {
     (Join-Path $PackageRoot 'aec-cptx-portable.yaml'),
     (Join-Path $PackageRoot 'hermes-dml-memory.cmd')
   )
+  $requiredFiles += @($ApplicationInstallers | ForEach-Object {
+    Join-Path $ApplicationInstallerRoot $_.RelativePath
+  })
   foreach ($path in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
       $failures.Add("Missing required payload file: $path")
+    }
+  }
+  foreach ($installer in $ApplicationInstallers) {
+    $path = Join-Path $ApplicationInstallerRoot $installer.RelativePath
+    if (Test-Path -LiteralPath $path -PathType Leaf) {
+      if (Test-SignedInstaller $path $installer.SignerPattern) {
+        $bytes = (Get-Item -LiteralPath $path).Length
+        Write-Host "SMOKE_INSTALLER_PASS name=$($installer.Name) bytes=$bytes"
+      } else {
+        $failures.Add("Installer signature verification failed: $($installer.Name)")
+      }
     }
   }
   if (Test-Path -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf) {
@@ -399,7 +533,7 @@ function Test-PortablePayload {
     $failures | ForEach-Object { Write-Host "SMOKE_FAIL $_" -ForegroundColor Red }
     throw "Portable payload smoke test failed with $($failures.Count) error(s)."
   }
-  Write-Host "AEC_INSTALLER_SMOKE_PASS scripts=$($scripts.Count) models=$($ComfyModels.Count) cli_launcher=true" -ForegroundColor Green
+  Write-Host "AEC_INSTALLER_SMOKE_PASS scripts=$($scripts.Count) models=$($ComfyModels.Count) application_installers=$($ApplicationInstallers.Count) cli_launcher=true" -ForegroundColor Green
 }
 
 function Install-ComfyUI {
@@ -489,8 +623,11 @@ try {
   Write-Host 'Vision:    NVIDIA-hosted Nemotron 3 Nano Omni (262K context)'
   Write-Host 'Memory:    Daystrom DML + qwen3-embedding:0.6b'
   Write-Host 'Imaging:   ComfyUI + bundled FLUX.2 Klein 4B model set'
+  Write-Host 'CAD/DCC:   Bundled Rhino 8 + Blender 5.2 offline installers'
   Write-Host 'Excluded:  vLLM, Qwen chat/vision containers, unrelated model archives'
 
+  Ensure-Rhino | Out-Null
+  Ensure-Blender | Out-Null
   if (-not (Resolve-Command 'git.exe')) { Install-WingetPackage 'Git.Git' 'Git' }
   if (-not (Resolve-Command 'python.exe') -and -not (Resolve-Command 'py.exe')) {
     Install-WingetPackage 'Python.Python.3.12' 'Python 3.12'
@@ -514,6 +651,7 @@ try {
 
   Write-Host ''
   Write-Host 'AEC RTX Summit deployment is ready.' -ForegroundColor Green
+  Write-Host 'Rhino 8 and Blender 5.2 are installed; Rhino licensing may still require sign-in.'
   Write-Host 'ComfyUI and the verified FLUX.2 Klein model set are installed and ready.'
   Write-Host "Installer log: $logPath"
   exit 0
