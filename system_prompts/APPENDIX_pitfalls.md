@@ -23,6 +23,12 @@ with: "See APPENDIX_pitfalls.md for known issues relevant to this phase."
 | Rhino Trim vs BooleanDifference on terrain | BooleanDifference fails on open surfaces, leaves artefacts | Use Trim with terrain as cutter -- not BooleanDifference |
 | Action has no fcurves | Blender 5.x layered actions | Access via action.layers[].strips[].channelbag() |
 | scene has no node_tree | Blender 5.x compositor | Use scene.compositing_node_group |
+| CompositorNodeMapRange, CompositorNodeMath, or CompositorNodeClamp undefined | Blender 5.2 compositor removed these node types | For single-layer depth EXR use Image -> CompositorNodeNormalize -> CompositorNodeInvert -> File Output, or run `scripts/render_camera_depth_pass.py` for a fast 16-bit camera-space material pass |
+| BLENDER_EEVEE_NEXT enum rejected | Blender 5.2 engine identifier changed | Use `BLENDER_EEVEE`; inspect the render-engine enum instead of guessing |
+| NISHITA sky enum rejected | Blender 5.2 renamed the physical sky modes | Use `SINGLE_SCATTERING`; valid alternatives are `MULTIPLE_SCATTERING`, `PREETHAM`, and `HOSEK_WILKIE` |
+| Rhino OBJ import is rotated or edge-on | Blender OBJ axis conversion adds object rotation | Do not use OBJ for the AEC handoff; build the checked-in JSON mesh bridge and call `import_mesh_bridge`, which preserves Rhino Z-up coordinates with zero object rotation |
+| Cycles scene says GPU but renders on CPU | `scene.cycles.device='GPU'` does not select a backend | Require a non-NONE `compute_device_type` and a CUDA/OptiX device in Cycles preferences; Windows ARM64 Blender 5.2 exposes CPU only on this host |
+| PIL import fails inside Blender | Blender's embedded Python does not include Pillow | Validate image existence and dimensions in the host process, not inside Blender |
 | Transmission input not found | Blender 5.x input name change | Check b.inputs list for current name: [i.name for i in b.inputs] |
 | BlenderMCP drops after idle | Known issue with port 9876 | Re-run bpy.ops.blendermcp.start_server() in Scripting tab |
 | OBS source is black (0x0) | Window handle lost after restart/virtual desktop switch | Right-click source in OBS -> Properties -> reselect window |

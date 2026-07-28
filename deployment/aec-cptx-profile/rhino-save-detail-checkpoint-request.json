@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"save_doc","arguments":{"path":"C:\\Users\\test\\Documents\\RX Spark AEC\\2026_aec_cptx_demo_dml\\aa_demo_versions\\cliff_house_02\\rhino_assets\\base_model_checkpoint_detailing_20260726_1635.3dm"}}}

@@ -21,6 +21,80 @@ Hermes resolves ROOT from its config at session start.
 
 ---
 
+## Application Lifecycle Boundary
+
+Rhino is started and owned by the operator/launcher. Hermes may use the adopted
+Rhino session, but must never spawn, close, restart, or replace a Rhino slot and
+must never close or reopen the active Rhino document. Never call
+`mcp__rhino__spawn_slot` or `mcp__rhino__close_slot`. If Rhino is unreachable,
+preserve the application and document, stop retrying lifecycle operations, and
+report the connection failure. Reconnect the MCP router or restart Hermes only;
+do not terminate Rhino.
+
+Before writing a Rhino script, ask Daystrom DML: "Have I made successful Rhino
+geometry tool calls before? How exactly did I do that? Return the exact tool
+name, argument shape, validated script scaffold, and verified result. Exclude
+failed attempts." Use procedural tool history instead of generic recall. Use
+`mcp__rhino__run_csharp` for geometry mutation and reserve Rhino Python for
+read-only inspection and viewport capture. Treat any nested `payload.error`,
+exception, or traceback as failure even when MCP transport reports success.
+Never repeat the same failing call twice.
+
+---
+
+## Cliff House Operating Modes
+
+The Cliff House has two execution modes inside the same canonical workflow.
+Mode selection changes pacing and batching only; both modes use the same
+project brief, geometry contract, Blender corrections, direct FLUX.2 path, and
+validation requirements.
+
+### Manual mode
+
+Manual mode is the default for an interactive Cliff House session. It also
+activates when the operator says "manual", "step by step", "start the Cliff
+House demo", or names an individual phase.
+
+1. Read `deployment/aec-cptx-profile/canonical-cliff-house-geometry.txt` at
+   startup and apply it as a supplement to the existing project brief and
+   numbered phase prompts.
+2. Preserve the original object-by-object Rhino pacing, review gates, named
+   checkpoints, and operator approvals.
+3. Apply all shared production corrections: corrected terrain and pool
+   elevations, no outdoor-furniture proxies, Blender 5.2 API compatibility,
+   validated mesh bridge, tagged terrain removal before presentation,
+   operator-approved cameras, direct FLUX.2, and the final artifact checks.
+4. Do not read or execute the automatic-run prompt unless the operator
+   explicitly switches modes.
+
+### Automatic mode
+
+Automatic mode activates when the operator says any unambiguous equivalent of:
+
+- "Run the Cliff House build automatically."
+- "Start the automatic Cliff House run."
+- "Build the Cliff House end to end automatically."
+
+On that trigger:
+
+1. Read `deployment/aec-cptx-profile/cliff-house-automatic-run.txt`.
+2. Execute it as the optimized continuous form of the canonical phase workflow.
+3. Treat review gates as automatically approved only after their validation
+   checks pass.
+4. Use the prompt's phase-level Rhino batching and Blender fast path; do not
+   revert to manual object-by-object pacing.
+5. Do not describe the run as a benchmark. User-facing language is
+   "automatic run" or "automatic build."
+6. If either live application contains objects at the initial empty-scene
+   gate, stop and request reset authorization rather than erasing an occupied
+   operator scene.
+
+The operator may switch from automatic to manual mode by saying "Stop automatic
+mode and continue manually." Preserve completed validated artifacts and resume
+at the next canonical phase.
+
+---
+
 ## Scenario A -- New Project
 
 ### Step 1 -- Understand what they're building
@@ -119,6 +193,7 @@ Before executing any phase, always read:
 1. `skills/INDEX.md` (entry point)
 2. `system_prompts/[NN]_phase_[name].md` (the relevant phase prompt)
 3. `aa_demo_versions/[project]/user_prompts/project_prompt.md`
+4. For the Cliff House, `deployment/aec-cptx-profile/canonical-cliff-house-geometry.txt`
 
 Project prompt values override system prompt defaults -- always.
 

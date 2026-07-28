@@ -1,0 +1,408 @@
+diff --git a/dml_core/daystrom_dml/dml_adapter.py b/dml_core/daystrom_dml/dml_adapter.py
+index bf15d5d..f351ba5 100644
+--- a/dml_core/daystrom_dml/dml_adapter.py
++++ b/dml_core/daystrom_dml/dml_adapter.py
+@@ -97,6 +97,13 @@ class DMLAdapter:
+         self.enable_quality_on_retrieval = bool(
+             self.config.get("enable_quality_on_retrieval", False)
+         )
++        # Agentic turn memory belongs in the low-latency lattice. Persistent
++        # RAG is reserved for explicit document ingestion and post-run
++        # hardening unless a deployment opts back into the legacy mirroring
++        # behaviour.
++        self.mirror_agentic_memory_to_rag = bool(
++            self.config.get("mirror_agentic_memory_to_rag", False)
++        )
+         self.metrics_enabled = bool(self.settings.metrics_enabled)
+         self.survival_ledger_enabled = bool(
+             self.config.get("survival_ledger_enabled", True)
+@@ -309,8 +316,9 @@ class DMLAdapter:
+     # ------------------------------------------------------------------
+     # Lifecycle helpers
+     # ------------------------------------------------------------------
+-    def close(self) -> None:
+-        self._persist_all()
++    def close(self, *, persist: bool = True) -> None:
++        if persist:
++            self._persist_all()
+         self._stop_persistence_loop()
+         if self.checkpoint_manager:
+             self.checkpoint_manager.close()
+@@ -1185,11 +1193,25 @@ class DMLAdapter:
+                             report.get("report_path"),
+                         )
+                     self.store.import_state(data)
+-        if not bool(self.config.get("skip_rag_state_import", False)):
++        # A configured PersistentRAGStore has already loaded its durable FAISS
++        # index and metadata above. Replaying the legacy foreground
++        # ``rag_store.json`` into MultiRAGStore would call the embedder once per
++        # document and duplicate those records in the persistent backend.
++        # Preserve legacy import only for deployments without durable RAG.
++        import_legacy_rag_state = (
++            not bool(self.config.get("skip_rag_state_import", False))
++            and self.persistent_rag_store is None
++        )
++        if import_legacy_rag_state:
+             with contextlib.suppress(Exception):
+                 if self.rag_state_path.exists():
+                     data = json.loads(self.rag_state_path.read_text(encoding="utf-8"))
+                     self.rag_store.import_state(data)
++        elif self.rag_state_path.exists():
++            LOGGER.info(
++                "Skipping legacy foreground RAG replay from %s; durable RAG is already loaded or replay is disabled.",
++                self.rag_state_path,
++            )
+
+     def _persist_all(self) -> None:
+         self._persist_dml_state()
+@@ -1648,12 +1670,16 @@ class DMLAdapter:
+         rag_embedding = item.embedding if merged else embedding
+         rag_meta: Dict[str, Any] = dict(enriched_meta)
+         rag_meta.setdefault("memory_id", item.id)
+-        if self.persistent_rag_store is not None:
+-            with contextlib.suppress(Exception):
+-                self.persistent_rag_store.add(rag_text, rag_embedding, meta=rag_meta)
+-        self.rag_store.add_document(rag_text, meta=rag_meta)
++        if self.mirror_agentic_memory_to_rag:
++            if self.persistent_rag_store is not None:
++                with contextlib.suppress(Exception):
++                    self.persistent_rag_store.add(rag_text, rag_embedding, meta=rag_meta)
++            self.rag_store.add_document(rag_text, meta=rag_meta)
+         self._maybe_update_survival_ledger(text, enriched_meta)
+-        self._persist_all()
++        if self.mirror_agentic_memory_to_rag:
++            self._persist_all()
++        else:
++            self._persist_dml_state()
+         if self.metrics_enabled:
+             update_memory_gauge(len(self.store.items()))
+         return item
+@@ -2848,6 +2874,10 @@ class DMLAdapter:
+
+     def __del__(self) -> None:  # pragma: no cover - destructor best effort
+         try:
+-            self.close()
++            # Garbage collection must never overwrite a newer state written by
++            # another process with this adapter's stale in-memory snapshot.
++            # Mutating operations persist explicitly; callers that own the
++            # latest state can still request persistence through close().
++            self.close(persist=False)
+         except Exception:
+             pass
+diff --git a/dml_core/daystrom_dml/memory_store.py b/dml_core/daystrom_dml/memory_store.py
+index 6433e0b..e51d774 100644
+--- a/dml_core/daystrom_dml/memory_store.py
++++ b/dml_core/daystrom_dml/memory_store.py
+@@ -826,9 +826,15 @@ class MemoryStore:
+                 return False
+         if client_id is not None and meta.get("client_id") != client_id:
+             return False
+-        if session_id is not None and meta.get("session_id") != session_id:
++        # Tenant/client-scoped memories without a session or instance are
++        # durable cross-session knowledge. A session-specific query may use
++        # those records, but must still reject records owned by another
++        # explicit session or instance.
++        item_session_id = meta.get("session_id")
++        if session_id is not None and item_session_id not in (None, "", session_id):
+             return False
+-        if instance_id is not None and meta.get("instance_id") != instance_id:
++        item_instance_id = meta.get("instance_id")
++        if instance_id is not None and item_instance_id not in (None, "", instance_id):
+             return False
+         return True
+
+diff --git a/dml_mcp/dml_mcp_server.py b/dml_mcp/dml_mcp_server.py
+index 49f63b6..85649de 100644
+--- a/dml_mcp/dml_mcp_server.py
++++ b/dml_mcp/dml_mcp_server.py
+@@ -3,11 +3,16 @@ from __future__ import annotations
+
+ import argparse
+ import contextlib
++import logging
+ from pathlib import Path
++import threading
++import time
+ from typing import Any, Iterable, List, TYPE_CHECKING
+
+ from daystrom_dml.dml_adapter import DMLAdapter
+
++LOGGER = logging.getLogger(__name__)
++
+ if TYPE_CHECKING:  # pragma: no cover - import for type checking only
+     from mcp.server.fastmcp import FastMCP as FastMCPType
+ else:  # pragma: no cover - runtime import guard
+@@ -29,6 +34,10 @@ def _build_adapter(
+     overrides: dict[str, Any] = {}
+     if storage_dir:
+         overrides["storage_dir"] = str(storage_dir)
++    # MCP servers are long-lived. A periodic save from a stale in-memory
++    # snapshot can overwrite turns written by the Hermes memory provider.
++    # Refresh on demand below instead of running the background writer.
++    overrides["persistence"] = {"interval_sec": 0}
+     return DMLAdapter(
+         config_path=str(config_path) if config_path else None,
+         config_overrides=overrides or None,
+@@ -48,15 +57,76 @@ def create_server(
+     if not MCP_AVAILABLE:  # pragma: no cover - import guard
+         raise RuntimeError("mcp extras are not installed; install with '.[mcp]'")
+
+-    adapter = _build_adapter(config_path, storage_dir)
++    # Building the adapter loads the embedding backend and persisted lattice,
++    # which can take longer than Hermes' initial MCP tool-discovery window.
++    # Advertise the FastMCP tools immediately and pay that startup cost on the
++    # first real DML operation instead, when the normal tool timeout applies.
++    adapter: DMLAdapter | None = None
++    adapter_lock = threading.Lock()
++    state_refresh_lock = threading.Lock()
++    persisted_state = (storage_dir / "dml_state.jsonl") if storage_dir else None
++    last_state_mtime_ns = persisted_state.stat().st_mtime_ns if persisted_state and persisted_state.exists() else 0
++
++    def get_adapter() -> DMLAdapter:
++        nonlocal adapter
++        if adapter is not None:
++            return adapter
++        with adapter_lock:
++            if adapter is None:
++                started = time.perf_counter()
++                adapter = _build_adapter(config_path, storage_dir)
++                # Keep the small embedding model resident before serving the
++                # first real query. This is one warm-up call, not a replay of
++                # the persisted RAG corpus.
++                adapter._embed_query("Daystrom DML readiness probe")
++                LOGGER.info(
++                    "Daystrom DML adapter ready in %.3fs",
++                    time.perf_counter() - started,
++                )
++        return adapter
++
++    def preload_adapter() -> None:
++        """Warm DML after tool discovery without blocking MCP availability."""
++        try:
++            get_adapter()
++        except Exception:
++            LOGGER.exception("Daystrom DML background preload failed")
++
++    def refresh_state() -> DMLAdapter:
++        nonlocal last_state_mtime_ns
++        active_adapter = get_adapter()
++        if persisted_state is None or not persisted_state.exists():
++            return active_adapter
++        current_mtime_ns = persisted_state.stat().st_mtime_ns
++        if current_mtime_ns == last_state_mtime_ns:
++            return active_adapter
++        with state_refresh_lock:
++            current_mtime_ns = persisted_state.stat().st_mtime_ns
++            if current_mtime_ns == last_state_mtime_ns:
++                return active_adapter
++            started = time.perf_counter()
++            active_adapter._load_persisted_state()
++            last_state_mtime_ns = persisted_state.stat().st_mtime_ns
++            LOGGER.info(
++                "Refreshed Daystrom DML lattice state in %.3fs",
++                time.perf_counter() - started,
++            )
++        return active_adapter
+
+     @contextlib.asynccontextmanager
+     async def lifespan(_: FastMCPType) -> Any:
++        preload_thread = threading.Thread(
++            target=preload_adapter,
++            name="daystrom-dml-preload",
++            daemon=True,
++        )
++        preload_thread.start()
+         try:
+             yield
+         finally:
+-            adapter.close()
++            if adapter is not None:
++                adapter.close(persist=False)
+
+     if _FastMCP is None:  # pragma: no cover - defensive import guard
+         raise RuntimeError("FastMCP runtime is unavailable")
+
+@@ -70,6 +140,8 @@ def create_server(
+
+     @server.tool(name="ingest", description="Ingest a file or directory into the lattice")
+     async def ingest(path: str) -> dict[str, Any]:
++        nonlocal last_state_mtime_ns
++        active_adapter = refresh_state()
+         target = Path(path).expanduser()
+         if not target.exists():
+             raise ValueError(f"Path does not exist: {target}")
+@@ -82,24 +154,54 @@ def create_server(
+                 text = file_path.read_text(encoding="utf-8")
+             except UnicodeDecodeError:
+                 continue
+-            adapter.ingest(text, meta={"doc_path": str(file_path)})
++            active_adapter.ingest(text, meta={"doc_path": str(file_path)})
+             count += 1
++        if persisted_state and persisted_state.exists():
++            last_state_mtime_ns = persisted_state.stat().st_mtime_ns
+         return {"files": count, "target": str(target)}
+
+     @server.tool(name="query", description="Query the lattice and receive structured context")
+     async def query(prompt: str, mode: str = "auto") -> dict[str, Any]:
+-        report = adapter.query_database(prompt, mode=mode or "auto")
++        active_adapter = refresh_state()
++        report = active_adapter.query_database(prompt, mode=mode or "auto")
++        source_docs = report.get("source_docs", [])
++        context = str(report.get("context", ""))
++
++        # Expand only DML-selected source files, and enforce the same compact
++        # context budget used by the Hermes memory provider. Large source-file
++        # expansion made explicit MCP recalls slower and displaced the actual
++        # task context.
++        expanded: list[str] = []
++        remaining_chars = 2_200
++        for source in source_docs:
++            if remaining_chars <= 0:
++                break
++            source_path = Path(str(source))
++            if not source_path.is_file():
++                continue
++            try:
++                source_text = source_path.read_text(encoding="utf-8")
++            except (OSError, UnicodeDecodeError):
++                continue
++            section = f"Source: {source_path}\n{source_text}"
++            section = section[:remaining_chars]
++            expanded.append(section)
++            remaining_chars -= len(section)
++        if expanded:
++            context = "\n\n".join(expanded)
++
+         return {
+             "mode": report["mode"],
+-            "context": report["context"],
++            "context": context,
+             "tokens": int(report.get("tokens", 0)),
+             "latency_ms": int(report.get("latency_ms", 0)),
+-            "sources": report.get("source_docs", []),
++            "sources": source_docs,
+         }
+
+     @server.tool(name="search", description="Search DML memory and return result handles")
+     async def search(query: str, tenant_id: str = "openclaw", session_id: str | None = None, top_k: int = 6) -> dict[str, Any]:
+-        report = adapter.retrieve_context(query, tenant_id=tenant_id, session_id=session_id, top_k=top_k)
++        active_adapter = refresh_state()
++        report = active_adapter.retrieve_context(query, tenant_id=tenant_id, session_id=session_id, top_k=top_k)
+         results = []
+         for item in report.get("items", []):
+             meta = item.get("meta") or {}
+@@ -115,7 +217,8 @@ def create_server(
+
+     @server.tool(name="fetch", description="Fetch one DML memory by id")
+     async def fetch(memory_id: str) -> dict[str, Any]:
+-        for item in adapter.store.items():
++        active_adapter = refresh_state()
++        for item in active_adapter.store.items():
+             if str(item.id) == str(memory_id):
+                 return {
+                     "id": str(item.id),
+@@ -128,6 +231,7 @@ def create_server(
+
+     @server.tool(name="stats", description="Return basic adapter statistics")
+     async def stats() -> dict[str, Any]:
+-        return adapter.stats()
++        active_adapter = refresh_state()
++        return active_adapter.stats()
+
+     return server
+diff --git a/integrations/hermes/plugins/daystrom_dml/__init__.py b/integrations/hermes/plugins/daystrom_dml/__init__.py
+index 11ac13a..81b8141 100644
+--- a/integrations/hermes/plugins/daystrom_dml/__init__.py
++++ b/integrations/hermes/plugins/daystrom_dml/__init__.py
+@@ -815,6 +815,91 @@ class DaystromDMLProvider(MemoryProvider):
+     def dcn_observations(self) -> List[Dict[str, Any]]:
+         return list(self._dcn_observations)
+
++    def decide_iteration_extension(self, context: Dict[str, Any]) -> Dict[str, Any]:
++        """Return a bounded, auditable decision about extending a tool loop."""
++        context = context if isinstance(context, dict) else {}
++        user_message = _clean_text(str(context.get("user_message") or ""), 1200)
++        recent_text = _clean_text(str(context.get("recent_text") or ""), 2400)
++        combined = f"{user_message}\n{recent_text}".lower()
++
++        def _count(name: str) -> int:
++            try:
++                return max(0, int(context.get(name) or 0))
++            except (TypeError, ValueError):
++                return 0
++
++        tool_calls = _count("recent_tool_calls")
++        tool_results = _count("recent_tool_results")
++        requested_extra = _count("requested_extra_iterations")
++        explicit_stop = bool(re.search(
++            r"\b(?:stop|cancel|abort|do not continue|don't continue|no more retries)\b",
++            user_message,
++            re.IGNORECASE,
++        ))
++        repeated_failure = bool(re.search(
++            r"\b(?:same|repeated|recurring|identical)\b.{0,40}\b(?:error|failure|exception)\b|"
++            r"\b(?:error|failure|exception)\b.{0,40}\b(?:same|repeated|recurring|identical)\b",
++            combined,
++            re.IGNORECASE,
++        ))
++        no_progress = bool(re.search(
++            r"\b(?:no progress|not making progress|looping|stuck|retrying endlessly|"
++            r"repeatedly failing|unchanged result)\b",
++            combined,
++            re.IGNORECASE,
++        ))
++        wants_completion = bool(re.search(
++            r"\b(?:continue|keep going|finish|complete|do not stop|don't stop|"
++            r"verify|validate|test)\b",
++            user_message,
++            re.IGNORECASE,
++        ))
++        pending_verification = bool(context.get("pending_verification")) or bool(re.search(
++            r"\b(?:pending|remaining|next)\b.{0,50}\b(?:verification|validation|test|check)\b|"
++            r"\b(?:verification|validation|test|check)\b.{0,50}\b(?:pending|remaining|next)\b",
++            combined,
++            re.IGNORECASE,
++        ))
++        recent_progress = bool(context.get("recent_progress")) or bool(re.search(
++            r"\b(?:progress|completed|fixed|installed|implemented|created|updated|"
++            r"passed|succeeded|ready)\b",
++            recent_text,
++            re.IGNORECASE,
++        ))
++
++        if explicit_stop:
++            decision, reasons = "deny", ["explicit_stop"]
++        elif repeated_failure and (no_progress or tool_calls >= 2 or tool_results >= 2):
++            decision, reasons = "deny", ["repeated_failure", "no_progress_loop"]
++        elif no_progress and (tool_calls >= 2 or tool_results >= 2):
++            decision, reasons = "deny", ["no_progress_loop"]
++        elif (wants_completion or pending_verification) and recent_progress:
++            decision, reasons = "allow", ["unfinished_verified_work", "recent_progress"]
++        elif pending_verification and tool_calls > 0 and tool_results > 0:
++            decision, reasons = "allow", ["pending_verification", "bounded_extension"]
++        else:
++            decision, reasons = "deny", ["insufficient_progress_evidence"]
++
++        extra_iterations = min(30, max(1, requested_extra or 30)) if decision == "allow" else 0
++        event = {
++            "event": "dcn.iteration_extension",
++            "mode": self.dcn_mode,
++            "decision": decision,
++            "source": "daystrom_dml",
++            "reason_codes": reasons,
++            "extra_iterations": extra_iterations,
++            "recent_tool_calls": tool_calls,
++            "recent_tool_results": tool_results,
++        }
++        self._record_dcn_event(event)
++        logger.info("Daystrom iteration-extension decision: %s", json.dumps(event, sort_keys=True))
++        return {
++            "decision": decision,
++            "source": "daystrom_dml",
++            "reason_codes": reasons,
++            "extra_iterations": extra_iterations,
++        }
++
+     def prefetch(self, query: str, *, session_id: str = "") -> str:
+         query = _clean_text(query, 1200)
+         if not query:

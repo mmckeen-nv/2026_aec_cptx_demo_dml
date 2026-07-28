@@ -1,0 +1,40 @@
+capacity: 4000
+dml_top_k: 3
+token_budget: 2200
+dml_context_summary_chars: 2000
+
+embedding_model: ollama:qwen3-embedding:0.6b
+embedding_device: cuda
+strict_embedding_required: true
+
+llm_backend: auto
+model_name: dummy
+strict_llm_required: false
+
+ingest_persist_mode: dml_only
+mirror_agentic_memory_to_rag: false
+skip_rag_state_import: true
+persistence:
+  enable: true
+  path: ./dml_state.jsonl
+  interval_sec: 120
+
+rag_store:
+  enable: true
+  path: ./rag_index.faiss
+  meta_path: ./rag_meta.json
+  backend: faiss
+  dim: 1024
+
+dpm:
+  enable: true
+  mode: active-write
+  preference_graph_path: ./dpm_preference_graph.json
+  relationship_id: relationship:aec-rtx-summit
+  project_id: project:cliff-house-01
+  token_budget: 80
+
+agentic_mode:
+  enabled: true
+  schema_validation: true
+  promotion_pipeline: true

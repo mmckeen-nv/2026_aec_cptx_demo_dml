@@ -1,0 +1,106 @@
+Apply the operator-approved Cliff House site-grading correction to the existing
+live Rhino and Blender scenes, then render and stylize one corrected comparison
+frame. This is an authorized geometry correction, not a from-scratch benchmark.
+Do not launch, close, restart, or replace Rhino, Blender, ComfyUI, or Ollama.
+
+Project:
+`aa_demo_versions/cliff_house_single_frame_01`
+
+Before authoring any Rhino script, call `mcp__daystrom_dml__query` exactly once
+and ask:
+
+"Have I made successful Rhino geometry tool calls before? How exactly did I do
+that? Return the exact tool name, argument shape, validated script scaffold,
+and verified result. Exclude failed attempts."
+
+Use the recalled procedural envelope. Rhino mutation must use only
+`mcp__rhino__run_csharp`; Rhino Python may be used only for read-only
+inspection. Never repeat a failed script unchanged.
+
+Read:
+
+- `deployment/aec-cptx-profile/AGENTS.md`
+- `deployment/aec-cptx-profile/canonical-cliff-house-geometry.txt`
+- `scripts/remove_tagged_blender_environment.py`
+- `aa_demo_versions/cliff_house_single_frame_01/user_prompts/comfy_style_prompt.txt`
+
+Preserve all architecture exactly. Mutate only these named site objects:
+
+- `SITE_TERRAIN`
+- `PATIO`
+- `PATIO_STAIRS`
+- `INFINITY_POOL_BASIN`
+- `INFINITY_POOL_WATER`
+- `POOL_BRONZE_OVERFLOW`
+
+First save the current Rhino document to
+`rhino_assets/pre_grading_correction_live_checkpoint.3dm` without closing or
+reopening it. Then replace the named site objects in one validated C# call:
+
+1. Rebuild `SITE_TERRAIN` as one smooth open, uncapped network surface using
+   the corrected five non-rational cubic curves in the canonical contract.
+   It must not be a box, extrusion, closed Brep, capped solid, or pedestal.
+2. Rebuild `PATIO` with the same XY footprint, bottom `Z=-0.03`, top `Z=+0.15`.
+3. Rebuild `INFINITY_POOL_BASIN` with the same XY footprint, bottom
+   `Z=-1.25`, rim/top `Z=+0.15`.
+4. Rebuild `INFINITY_POOL_WATER` with the same XY footprint, bottom
+   `Z=+0.17`, top `Z=+0.21`.
+5. Rebuild `POOL_BRONZE_OVERFLOW` with the same XY footprint, bottom
+   `Z=+0.15`, top `Z=+0.29`.
+6. Rebuild `PATIO_STAIRS` as a shallow transition occupying `Z=+0.15` through
+   `Z=+0.25`, preserving its XY footprint.
+
+Preserve each object's existing layer, name, material user text, visibility,
+and other user strings. Keep `BUILDING_PAD` unchanged with top `Z=+0.25`.
+Internally validate all corrected bounds, terrain openness/non-solidity, and
+the exact five curve control-point sets. Save the corrected document to
+`rhino_assets/base_model.3dm` and
+`rhino_assets/base_model_grading_corrected_checkpoint.3dm`.
+
+Write `site_grading_correction_validation.json` with:
+
+- pre/post bounds for every corrected object;
+- pad-to-patio top difference (`0.10 m`);
+- water-above-patio (`0.06 m`);
+- basin water depth (`1.40 m`);
+- terrain Z range and exact corrected control-point parity;
+- open/uncapped/non-solid terrain evidence;
+- PASS/FAIL.
+
+Rebuild `blender_assets/fresh_cliff_house.mesh.json` from the corrected 3DM,
+using the current validated visible-object count. Save the current Blender
+scene to `blender_assets/pre_grading_correction_live_checkpoint.blend`, then
+clear the Blender scene and import only the corrected fresh mesh bridge using
+`skills/import_with_metadata.py`. Require `SITE_TERRAIN` to carry
+`blender_disposition=REMOVE_BEFORE_RENDER`, then run the checked-in
+`scripts/remove_tagged_blender_environment.py` exactly. Require
+`BLENDER_ENVIRONMENT_FILTER_PASS` and keep the pool, patio, and building pad
+render-visible. The former version-2 terrain-clearance pass is no longer part
+of the final ComfyUI source path.
+
+Reapply the existing accepted materials and lighting. Replace the former
+southwest three-quarter hero camera with the operator-approved frontal
+west-elevation camera: location `(-55,-1.45,14.5)`, target `(4,-1.45,4.8)`,
+lens `52mm`, exposure `0.6`, sun energy `1.5`, warm area energy `900`,
+Cycles 24 samples with denoising. Center the complete facade, keep verticals
+vertical, and retain the complete pool in the foreground.
+Render exactly one corrected 1920x1080 beauty frame to:
+
+`renders/single_frame/png/frame_0000.png`
+
+Generate the aligned depth frame, but reject it if it is nearly solid black or
+does not encode visible near/far separation across terrain, pool, and house.
+Save the corrected Blender scene to:
+
+`blender_assets/base_model.blend`
+
+Run the checked-in direct FLUX workflow exactly:
+
+`python scripts/comfyui_flux2_direct.py --source "aa_demo_versions/cliff_house_single_frame_01/renders/single_frame/comfy_source/frame_0000.png" --output "aa_demo_versions/cliff_house_single_frame_01/renders/single_frame/flux2_enhanced/frame_0000.png" --prompt-file "aa_demo_versions/cliff_house_single_frame_01/user_prompts/comfy_style_prompt.txt"`
+
+Update `artifact_manifest.json`, `final_stylized_validation.json`, and the
+grading correction receipt with exact hashes, dimensions, object counts,
+terrain face counts, prompt provenance, and honest PASS/FAIL. Visually reject
+the result if the patio/pool reads as a sunken moat, the ground has a sharp
+diagonal break, terrain surrounds the pool above its water, the house floats,
+or FLUX invents a terrain platform. Stop after this one corrected frame.

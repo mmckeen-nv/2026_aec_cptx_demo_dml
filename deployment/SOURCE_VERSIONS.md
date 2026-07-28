@@ -16,3 +16,8 @@ profile/configuration files kept under `deployment/`.
 The old Windows installation and DML runtime-store snapshots are deliberately
 excluded. Runtime stores may contain session-specific context and must be
 backed up outside Git only when explicitly required.
+
+`deployment/daystrom-dml/aec-agent-memory.patch` is applied idempotently by the
+Windows installer to the recorded Daystrom revision. It contains the verified
+low-latency MCP preload, compact recall, cross-session procedural-memory,
+RAG-separation, and bounded iteration-extension fixes used by this demo.

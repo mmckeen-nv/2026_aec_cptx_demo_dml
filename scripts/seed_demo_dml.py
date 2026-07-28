@@ -45,17 +45,28 @@ def seed(
     )
     try:
         for path in changed:
+            text = path.read_text(encoding="utf-8")
+            kind = "action" if "memory_class: procedural_tool_call" in text else "note"
+            summary = next(
+                (
+                    line.split(":", 1)[1].strip()
+                    for line in text.splitlines()
+                    if line.startswith("memory_summary:")
+                ),
+                "",
+            )
             adapter.ingest(
-                path.read_text(encoding="utf-8"),
+                text,
                 meta={
                     "doc_path": str(path.resolve()),
                     "tenant_id": tenant_id,
                     "client_id": client_id,
                     "project_id": project_id,
-                    "kind": "note",
+                    "kind": kind,
                     "source": "aec-demo-repository-seed",
                     "memory_state": "active",
                     "no_merge": True,
+                    "summary": summary,
                 },
             )
     finally:

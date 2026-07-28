@@ -13,6 +13,7 @@ Refuses to proceed if rhino3dm reports load errors or critical attributes are
 missing. Caller must inspect the issue report and decide.
 """
 import hashlib
+import json
 import os
 import site
 import sys
@@ -79,6 +80,13 @@ def default_material_tag(name, layer_name=""):
     if "wall" in text or "room" in text or "partition" in text:
         return "M_Wall_Neutral"
     return "M_Proxy_Neutral"
+
+
+def default_blender_disposition(name, layer_name=""):
+    """Return downstream presentation handling for coordination objects."""
+    if name.strip().upper() == "SITE_TERRAIN":
+        return "REMOVE_BEFORE_RENDER"
+    return "KEEP"
 
 def _unit_scale_to_meters(unit_system):
     """Return a deterministic model-unit to metre conversion."""
@@ -305,6 +313,11 @@ def import_3dm(path, root_name="ImportedRhino", verbose=True, replace_existing=T
         if not str(utext.get("material", "")).strip():
             layer_name = info["full_path"] if info else ""
             utext["material"] = default_material_tag(name, layer_name)
+        if not str(utext.get("blender_disposition", "")).strip():
+            layer_name = info["full_path"] if info else ""
+            utext["blender_disposition"] = default_blender_disposition(
+                name, layer_name
+            )
         for k, v in utext.items():
             obj[k] = v
         obj["source_units"] = str(f3dm.Settings.ModelUnitSystem)
@@ -337,3 +350,146 @@ def assert_import_matches_source(path, root_name="ImportedRhino"):
         if str(collection.get(key, "")) != str(value):
             raise RuntimeError("stale Blender handoff collection: {} mismatch".format(key))
     return signature
+
+
+def build_mesh_bridge(path, output_path):
+    """Build a JSON mesh/metadata bridge for Blender builds without rhino3dm.
+
+    Some Windows-on-ARM Blender distributions have no compatible rhino3dm
+    wheel.  Run this function from a compatible system Python, then load the
+    result in Blender with :func:`import_mesh_bridge`.  This preserves the same
+    layer and User Text contract as ``import_3dm`` without using FBX or OBJ.
+    """
+    rhino3dm = ensure_rhino3dm()
+    f3dm = rhino3dm.File3dm.Read(path)
+    if f3dm is None:
+        raise RuntimeError(f"Could not read {path}")
+    unit_scale = _unit_scale_to_meters(f3dm.Settings.ModelUnitSystem)
+    layers = {}
+    for index, layer in enumerate(f3dm.Layers):
+        layers[index] = getattr(layer, "FullPath", layer.Name)
+    payload = {
+        "source": _source_signature(path),
+        "source_units": str(f3dm.Settings.ModelUnitSystem),
+        "unit_scale": unit_scale,
+        "objects": [],
+        "skipped": [],
+    }
+    for robj in f3dm.Objects:
+        attrs, geom = robj.Attributes, robj.Geometry
+        if attrs.GetUserString("export_to_blender") == "false":
+            continue
+        if not isinstance(geom, (rhino3dm.Brep, rhino3dm.Mesh)):
+            continue
+        vertices, faces = [], []
+        if isinstance(geom, rhino3dm.Mesh):
+            meshes = [geom]
+        else:
+            meshes = []
+            for face in geom.Faces:
+                render_mesh = face.GetMesh(rhino3dm.MeshType.Render)
+                if render_mesh is not None:
+                    meshes.append(render_mesh)
+        for mesh in meshes:
+            base = len(vertices)
+            vertices.extend([
+                [v.X * unit_scale, v.Y * unit_scale, v.Z * unit_scale]
+                for v in mesh.Vertices
+            ])
+            for mesh_face in mesh.Faces:
+                indices = list(mesh_face)
+                if len(indices) == 4 and indices[2] == indices[3]:
+                    indices = indices[:3]
+                faces.append([base + index for index in indices])
+        name = attrs.Name or f"obj_{len(payload['objects'])}"
+        if not vertices or not faces:
+            payload["skipped"].append(name)
+            continue
+        # The imported Blender object is built from render-mesh vertices.  A
+        # trimmed/boolean Brep bbox can include the untrimmed surface extent
+        # (for example, an opening cut from a patio slab), so use the exact
+        # bridge mesh bounds for the parity contract.
+        xs = [vertex[0] for vertex in vertices]
+        ys = [vertex[1] for vertex in vertices]
+        zs = [vertex[2] for vertex in vertices]
+        user_text = {}
+        try:
+            for key, value in attrs.GetUserStrings():
+                if value is not None:
+                    user_text[key] = value
+        except Exception:
+            pass
+        layer_path = layers.get(attrs.LayerIndex, "Unlayered")
+        if not str(user_text.get("material", "")).strip():
+            user_text["material"] = default_material_tag(name, layer_path)
+        if not str(user_text.get("blender_disposition", "")).strip():
+            user_text["blender_disposition"] = default_blender_disposition(
+                name, layer_path
+            )
+        payload["objects"].append({
+            "name": name,
+            "layer": layer_path,
+            "visible": bool(attrs.Visible),
+            "user_text": user_text,
+            "vertices": vertices,
+            "faces": faces,
+            "source_bbox": [
+                [min(xs), min(ys), min(zs)],
+                [max(xs), max(ys), max(zs)],
+            ],
+        })
+    Path(output_path).write_text(json.dumps(payload), encoding="utf-8")
+    return {
+        "objects": len(payload["objects"]),
+        "skipped": payload["skipped"],
+        "source": payload["source"],
+    }
+
+
+def import_mesh_bridge(path, root_name="ImportedRhino",
+                       replace_existing=True, verbose=True):
+    """Import a bridge created by :func:`build_mesh_bridge` into Blender."""
+    import bpy
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    existing = bpy.data.collections.get(root_name)
+    if existing is not None:
+        if not replace_existing:
+            raise RuntimeError(f"Collection already exists: {root_name}")
+        _remove_collection_tree(bpy, existing)
+    root = bpy.data.collections.new(root_name)
+    bpy.context.scene.collection.children.link(root)
+    for key, value in payload["source"].items():
+        root[f"source_3dm_{key}" if key != "path" else "source_3dm_path"] = str(value)
+    root["mesh_bridge_path"] = str(Path(path).resolve())
+    collections = {}
+    def collection_for(full_path):
+        parent = root
+        built = []
+        for part in full_path.split("::"):
+            built.append(part)
+            key = "::".join(built)
+            if key not in collections:
+                collection = bpy.data.collections.new(part)
+                parent.children.link(collection)
+                collections[key] = collection
+            parent = collections[key]
+        return parent
+    for item in payload["objects"]:
+        mesh = bpy.data.meshes.new(item["name"] + "_mesh")
+        mesh.from_pydata(item["vertices"], [], item["faces"])
+        mesh.update()
+        obj = bpy.data.objects.new(item["name"], mesh)
+        collection_for(item["layer"]).objects.link(obj)
+        obj.hide_viewport = not item["visible"]
+        obj.hide_render = obj.hide_viewport
+        obj.rotation_mode = "XYZ"
+        obj["rhino_layer"] = item["layer"]
+        obj["source_bbox"] = json.dumps(item["source_bbox"])
+        obj["source_units"] = payload["source_units"]
+        obj["unit_scale_to_meters"] = payload["unit_scale"]
+        for key, value in item["user_text"].items():
+            obj[key] = value
+    if verbose:
+        print(f"Imported bridge objects={len(payload['objects'])}, "
+              f"source_skipped={len(payload['skipped'])}")
+    return len(payload["objects"]), payload["skipped"], collections

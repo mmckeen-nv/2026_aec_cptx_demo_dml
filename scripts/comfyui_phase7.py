@@ -56,13 +56,22 @@ COMFYUI_URL        = CONFIG_COMFYUI_URL
 CHECKPOINT         = None     # None = auto-select first available
 CONTROLNET         = None     # None = auto-select first depth model
 POSITIVE_PROMPT    = (
-    "architectural visualization, modernist hillside house, concrete and glass, "
-    "photorealistic render, dramatic natural lighting, golden hour, sharp focus, "
-    "professional photography, 8k, ultra detailed"
+    "photorealistic architecture-magazine visualization of the exact supplied "
+    "modernist three-level coastal house, warm white ashlar stone, exposed-concrete "
+    "slabs and soffits, bronze-framed lightly tinted glazing, slender dark steel "
+    "cable railings, near-black infinity pool, light-grey patio, smooth muted "
+    "coastal ground cover, natural golden-hour ocean-view lighting, preserve the "
+    "exact camera and every modeled position, proportion, clearance, silhouette, "
+    "opening, balcony, pool edge, and terrain boundary; Cliff House is only the "
+    "project name, the site remains a broad shallow continuous gently curved surface "
+    "with a soft low-profile edge and no exposed vertical land face"
 )
 NEGATIVE_PROMPT    = (
-    "blurry, distorted, painting, sketch, cartoon, low quality, artifacts, "
-    "unrealistic, interior, people, cars, text, watermark"
+    "changed geometry, changed composition, literal cliff, rock face, escarpment, "
+    "rocky cutaway, canyon wall, vertical terrain side, terrain pedestal, bottom "
+    "face, thick platform, new geological geometry, reshaped house, altered roof "
+    "plates, altered balconies, altered openings, altered pool, blurry, distorted, "
+    "painting, sketch, cartoon, low quality, artifacts, people, cars, text, watermark"
 )
 DENOISE            = 0.38
 CONTROLNET_STRENGTH = 0.75

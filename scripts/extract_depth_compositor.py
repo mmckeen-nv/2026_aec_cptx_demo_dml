@@ -1,119 +1,84 @@
 """
 extract_depth_compositor.py
-Extract depth maps from all EXR frames using Blender compositor.
+Extract normalized depth maps from single-layer EXR frames with Blender 5.2.
 Run via: blender --background --python scripts/extract_depth_compositor.py
 """
 
-import bpy, os, time
+import os
+import time
+
+import bpy
+
 from path_config import RENDER_ROOT
 
-EXR_DIR   = os.environ.get("AEC_EXR_DIR", str(RENDER_ROOT / "exr"))
+
+EXR_DIR = os.environ.get("AEC_EXR_DIR", str(RENDER_ROOT / "exr"))
 DEPTH_DIR = os.environ.get("AEC_DEPTH_DIR", str(RENDER_ROOT / "depth"))
 os.makedirs(DEPTH_DIR, exist_ok=True)
 
-exr_files = sorted([f for f in os.listdir(EXR_DIR) if f.endswith('.exr')])
-print(f"Processing {len(exr_files)} EXR frames → {DEPTH_DIR}")
+exr_files = sorted(f for f in os.listdir(EXR_DIR) if f.endswith(".exr"))
+print(f"Processing {len(exr_files)} EXR frames -> {DEPTH_DIR}")
 
 scene = bpy.context.scene
 scene.use_nodes = True
 scene.render.resolution_x = 1920
 scene.render.resolution_y = 1080
-scene.render.image_settings.file_format = 'PNG'
-scene.render.image_settings.color_mode  = 'BW'
-scene.render.image_settings.color_depth = '16'
+scene.render.image_settings.file_format = "PNG"
+scene.render.image_settings.color_mode = "BW"
+scene.render.image_settings.color_depth = "16"
 
-tree = bpy.data.node_groups.new("DepthExtractor", 'CompositorNodeTree')
+tree = bpy.data.node_groups.get("DepthExtractor")
+if tree is None:
+    tree = bpy.data.node_groups.new("DepthExtractor", "CompositorNodeTree")
 scene.compositing_node_group = tree
 tree.nodes.clear()
 
-# Image input node
-img_node = tree.nodes.new("CompositorNodeImage")
-img_node.location = (0, 0)
+image_node = tree.nodes.new("CompositorNodeImage")
+image_node.location = (0, 0)
 
-# Normalize depth: Map Range node
-# Z values are in world units (metres), need 0-1 range for PNG
-map_range = tree.nodes.new("CompositorNodeMapRange")
-map_range.location = (300, 0)
-# Initial values — will be updated per-frame after scanning
-map_range.inputs["From Min"].default_value = 0.0
-map_range.inputs["From Max"].default_value = 200.0
-map_range.inputs["To Min"].default_value   = 1.0  # near = bright
-map_range.inputs["To Max"].default_value   = 0.0  # far  = dark
+# Blender 5.2 removed compositor Map Range, Math, and Clamp nodes. A
+# single-layer depth EXR stores depth in its image channels, so normalize the
+# Image output per frame and invert it: near = bright, far = dark.
+normalize_node = tree.nodes.new("CompositorNodeNormalize")
+normalize_node.location = (300, 0)
 
-# Clamp
-clamp_node = tree.nodes.new("CompositorNodeClamp")
-clamp_node.location = (500, 0)
+invert_node = tree.nodes.new("CompositorNodeInvert")
+invert_node.location = (500, 0)
+invert_node.inputs["Factor"].default_value = 1.0
 
-# Output file node
-out_node = tree.nodes.new("CompositorNodeOutputFile")
-out_node.location = (700, 0)
-out_node.directory = DEPTH_DIR
-out_node.format.file_format = 'PNG'
-out_node.format.color_mode  = 'BW'
-out_node.format.color_depth = '16'
-out_node.file_output_items[0].path = "depth_"
+output_node = tree.nodes.new("CompositorNodeOutputFile")
+output_node.location = (700, 0)
+output_node.directory = DEPTH_DIR
+output_node.format.file_format = "PNG"
+output_node.format.color_mode = "BW"
+output_node.format.color_depth = "16"
+output_node.file_output_items[0].path = "depth_"
 
-# Wire: image.Z → map_range → clamp → output
-tree.links.new(img_node.outputs["Z"],           map_range.inputs["Value"])
-tree.links.new(map_range.outputs["Value"],       clamp_node.inputs["Value"])
-tree.links.new(clamp_node.outputs["Value"],      out_node.inputs[0])
+tree.links.new(image_node.outputs["Image"], normalize_node.inputs["Value"])
+tree.links.new(normalize_node.outputs["Value"], invert_node.inputs["Color"])
+tree.links.new(invert_node.outputs["Color"], output_node.inputs[0])
 
-# ── Pass 1: scan depth range across all frames ────────────────────────────
-print("Scanning depth range...")
-global_min =  1e18
-global_max = -1e18
+print("Extracting depth maps...")
+started = time.time()
 
-for i, fname in enumerate(exr_files):
-    path = os.path.join(EXR_DIR, fname)
-    img  = bpy.data.images.load(path, check_existing=False)
-    img.colorspace_settings.name = 'Linear Rec.709'
-    
-    w, h   = img.size
-    pixels = list(img.pixels)
-    
-    # Z pass is stored in channel 0 (R) for single-layer EXR depth
-    # Blender writes OPEN_EXR with depth as float in RGBA — R=depth
-    for j in range(0, len(pixels), 4):
-        v = pixels[j]
-        if 0 < v < 1e9:
-            if v < global_min: global_min = v
-            if v > global_max: global_max = v
-    
-    bpy.data.images.remove(img)
-    if i % 30 == 0:
-        print(f"  {i+1}/{len(exr_files)}: range {global_min:.1f}–{global_max:.1f}m")
+for index, filename in enumerate(exr_files):
+    frame_number = int(filename.replace("frame_", "").replace(".exr", ""))
+    path = os.path.join(EXR_DIR, filename)
 
-print(f"Depth range: {global_min:.2f} – {global_max:.2f} metres")
+    image = bpy.data.images.load(path, check_existing=False)
+    image.colorspace_settings.name = "Linear Rec.709"
+    image_node.image = image
+    output_node.file_output_items[0].path = f"depth_{frame_number:04d}"
 
-# Update map range with actual scene depth
-map_range.inputs["From Min"].default_value = global_min
-map_range.inputs["From Max"].default_value = global_max
-
-# ── Pass 2: extract and save depth PNGs ──────────────────────────────────
-print("\nExtracting depth maps...")
-t_start = time.time()
-
-for i, fname in enumerate(exr_files):
-    frame_num = int(fname.replace("frame_","").replace(".exr",""))
-    path = os.path.join(EXR_DIR, fname)
-    
-    img = bpy.data.images.load(path, check_existing=False)
-    img.colorspace_settings.name = 'Linear Rec.709'
-    img_node.image = img
-    
-    # The output filename includes the frame number
-    out_node.file_output_items[0].path = f"depth_{frame_num:04d}"
-    
-    scene.frame_set(frame_num)
+    scene.frame_set(frame_number)
     bpy.ops.render.render(write_still=False)
-    
-    bpy.data.images.remove(img)
-    
-    if i % 20 == 0:
-        elapsed = time.time() - t_start
-        rate = (i+1) / elapsed if elapsed > 0 else 0
-        remain = (len(exr_files) - i - 1) / rate if rate > 0 else 0
-        print(f"  {i+1}/{len(exr_files)} — {remain/60:.1f} min remaining")
+    bpy.data.images.remove(image)
 
-print(f"\nDone in {(time.time()-t_start)/60:.1f} min")
+    if index % 20 == 0:
+        elapsed = time.time() - started
+        rate = (index + 1) / elapsed if elapsed > 0 else 0
+        remaining = (len(exr_files) - index - 1) / rate if rate > 0 else 0
+        print(f"  {index + 1}/{len(exr_files)} - {remaining / 60:.1f} min remaining")
+
+print(f"Done in {(time.time() - started) / 60:.1f} min")
 print(f"Depth maps: {DEPTH_DIR}")

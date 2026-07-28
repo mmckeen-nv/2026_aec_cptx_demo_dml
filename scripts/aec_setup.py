@@ -35,6 +35,7 @@ ENV_FILE = ROOT / "config" / "demo.env"
 TIERS = {
     "viewer": ("python", "blender"),
     "agent": ("python", "blender", "git", "uvx", "hermes", "gpu", "ollama", "ollama_models", "dml"),
+    "summit": ("python", "git", "uvx", "hermes", "gpu", "ollama", "ollama_embedding", "dml"),
     "enhancement": ("python", "blender", "ffmpeg", "comfyui", "comfy_models"),
     "full": (
         "python", "blender", "ffmpeg", "git", "uvx", "hermes", "gpu",
@@ -47,6 +48,7 @@ DOCS = {
     "uvx": "https://docs.astral.sh/uv/getting-started/installation/",
     "ollama": "https://docs.ollama.com/quickstart",
     "ollama_models": "Run: ollama pull qwen3-embedding:0.6b && ollama pull llama3:8b",
+    "ollama_embedding": "Run: ollama pull qwen3-embedding:0.6b",
     "comfyui": "https://docs.comfy.org/comfy-cli/getting-started",
     "comfy_models": (
         "Install the shared demo SDXL, depth ControlNet, and FLUX.2 Klein model set; "
@@ -169,6 +171,12 @@ def run_checks(tier: str) -> list[Result]:
         not missing_models,
         "installed" if not missing_models else "missing: " + ", ".join(missing_models),
     )
+    embedding_model = "qwen3-embedding:0.6b"
+    add(
+        "ollama_embedding",
+        embedding_model in installed_models,
+        "installed" if embedding_model in installed_models else f"missing: {embedding_model}",
+    )
 
     dml_source = Path(os.environ.get("DML_SOURCE_DIR", "")).expanduser()
     dml_ok = bool(str(dml_source) not in ("", ".") and (dml_source / "pyproject.toml").exists())
@@ -264,6 +272,11 @@ def install_missing(tier: str, assume_yes: bool) -> None:
             for model in ("qwen3-embedding:0.6b", "llama3:8b"):
                 if confirm(f"Download required Ollama model {model}?", assume_yes):
                     subprocess.run(["ollama", "pull", model], check=True)
+            continue
+        if component == "ollama_embedding" and executable("ollama"):
+            model = "qwen3-embedding:0.6b"
+            if confirm(f"Download required Ollama embedding model {model}?", assume_yes):
+                subprocess.run(["ollama", "pull", model], check=True)
             continue
         command = install_command(component)
         if not command:
