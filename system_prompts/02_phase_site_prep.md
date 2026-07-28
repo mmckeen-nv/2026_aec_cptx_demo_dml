@@ -60,6 +60,10 @@ Stay on RHINO throughout all Rhino work, including any revision rounds.
 - Shape the curves to produce a natural hillside: high on the east (street side),
   sloping down to the west (view side), with gentle organic undulation.
 - Loft or network-surface the curves into a single smooth NURBS surface.
+- Prefer a true network surface whose outer curves are boundaries. Do not use
+  Patch/CreatePatch or another best-fit operation that extrapolates beyond the
+  supplied outer curves. Validate the render-mesh XY bounds against those
+  boundary curves; unexpected overshoot is a failed terrain surface.
 - Confirm the surface is large enough that no render angle exposes its edge.
 - [adjustable — slope direction, terrain character per delta notes]
 
@@ -92,6 +96,10 @@ Stay on RHINO throughout all Rhino work, including any revision rounds.
 
 - [ ] Terrain surface is smooth, large enough, and has no visible edge in any
       of the four compass-point viewport renders
+- [ ] Render-mesh XY bounds do not overshoot the supplied outer terrain curves
+- [ ] If the project marks terrain as coordination-only, keep it visible for
+      site QA, then hide only that object and Zoom Extents before the final
+      architectural viewport/save
 - [ ] Lot lines are on their own layer
 - [ ] Pad bottom is below terrain at all sample points (confirm with BVH ray test)
 - [ ] Curtain wall bottom is below terrain at all perimeter sample points

@@ -76,6 +76,26 @@ class SetupTests(unittest.TestCase):
         ):
             self.assertIn(marker, generator)
 
+    def test_cliff_house_terrain_rejects_patch_overshoot_and_hides_after_qa(self):
+        canonical = (
+            REPO_ROOT
+            / "deployment"
+            / "aec-cptx-profile"
+            / "canonical-cliff-house-geometry.txt"
+        ).read_text()
+        automatic = (
+            REPO_ROOT
+            / "deployment"
+            / "aec-cptx-profile"
+            / "cliff-house-automatic-run.txt"
+        ).read_text()
+        for contract in (canonical, automatic):
+            self.assertIn("Brep.CreatePatch", contract)
+            self.assertIn("Y=-20.00..16.00", contract)
+            self.assertIn("0.05 m", contract)
+            self.assertIn("rhino_disposition=HIDE_AFTER_SITE_VALIDATION", contract)
+            self.assertIn("ZoomExtents", contract)
+
     def test_windows_install_commands_use_exact_package_ids(self):
         with mock.patch("platform.system", return_value="Windows"):
             self.assertIn("BlenderFoundation.Blender", aec_setup.install_command("blender"))
