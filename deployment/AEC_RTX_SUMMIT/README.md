@@ -11,7 +11,8 @@ Double-click `Setup-AEC-RTX-Summit.cmd`. The installer configures:
 - The verified Cliff House procedural-memory seed.
 - ComfyUI 0.24.0 and the exact FLUX.2 Klein 4B FP8 model set used by the
   golden run.
-- AEC Mission Control and the Desktop launchers.
+- AEC Mission Control and the Desktop launchers, including
+  `AEC_CLIFFHOUSE_CLI.bat` for direct Hermes CLI operation.
 
 The installer does **not** include, copy, pull, provision, or start:
 
@@ -35,6 +36,10 @@ official CUDA 13 PyTorch packages, and starts ComfyUI on
 
 Rhino, Blender, and their application-side MCP add-ons remain machine
 prerequisites for the complete visual workflow.
+
+The demo source is installed under
+`%LOCALAPPDATA%\AEC_RTX_SUMMIT\aec-demo`; desktop launchers do not depend on
+the USB drive remaining connected.
 
 Before installation, the portable package can be checked without changing the
 machine:

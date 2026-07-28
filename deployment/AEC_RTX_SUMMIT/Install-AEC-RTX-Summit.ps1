@@ -11,7 +11,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PackageRoot = $PSScriptRoot
-$RepoRoot = Join-Path $PackageRoot 'payload\aec-demo'
+$BundledRepoRoot = Join-Path $PackageRoot 'payload\aec-demo'
+$InstallRoot = Join-Path $env:LOCALAPPDATA 'AEC_RTX_SUMMIT'
+$RepoRoot = Join-Path $InstallRoot 'aec-demo'
 $DmlPayload = Join-Path $PackageRoot 'payload\daystrom-dml-source'
 $DmlRoot = Join-Path $HermesHome 'integrations\daystrom-dml'
 $DmlSource = Join-Path $DmlRoot 'source'
@@ -204,6 +206,20 @@ function Install-DaystromRuntime {
     -Destination (Join-Path $binDir 'hermes-dml-memory.cmd') -Force
 }
 
+function Install-AecDemoPayload {
+  if (-not (Test-Path -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf)) {
+    throw "AEC Summit payload is incomplete: $BundledRepoRoot"
+  }
+  Write-Step "Install the AEC demo payload to $RepoRoot"
+  New-Item -ItemType Directory -Path $RepoRoot -Force | Out-Null
+  foreach ($item in Get-ChildItem -LiteralPath $BundledRepoRoot -Force) {
+    Copy-Item -LiteralPath $item.FullName -Destination $RepoRoot -Recurse -Force
+  }
+  if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf)) {
+    throw "The installed AEC demo payload is incomplete: $RepoRoot"
+  }
+}
+
 function Test-ModelFile {
   param([string]$Path, [hashtable]$Model)
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
@@ -272,7 +288,7 @@ function Get-ChunkedModelHash {
 function Test-PortablePayload {
   $failures = [Collections.Generic.List[string]]::new()
   $requiredFiles = @(
-    (Join-Path $RepoRoot 'Install-AEC-Demo.ps1'),
+    (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1'),
     (Join-Path $ComfyPayload 'main.py'),
     (Join-Path $ComfyPayload 'requirements.txt'),
     (Join-Path $DmlPayload 'pyproject.toml'),
@@ -283,6 +299,14 @@ function Test-PortablePayload {
   foreach ($path in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
       $failures.Add("Missing required payload file: $path")
+    }
+  }
+  if (Test-Path -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf) {
+    $demoInstaller = Get-Content -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -Raw
+    foreach ($marker in @('AEC_CLIFFHOUSE_CLI.bat', 'AEC Cliff House - Hermes CLI', '--cli')) {
+      if (-not $demoInstaller.Contains($marker)) {
+        $failures.Add("CLI launcher marker is missing from the bundled demo installer: $marker")
+      }
     }
   }
 
@@ -375,7 +399,7 @@ function Test-PortablePayload {
     $failures | ForEach-Object { Write-Host "SMOKE_FAIL $_" -ForegroundColor Red }
     throw "Portable payload smoke test failed with $($failures.Count) error(s)."
   }
-  Write-Host "AEC_INSTALLER_SMOKE_PASS scripts=$($scripts.Count) models=$($ComfyModels.Count)" -ForegroundColor Green
+  Write-Host "AEC_INSTALLER_SMOKE_PASS scripts=$($scripts.Count) models=$($ComfyModels.Count) cli_launcher=true" -ForegroundColor Green
 }
 
 function Install-ComfyUI {
@@ -448,8 +472,8 @@ function Install-ComfyUI {
   )
 }
 
-if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf)) {
-  throw "AEC Summit payload is incomplete: $RepoRoot"
+if (-not (Test-Path -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf)) {
+  throw "AEC Summit payload is incomplete: $BundledRepoRoot"
 }
 if ($SmokeTest) {
   Test-PortablePayload
@@ -475,6 +499,7 @@ try {
   Ensure-Ollama
   Install-DaystromRuntime
   Install-ComfyUI
+  Install-AecDemoPayload
 
   Write-Step 'Configure the AEC Summit Hermes profile and Mission Control'
   $arguments = @(

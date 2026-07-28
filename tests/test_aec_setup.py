@@ -423,6 +423,9 @@ class SetupTests(unittest.TestCase):
         self.assertIn("provider: custom:nvidia_omni", installer)
         self.assertIn("Install-AecMissionControl", installer)
         self.assertIn("AEC Mission Control.bat", installer)
+        self.assertIn("AEC_CLIFFHOUSE_CLI.bat", installer)
+        self.assertIn("AEC Cliff House - Hermes CLI", installer)
+        self.assertIn('--cli', installer)
         self.assertIn("Install-DaystromAecPatch", installer)
         dml_patch = (
             REPO_ROOT / "deployment" / "daystrom-dml" / "aec-agent-memory.patch"

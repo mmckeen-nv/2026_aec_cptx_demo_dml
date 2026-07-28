@@ -1340,6 +1340,41 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\hermes\b
 title AEC CPTX - Hermes Rhino DML
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\hermes\bin\Start-Hermes-AEC-Rhino-DML.ps1"
 '@
+  Install-ManagedText (Join-Path $LauncherDirectory 'AEC_CLIFFHOUSE_CLI.bat') @'
+@echo off
+setlocal
+title AEC Cliff House - Hermes CLI
+set "HERMES_HOME=%LOCALAPPDATA%\hermes"
+set "HERMES_PROFILE=aec-cptx"
+set "AEC_DEMO_ID=cliff-house-01"
+if not defined AEC_DEMO_ROOT (
+  for /f "tokens=2,*" %%A in ('reg query HKCU\Environment /v AEC_DEMO_ROOT 2^>nul ^| findstr /i AEC_DEMO_ROOT') do set "AEC_DEMO_ROOT=%%B"
+)
+if not defined AEC_DEMO_ROOT (
+  echo AEC_DEMO_ROOT is not configured. Rerun the AEC RTX Summit installer.
+  pause
+  exit /b 2
+)
+if not exist "%AEC_DEMO_ROOT%\deployment\aec-cptx-profile\config.example.yaml" (
+  echo The installed AEC demo payload is missing: %AEC_DEMO_ROOT%
+  pause
+  exit /b 3
+)
+if not exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
+  echo Hermes is not installed under %HERMES_HOME%.
+  pause
+  exit /b 4
+)
+cd /d "%AEC_DEMO_ROOT%"
+"%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" -p "%HERMES_PROFILE%" --cli
+set "HERMES_EXIT=%ERRORLEVEL%"
+if not "%HERMES_EXIT%"=="0" (
+  echo.
+  echo Hermes exited with code %HERMES_EXIT%.
+  pause
+)
+exit /b %HERMES_EXIT%
+'@
   Install-ManagedText (Join-Path $LauncherDirectory 'AEC Mission Control.bat') @'
 @echo off
 title AEC Mission Control
