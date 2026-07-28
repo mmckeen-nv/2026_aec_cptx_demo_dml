@@ -377,7 +377,7 @@ function Repair-CliffStyleProfileRuntime {
   if (-not (Test-Path -LiteralPath $ProfileConfig -PathType Leaf)) { return }
   $content = Read-Utf8Text $ProfileConfig
   $updated = $content
-  # The GPT-5.6 AEC profile can keep its large native context. Smaller local
+  # The remote AEC profile can keep its large native context. Smaller local
   # profiles retain the earlier, more aggressive compaction threshold.
   $compressionThreshold = if (
     [IO.Path]::GetFullPath($WorkingDirectory).TrimEnd('\') -eq
@@ -1404,7 +1404,7 @@ if ($preflightCode -eq 0) {
   Write-Warning 'Bootstrap completed, but one or more required checks still need attention.'
 }
 if ($SummitMode) {
-  Write-Host 'AEC RTX Summit mode installed remote GPT-5.6 + compact DML only; no vLLM/Qwen containers or heavyweight model payloads were provisioned.'
+  Write-Host 'AEC RTX Summit mode installed remote Claude Opus 4.5 + compact DML; no local vLLM/Qwen chat or vision containers were provisioned.'
 } else {
   Write-Host 'Large model downloads, Rhino, and private Daystrom source are never installed implicitly.'
 }

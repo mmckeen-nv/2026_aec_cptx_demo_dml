@@ -137,3 +137,12 @@ aa_demo_versions/cliff_house_02/rhino_assets/base_model_checkpoint_*.3dm
 *.3dmbak
 *.rhl
 /work/
+
+# ── Portable installer model payloads (USB-only; never commit) ──
+# Git tracks the installer logic, filenames, byte counts, hashes, and download
+# provenance. The generated USB bundle carries the actual ComfyUI model chunks.
+*.safetensors
+*.safetensors.part[0-9][0-9][0-9]
+*.gguf
+**/payload/comfyui-models/
+/AEC_RTX_SUMMIT*/

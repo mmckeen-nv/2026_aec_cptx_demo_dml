@@ -368,7 +368,7 @@ export default function Home() {
       if (activityResponse.ok) setActivity((await activityResponse.json()).events);
       if (metricsResponse.ok) setMetrics(await metricsResponse.json());
     } catch {
-      setNotice("Waiting for local control service");
+      setNotice("");
     }
   }
 
@@ -691,7 +691,7 @@ export default function Home() {
             <header className="pipeline-deck-header">
               <div>
                 <p className="kicker">PIPELINE TELEMETRY</p>
-                <strong>{status.running ? "Build in motion" : "System staged and ready"}</strong>
+                {status.running ? <strong>Build in motion</strong> : null}
               </div>
               <span className="notice">{notice}</span>
             </header>
@@ -776,7 +776,7 @@ export default function Home() {
         <aside className="agent-panel panel">
           <div className="panel-heading">
             <div>
-              <p className="kicker">HERMES / GPT-5.6</p>
+              <p className="kicker">HERMES</p>
               <h2>Agent stream</h2>
             </div>
             <span className="streaming"><i /> LIVE</span>
