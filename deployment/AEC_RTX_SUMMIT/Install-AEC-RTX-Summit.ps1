@@ -73,6 +73,51 @@ function Confirm-Action([string]$Message) {
   return (Read-Host "$Message [y/N]").Trim().ToLowerInvariant() -in @('y', 'yes')
 }
 
+function Ensure-NvidiaApiCredential {
+  $profilePath = Join-Path $HermesHome 'profiles\aec-cptx'
+  $envFile = Join-Path $profilePath '.env'
+  $existing = if (Test-Path -LiteralPath $envFile -PathType Leaf) {
+    Get-Content -LiteralPath $envFile -Raw
+  } else {
+    ''
+  }
+  if ($existing -match '(?m)^NVIDIA_API_KEY=\S+\s*$') {
+    Write-Host 'Current: NVIDIA API credential is already configured for aec-cptx.'
+    return
+  }
+
+  $credential = $env:NVIDIA_API_KEY
+  if ([string]::IsNullOrWhiteSpace($credential)) {
+    Write-Step 'Configure NVIDIA hosted-model access'
+    $secure = Read-Host `
+      'Enter the NVIDIA inference API key for Claude Opus 4.5 and Nemotron Omni' `
+      -AsSecureString
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try {
+      $credential = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    } finally {
+      [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($credential)) {
+    throw 'An NVIDIA inference API key is required. Setup cannot continue without one.'
+  }
+  if ($credential -match '\s') {
+    throw 'The NVIDIA inference API key contains whitespace. Rerun setup and paste the key again.'
+  }
+
+  New-Item -ItemType Directory -Path $profilePath -Force | Out-Null
+  $normalized = $existing.TrimEnd()
+  if ($normalized) { $normalized += "`r`n" }
+  [IO.File]::WriteAllText(
+    $envFile,
+    ($normalized + "NVIDIA_API_KEY=$credential`r`n"),
+    [Text.UTF8Encoding]::new($false)
+  )
+  $env:NVIDIA_API_KEY = $credential
+  Write-Host 'Configured NVIDIA API credential for the aec-cptx profile.'
+}
+
 function Invoke-Checked {
   param([string]$FilePath, [string[]]$ArgumentList)
   & $FilePath @ArgumentList
@@ -626,6 +671,7 @@ try {
   Write-Host 'CAD/DCC:   Bundled Rhino 8 + Blender 5.2 offline installers'
   Write-Host 'Excluded:  vLLM, Qwen chat/vision containers, unrelated model archives'
 
+  Ensure-NvidiaApiCredential
   Ensure-Rhino | Out-Null
   Ensure-Blender | Out-Null
   if (-not (Resolve-Command 'git.exe')) { Install-WingetPackage 'Git.Git' 'Git' }

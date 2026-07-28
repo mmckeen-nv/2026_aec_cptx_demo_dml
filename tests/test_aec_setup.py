@@ -52,12 +52,17 @@ class SetupTests(unittest.TestCase):
         for marker in (
             "Ensure-Rhino",
             "Ensure-Blender",
+            "Ensure-NvidiaApiCredential",
             "blender-5.2.0-windows-arm64.msi",
             "blender-5.2.0-windows-x64.msi",
             "LanguagePack-en-us.msi",
             "Get-AuthenticodeSignature",
         ):
             self.assertIn(marker, summit)
+        self.assertLess(
+            summit.rindex("Ensure-NvidiaApiCredential"),
+            summit.rindex("Ensure-Rhino | Out-Null"),
+        )
 
     def test_summit_bundle_requires_offline_cad_installers(self):
         generator = (REPO_ROOT / "New-AEC-RTX-SummitBundle.ps1").read_text()
