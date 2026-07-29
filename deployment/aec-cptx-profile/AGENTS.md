@@ -12,6 +12,12 @@ validated production fast path. This is mode routing inside the existing
 workflow, not a second orchestration layer. Call it an automatic run, never a
 benchmark, in user-facing output.
 
+The explicit trigger "Run the Cliff House quick demo" selects
+`deployment/aec-cptx-profile/cliff-house-quick-demo.txt`. It is a separate,
+two-action presentation lane using the verified HERO Blender scene followed
+directly by one FLUX.2 generation. It never resets or calls Rhino, never runs
+SDXL, and never changes the full automatic or manual construction contracts.
+
 ## Application lifecycle boundary
 
 Rhino is started and owned by the operator/launcher. Use the adopted Rhino
@@ -40,3 +46,17 @@ Geometry mutation uses
 `mcp__rhino__run_csharp`; Rhino Python is read-only inspection or capture. A
 non-empty nested `payload.error`, exception, or traceback is a tool failure
 even if MCP transport reports success. Never repeat the same failure twice.
+
+## Verified HERO asset
+
+When the operator asks for the Cliff House HERO model, a prebuilt cliff model,
+the hero house, or the fast Blender reference scene, default to the
+operator-approved current quick master. Read
+`demos/cliff_house/HERO_ASSET.md`, then open
+`demos/cliff_house/hero/cliff_house_QUICK_MASTER.blend` only through
+`demos/cliff_house/hero/skills/blender_cliff_quick.py`, which verifies it and
+creates the disposable working copy. Never open
+`cliff_house_02_HERO.blend` for a generic HERO request; that older asset is
+available only when the operator explicitly says "legacy HERO" or
+"seven-camera HERO". An asset request is not permission to replace the fresh
+Rhino construction workflow.

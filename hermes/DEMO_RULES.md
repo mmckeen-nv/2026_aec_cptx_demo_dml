@@ -88,10 +88,17 @@ reference geometry, or intentionally pausing between steps of model building. Do
 
 ## What Has Been Built
 **building_site_v3** (complete):
-- terrain (NURBS surface, X=-15→25, Y=-22→20, Z=-8→0)
+- terrain (open network NURBS surface, render-mesh X=-15→25,
+  Y=-20→16, Z=-1.25→approximately 0; never Patch/CreatePatch)
 - combined_pad (X=1.5→17, Y=-16.9→14, Z=-0.5→0.25)
 - curtain_wall (X=1→17.5, Y=-17.4→14.5, Z=-2→0.25)
 - driveway (X=17.5→25.03, Y=3.96→13, Z=-0.2→0.25)
+
+For final Rhino presentation, `SITE_TERRAIN` is coordination-only. Keep it
+visible through site QA, then set
+`rhino_disposition=HIDE_AFTER_SITE_VALIDATION`, hide only that object, and
+Zoom Extents/redraw before saving. The house, pad, retaining wall, patio, pool,
+and driveway remain visible.
 
 **massing_v3** (complete — 11 objects):
 - L1_solids: L1_east (5,3,0.25→17,14,4), L1_west (5,-15,0.3→13.5,3,4)

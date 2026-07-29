@@ -179,10 +179,26 @@ Brep, capped solid, six-face mesh, or rectangular pedestal. Write
 `site_validation.json` proving exact source-control-point parity, one open
 non-planar terrain face, `IsSolid=false`, no bottom cap or vertical perimeter
 faces, and a presentation mesh with more than 8 vertices and 6 faces. The
-same Rhino C# script must set `SITE_TERRAIN` User Text
+surface must be created with RhinoCommon `NurbsSurface.CreateNetworkSurface`,
+using south/north as opposite boundary curves and west/center/east as the
+crossing family. Do not use `Brep.CreatePatch`, Patch, CreatePatch, or a generic
+best-fit surface: those operations produced the rejected rectangular sheet
+whose mesh overshot to approximately `Y=-24.91..20.14`. Validate the actual
+render-mesh XY bounds as `X=-15.00..25.00`, `Y=-20.00..16.00`, tolerance
+`0.05 m`; any larger overshoot fails the site phase.
+The same Rhino C# script must set `SITE_TERRAIN` User Text
 `blender_disposition=REMOVE_BEFORE_RENDER` and
-`comfy_environment_role=GENERATIVE_COASTAL_CLIFF`, commit the attributes, and
-include both exact values in `site_validation.json`. The separate building pad
+`comfy_environment_role=GENERATIVE_COASTAL_CLIFF` and
+`rhino_disposition=HIDE_AFTER_SITE_VALIDATION`, commit the attributes, and
+include all three exact values in `site_validation.json`. Keep the terrain
+visible while constructing and validating the site. In the consolidated Rhino
+QA/finalization call, after every site check passes, set only
+`SITE_TERRAIN.Attributes.Visible=false`, commit the change, call viewport
+ZoomExtents/redraw so the dashboard centers the house/pad/patio/pool, and save
+the final 3DM with the terrain hidden. Do not hide the building pad, retaining
+wall, patio, pool basin, pool water, or bronze edge. The mesh bridge must still
+include hidden Rhino coordination geometry and its metadata.
+The separate building pad
 must have bounds `(1.5,-16.9,-0.5)` to `(17,14,0.25)` and the retaining
 curtain wall must have bounds `(1,-17.4,-2)` to `(17.5,14.5,0.25)`; neither
 may be substituted for terrain.
@@ -219,7 +235,7 @@ is the only write authorized for an automatic run.
 Required single-frame result:
 
 - Build the complete canonical Cliff House from scratch in the empty Rhino document.
-- Reconstruct the canonical gently curved terrain from the original five source curves; any terrain block, capped box, or massive pedestal is an automatic failure.
+- Reconstruct the canonical gently curved terrain from the original five source curves; any terrain block, capped box, massive pedestal, Patch/CreatePatch surface, or render-mesh XY overshoot beyond the boundary curves is an automatic failure. Hide only `SITE_TERRAIN` after numeric QA so the final Rhino viewer frames the architecture rather than the coordination sheet.
 - Save the Rhino model and a validated checkpoint.
 - Export/bridge the fresh geometry into the empty Blender scene.
 - Add the documented materials, HDRI/lighting, and one ocean-view hero camera.

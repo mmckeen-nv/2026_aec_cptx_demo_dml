@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
 
@@ -7,7 +8,7 @@ export const HERMES_HOME = path.join(process.env.LOCALAPPDATA ?? "C:\\Users\\tes
 export const REPO_ROOT = process.env.AEC_DEMO_ROOT ?? "C:\\Users\\test\\Documents\\RX Spark AEC\\2026_aec_cptx_demo_dml";
 export const RUN_ROOT = path.join(REPO_ROOT, "aa_demo_versions", "cliff_house_single_frame_01");
 export const LOG_DIR = path.join(HERMES_HOME, "profiles", "aec-cptx", "logs");
-export const COMFY_OUTPUT = "C:\\Users\\test\\ComfyUI\\output";
+export const COMFY_OUTPUT = path.join(process.env.COMFYUI_ROOT ?? path.join(os.homedir(), "ComfyUI"), "output");
 export const CONTROL_DIR = path.join(REPO_ROOT, "aec-mission-control", ".control");
 export const VISUAL_EPOCH_FILE = path.join(CONTROL_DIR, "visual-epoch.json");
 export const DASHBOARD_RUN_FILE = path.join(CONTROL_DIR, "dashboard-run.json");

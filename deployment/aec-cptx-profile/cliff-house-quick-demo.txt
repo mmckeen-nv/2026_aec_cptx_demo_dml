@@ -1,0 +1,54 @@
+Run the verified Cliff House HERO quick demo from the checked-in Blender scene
+to one final FLUX.2 frame. This is the fast presentation lane, not the fresh
+Rhino construction workflow.
+
+Do not use Rhino. Do not reset scenes, run preflight, inspect archives, query
+DML, search files, review geometry, create animation, or launch another Hermes
+process. The verified asset, helper, render contract, and prompt are already
+known. Begin immediately.
+
+Perform exactly these two execution actions in order:
+
+1. Make one `mcp__blender__execute_blender_code` call containing:
+
+```python
+import importlib.util
+import os
+
+root = os.environ["AEC_DEMO_ROOT"]
+path = os.path.join(
+    root, "demos", "cliff_house", "hero", "skills", "blender_cliff_quick.py"
+)
+spec = importlib.util.spec_from_file_location("cliff_quick", path)
+quick = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(quick)
+print(quick.open_verified_quick(root))
+print(
+    quick.render_quick(
+        root,
+        camera_name="ocean_view",
+        filename="cliff_house_quick_source.png",
+        resolution=(960, 540),
+        samples=16,
+    )
+)
+```
+
+Require both `CLIFF_QUICK_OPEN_PASS objects=98 meshes=94 cameras=2 lights=2`
+and `CLIFF_QUICK_RENDER_PASS`. Do not alter the master, scene, camera, geometry,
+materials, or lighting.
+
+2. Make one terminal call from repository root:
+
+```powershell
+python "$env:AEC_DEMO_ROOT\demos\cliff_house\hero\skills\comfyui_cliff_hero.py" --steps 12 --max-generation-dimension 1280
+```
+
+Require `COMFY_FLUX2_PREFLIGHT_PASS` and
+`COMFY_OUTPUT_PASS stage=flux2-direct`. The final image is
+`demos/cliff_house/hero/comfy_output/cliff_house_stylized.png`.
+
+Do not run a separate dry-run, SDXL stage, depth pass, second FLUX pass, vision
+review, provenance repair, or QA loop. On success, respond with the Blender
+source path, final FLUX.2 path, and elapsed time. On failure, report the exact
+failed receipt once and stop; do not improvise a replacement workflow.

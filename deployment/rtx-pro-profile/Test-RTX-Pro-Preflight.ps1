@@ -2,7 +2,9 @@
 param(
   [switch]$StartServices,
   [switch]$SkipRhino,
+  [switch]$SkipRhinoLaunch,
   [switch]$SkipComfyUI,
+  [switch]$SingleVlm,
   [int]$WaitSeconds = 30,
   [string]$ProfileName = 'rtx_pro',
   [string]$ProjectId = 'vp-studio-01',
@@ -11,10 +13,12 @@ param(
   [string]$DmlLauncherName = 'dml_mcp_server_vp_studio.cmd',
   [string]$CmaLauncherName = 'cma_mcp_server_vp_studio.cmd',
   [string]$DisplayName = 'RTX Pro virtual-production',
-  [string]$RhinoTemplatePath = ''
+  [string]$RhinoTemplatePath = '',
+  [string]$ReceiptPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
+$script:preflightStartedAt = (Get-Date).ToUniversalTime().ToString('o')
 $hermesHome = Join-Path $env:LOCALAPPDATA 'hermes'
 $profileRoot = Join-Path $hermesHome ("profiles\" + $ProfileName)
 $profileConfig = Join-Path $profileRoot 'config.yaml'
@@ -76,7 +80,7 @@ $blenderStringEnv = ($blenderConfigBody -match '(?m)^\s+BLENDER_PORT:\s*[''\"]98
 Add-Result 'Blender MCP environment values are strings' $blenderStringEnv $(if ($blenderStringEnv) { 'BLENDER_PORT and DISABLE_TELEMETRY are quoted strings' } else { 'quote Blender MCP env values; YAML int/bool values are rejected by Hermes' })
 $backgroundReviewDisabled = ($configText -match '(?m)^  nudge_interval:\s*0\s*$') -and
   ($configText -match '(?m)^  creation_nudge_interval:\s*0\s*$')
-Add-Result 'Demo background review forks disabled' $backgroundReviewDisabled $(if ($backgroundReviewDisabled) { 'Daystrom synchronized turns remain active without post-turn skill-review forks' } else { 'set memory.nudge_interval and skills.creation_nudge_interval to 0 for demo reliability' })
+Add-Result 'Demo background review forks disabled' $backgroundReviewDisabled $(if ($backgroundReviewDisabled) { 'No post-turn skill-review forks are enabled' } else { 'set memory.nudge_interval and skills.creation_nudge_interval to 0 for demo reliability' })
 $obsAbsent = $configText -notmatch '(?m)^  obs:\s*$'
 Add-Result 'Stale OBS MCP absent' $obsAbsent $(if ($obsAbsent) { 'no inherited PowerShell stdio noise' } else { 'remove the stale WSL OBS MCP block from RTX Pro' })
 
@@ -84,7 +88,7 @@ $policyChecks = @{
   'DML retrieval policy' = '(?m)^\s+retrieval_policy:\s*always\s*$'
   'DML strict provider preflight' = '(?m)^\s+preflight_strict:\s*true\s*$'
   'DML active-read DCN' = '(?m)^\s+mode:\s*active_read\s*$'
-  'DML synchronized turns' = '(?m)^\s+sync_turns:\s*true\s*$'
+  'DML explicit hardening only' = '(?m)^\s+sync_turns:\s*false\s*$'
   'DML project identity' = "(?m)^\s+project_id:\s*project:$([regex]::Escape($ProjectId))\s*$"
   'DML isolated store' = "(?m)^\s+storage_dir:\s*.*stores/$([regex]::Escape($DmlStoreName))\s*$"
   'DML isolated MCP launcher' = "(?m)^\s+-\s+.*$([regex]::Escape($DmlLauncherName))\s*$"
@@ -95,8 +99,58 @@ foreach ($entry in $policyChecks.GetEnumerator()) {
   Add-Result $entry.Key $ok $(if ($ok) { 'configured' } else { 'required agentic-memory setting is absent' })
 }
 
-Add-Result 'Local chat model API' (Test-HttpEndpoint 'http://127.0.0.1:8000/v1/models') 'http://127.0.0.1:8000/v1/models'
-Add-Result 'Local vision model API' (Test-HttpEndpoint 'http://127.0.0.1:8001/v1/models') 'http://127.0.0.1:8001/v1/models'
+$usesLocalVllm = $configText -match '(?m)^\s+provider:\s+custom:vllm_local\s*$'
+$usesCodex = $configText -match '(?m)^\s+provider:\s+openai-codex\s*$'
+$usesNvidiaHosted = $configText -match '(?m)^\s+provider:\s+(?:custom:)?nvidia_(?:responses|glm|claude)\s*$'
+if ($usesLocalVllm) {
+  Add-Result 'Local chat model API' (Test-HttpEndpoint 'http://127.0.0.1:8000/v1/models') 'http://127.0.0.1:8000/v1/models'
+  if ($SingleVlm) {
+    Add-Result 'Local multimodal model API' (Test-HttpEndpoint 'http://127.0.0.1:8000/v1/models') 'http://127.0.0.1:8000/v1/models'
+  } else {
+    Add-Result 'Local vision model API' (Test-HttpEndpoint 'http://127.0.0.1:8001/v1/models') 'http://127.0.0.1:8001/v1/models'
+  }
+} elseif ($usesNvidiaHosted) {
+  $nvidiaProviderConfigured =
+    ($configText -match '(?m)^\s+base_url:\s+https://inference-api\.nvidia\.com/v1\s*$') -and
+    ($configText -match '(?m)^\s+api_mode:\s+codex_responses\s*$') -and
+    ($configText -match '(?m)^\s+model:\s+openai/openai/gpt-5\.6-sol\s*$') -and
+    ($configText -match '(?m)^\s+context_length:\s+1050000\s*$') -and
+    ($configText -match '(?m)^\s+max_tokens:\s+32768\s*$') -and
+    ($configText -match '(?m)^\s+key_env:\s+NVIDIA_API_KEY\s*$')
+  $nvidiaVisionConfigured =
+    ($configText -match '(?m)^\s+- name:\s+nvidia_omni\s*$') -and
+    ($configText -match '(?m)^\s+provider:\s+custom:nvidia_omni\s*$') -and
+    ($configText -match '(?m)^\s+model:\s+nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\s*$') -and
+    ($configText -match '(?m)^\s+context_length:\s+262144\s*$') -and
+    ($configText -match '(?m)^\s+supports_vision:\s+true\s*$')
+  $nvidiaKey = $env:NVIDIA_API_KEY
+  if ([string]::IsNullOrWhiteSpace($nvidiaKey)) {
+    $nvidiaKey = [Environment]::GetEnvironmentVariable('NVIDIA_API_KEY', 'User')
+  }
+  $profileEnvPath = Join-Path (Split-Path -Parent $profileConfig) '.env'
+  $profileEnvHasKey = (Test-Path -LiteralPath $profileEnvPath -PathType Leaf) -and
+    [bool](Select-String -LiteralPath $profileEnvPath -Pattern '^\s*NVIDIA_API_KEY\s*=\s*\S+' -Quiet)
+  $nvidiaCredentialPresent =
+    (-not [string]::IsNullOrWhiteSpace($nvidiaKey)) -or $profileEnvHasKey
+  Add-Result 'NVIDIA hosted model provider' $nvidiaProviderConfigured $(if ($nvidiaProviderConfigured) { 'openai/openai/gpt-5.6-sol via inference-api.nvidia.com/v1/responses (1.05M context / 32K output cap)' } else { 'NVIDIA hosted provider configuration is incomplete' })
+  Add-Result 'NVIDIA hosted vision provider' $nvidiaVisionConfigured $(if ($nvidiaVisionConfigured) { 'nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning via inference-api.nvidia.com/v1/chat/completions (262K context)' } else { 'NVIDIA hosted vision provider configuration is incomplete' })
+  Add-Result 'NVIDIA API credential' $nvidiaCredentialPresent $(if ($nvidiaCredentialPresent) { 'NVIDIA_API_KEY is available to the profile' } else { 'NVIDIA_API_KEY is missing' })
+} else {
+  $codexCommand = Get-Command codex.cmd -ErrorAction SilentlyContinue
+  if (-not $codexCommand) { $codexCommand = Get-Command codex -ErrorAction SilentlyContinue }
+  $codexAuth = ''
+  if ($codexCommand) {
+    $priorErrorAction = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = 'Continue'
+      $codexAuth = (& $codexCommand.Source login status 2>&1 | Out-String).Trim()
+    } finally {
+      $ErrorActionPreference = $priorErrorAction
+    }
+  }
+  Add-Result 'Codex model provider' $usesCodex $(if ($usesCodex) { 'openai-codex with codex_app_server' } else { 'profile has neither local vLLM, NVIDIA Responses, nor Codex provider' })
+  Add-Result 'Codex CLI authentication' ($codexAuth -match 'Logged in') $(if ($codexAuth) { $codexAuth } else { 'Codex CLI is missing or not authenticated' })
+}
 
 if (-not $SkipRhino) {
 $rhinoRouter = Get-ChildItem (Join-Path $env:APPDATA 'McNeel\Rhinoceros\packages\8.0\Rhino-MCP-Platform') `
@@ -125,7 +179,7 @@ $directRhinoConfig = ($rhinoConfigBody -match '(?m)^    command:\s+.*rhino-mcp-r
   ($rhinoConfigBody -match '(?m)^\s+-\s+[\x27\x22]?8[\x27\x22]?\s*$')
 Add-Result 'Rhino MCP direct-router config' $directRhinoConfig "$ProfileName launches the official McNeel router directly"
 $rhinoMcpPort = 10500
-if ($StartServices -and -not (Test-TcpPort $rhinoMcpPort) -and (Test-Path -LiteralPath $rhinoExe)) {
+if ($StartServices -and -not $SkipRhinoLaunch -and -not (Test-TcpPort $rhinoMcpPort) -and (Test-Path -LiteralPath $rhinoExe)) {
   $priorAutostartPort = $env:RHINO_MCP_AUTOSTART_PORT
   try {
     $env:RHINO_MCP_AUTOSTART_PORT = [string]$rhinoMcpPort
@@ -137,8 +191,8 @@ if ($StartServices -and -not (Test-TcpPort $rhinoMcpPort) -and (Test-Path -Liter
     $env:RHINO_MCP_AUTOSTART_PORT = $priorAutostartPort
   }
 }
-$rhinoBridge = if ($StartServices) { Wait-TcpPort $rhinoMcpPort } else { Test-TcpPort $rhinoMcpPort }
-Add-Result 'Rhino MCP application bridge' $rhinoBridge $(if ($rhinoBridge) { "127.0.0.1:$rhinoMcpPort is accepting connections; the router can adopt this slot" } else { 'Rhino is not exposing an MCP listener; rerun preflight with -StartServices' })
+$rhinoBridge = if ($StartServices -and -not $SkipRhinoLaunch) { Wait-TcpPort $rhinoMcpPort } else { Test-TcpPort $rhinoMcpPort }
+Add-Result 'Rhino MCP application bridge' $rhinoBridge $(if ($rhinoBridge) { "127.0.0.1:$rhinoMcpPort is accepting connections; the router can adopt this slot" } elseif ($SkipRhinoLaunch) { 'Rhino launch is disabled; start Rhino manually and enable its MCP listener when Rhino tools are needed' } else { 'Rhino is not exposing an MCP listener; rerun preflight with -StartServices' }) (-not $SkipRhinoLaunch)
 }
 
 $uvx = Get-Command uvx.exe -ErrorAction SilentlyContinue
@@ -168,11 +222,11 @@ $cmaLauncherText = if (Test-Path -LiteralPath $cmaServer -PathType Leaf) { Get-C
 $dmlLauncherModern = ($dmlLauncherText -match '[.]venv-dml[\\/]Scripts[\\/]python[.]exe') -and
   ($dmlLauncherText -match '-m\s+dml_mcp[.]dml_mcp_server\b')
 $cmaLauncherModern = ($cmaLauncherText -match '[.]venv-dml[\\/]Scripts[\\/]python[.]exe') -and
-  ($cmaLauncherText -match '-m\s+cma[.]mcp_server\b')
+  ($cmaLauncherText -match '-m\s+dml_mcp[.]cma_mcp_server\b')
 Add-Result 'DML launcher uses managed runtime' $dmlLauncherModern $(if ($dmlLauncherModern) { "$DmlLauncherName uses .venv-dml and dml_mcp.dml_mcp_server" } else { "$DmlLauncherName is stale or invokes the wrong Python/module" })
-Add-Result 'CMA launcher uses managed runtime' $cmaLauncherModern $(if ($cmaLauncherModern) { "$CmaLauncherName uses .venv-dml and cma.mcp_server" } else { "$CmaLauncherName is stale or invokes the wrong Python/module" })
+Add-Result 'CMA launcher uses managed runtime' $cmaLauncherModern $(if ($cmaLauncherModern) { "$CmaLauncherName uses .venv-dml and dml_mcp.cma_mcp_server" } else { "$CmaLauncherName is stale or invokes the wrong Python/module" })
 if (Test-Path -LiteralPath $dmlPython) {
-  & $dmlPython -c "import dml_mcp.dml_mcp_server; import cma.mcp_server" 2>$null
+  & $dmlPython -c "import dml_mcp.dml_mcp_server; import cma.adapter" 2>$null
   Add-Result 'DML/CMA Python imports' ($LASTEXITCODE -eq 0) 'dml_mcp and cma server modules import in the managed DML venv'
 } else {
   Add-Result 'DML/CMA Python imports' $false 'managed DML Python is missing'
@@ -222,7 +276,10 @@ foreach ($spec in $comfyModelSpecs) {
 $modelRepair = 'run scripts\install_comfy_flux2_models.ps1 for FLUX files and install the approved SDXL/depth files'
 Add-Result 'ComfyUI SDXL + FLUX.2 model set' ($badComfyModels.Count -eq 0) $(if ($badComfyModels.Count -eq 0) { 'all five model components have the approved byte sizes' } else { ($badComfyModels -join '; ') + "; $modelRepair" }) (-not $SkipComfyUI)
 if (-not $SkipComfyUI -and $StartServices -and -not (Test-TcpPort 8188) -and (Test-Path $comfyPython) -and (Test-Path $comfyMain)) {
-  Start-Process -FilePath $comfyPython -ArgumentList @($comfyMain, '--listen', '127.0.0.1', '--port', '8188', '--enable-manager') -WorkingDirectory $comfyRoot -WindowStyle Hidden
+  Start-Process -FilePath $comfyPython -ArgumentList @(
+    $comfyMain, '--listen', '127.0.0.1', '--port', '8188', '--enable-manager',
+    '--highvram', '--disable-async-offload', '--disable-pinned-memory', '--disable-cuda-malloc'
+  ) -WorkingDirectory $comfyRoot -WindowStyle Hidden
 }
 if (-not $SkipComfyUI) {
   $comfyReady = if ($StartServices) { Wait-TcpPort 8188 } else { Test-TcpPort 8188 }
@@ -239,6 +296,27 @@ foreach ($result in $results) {
 }
 
 $failed = @($results | Where-Object { $_.Required -and -not $_.Passed })
+if ($ReceiptPath) {
+  $receipt = [pscustomobject]@{
+    status = if ($failed.Count -gt 0) { 'failed' } else { 'passed' }
+    startedAt = $script:preflightStartedAt
+    completedAt = (Get-Date).ToUniversalTime().ToString('o')
+    failedRequired = $failed.Count
+    totalChecks = $results.Count
+    checks = @($results | ForEach-Object {
+      [pscustomobject]@{
+        id = ($_.Check -replace '[^A-Za-z0-9]+', '-').Trim('-').ToLowerInvariant()
+        label = $_.Check
+        state = if ($_.Passed) { 'pass' } elseif ($_.Required) { 'fail' } else { 'warn' }
+        required = $_.Required
+        detail = $_.Detail
+      }
+    })
+  }
+  $receiptDirectory = Split-Path -Parent $ReceiptPath
+  if ($receiptDirectory) { New-Item -ItemType Directory -Path $receiptDirectory -Force | Out-Null }
+  $receipt | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ReceiptPath -Encoding utf8
+}
 if ($failed.Count -gt 0) {
   Write-Error ("Preflight failed: {0} required check(s) are not ready." -f $failed.Count)
   exit 1

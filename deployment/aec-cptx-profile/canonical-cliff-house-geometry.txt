@@ -64,15 +64,39 @@ Use these five non-rational cubic terrain curves for the corrected grading:
 These still define one smooth open, uncapped terrain surface. Do not introduce
 a solid ground plane, perimeter wall, terrain box, or platform.
 
+Terrain construction and Rhino-presentation correction (2026-07-28):
+
+- Construct the surface with RhinoCommon `NurbsSurface.CreateNetworkSurface`,
+  using the south/north curves as opposite boundary curves and the
+  west/center/east curves as the crossing family. Do not use `Brep.CreatePatch`, Patch,
+  CreatePatch, a generic best-fit surface, or any operation that extrapolates
+  beyond the boundary curves.
+- Validate the render mesh bounds, not only the untrimmed underlying surface.
+  The accepted mesh bounds are `X=-15.00..25.00` and `Y=-20.00..16.00`, with a
+  maximum XY tolerance of `0.05 m`. Any overshoot outside those limits is a
+  site failure. The observed bad output with approximately
+  `Y=-24.91..20.14` is explicitly rejected.
+- `SITE_TERRAIN` remains coordination geometry during site construction and
+  numeric validation. After the consolidated Rhino validation passes, set its
+  object visibility to false, set User Text
+  `rhino_disposition=HIDE_AFTER_SITE_VALIDATION`, then run one Rhino
+  `ZoomExtents`/viewport refresh with the hidden terrain excluded. This keeps
+  the final Rhino viewer centered on the house, pad, patio, and pool instead
+  of framing a giant rectangular terrain sheet.
+- Save the final 3DM with `SITE_TERRAIN` hidden. The mesh bridge must still
+  export the hidden object and its metadata for parity; Blender continues to
+  enforce `REMOVE_BEFORE_RENDER`.
+
 `SITE_TERRAIN` is Rhino coordination geometry, not final presentation
 geometry. Hermes must set these Rhino object User Text values when it creates
 or updates the object:
 
 - `blender_disposition=REMOVE_BEFORE_RENDER`
 - `comfy_environment_role=GENERATIVE_COASTAL_CLIFF`
+- `rhino_disposition=HIDE_AFTER_SITE_VALIDATION`
 
-The mesh bridge defensively supplies the same disposition for the exact object
-name `SITE_TERRAIN` if an older Rhino document lacks the tag. Blender must keep
+The mesh bridge defensively supplies the Blender disposition for the exact
+object name `SITE_TERRAIN` if an older Rhino document lacks the tag. Blender must keep
 the imported object through source-parity validation, then hide it from the
 viewport and renderer before producing the ComfyUI source frame. Do not delete
 or hide `BUILDING_PAD`, `PATIO`, `INFINITY_POOL_BASIN`,
