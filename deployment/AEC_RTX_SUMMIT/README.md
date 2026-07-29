@@ -6,7 +6,7 @@ Double-click `Setup-AEC-RTX-Summit.cmd`. The installer configures:
 
 - The NVIDIA inference API key at the beginning of setup. Input is hidden and
   stored only in the ignored local `aec-cptx` profile environment.
-- Hermes with NVIDIA-hosted Claude Opus 4.5 using its 200,000-token context window.
+- Hermes with NVIDIA-hosted GPT-5.6 Sol using its 1,050,000-token context window.
 - NVIDIA-hosted Nemotron 3 Nano Omni for 262K-context image inspection.
 - Daystrom DML/CMA with the low-latency agent-memory fixes.
 - The compact `qwen3-embedding:0.6b` Ollama embedding model.

@@ -10,7 +10,9 @@ import rhino3dm
 
 
 ROOT = Path(__file__).resolve().parents[1]
-UPSTREAM_COMMIT = "09b15e6c9a74b4a018587420eaaa2f5e273fd447"
+# Pin the last reviewed geometry-contract revision. This includes the approved
+# bounded-network-surface terrain fix while preserving exact prompt validation.
+UPSTREAM_COMMIT = "54725a79b0abafa460c27135687d9d45c3c7aeaa"
 UPSTREAM_PROJECT = "aa_demo_versions/cliff_house_02/user_prompts/project_prompt.md"
 EXACT_PROMPTS = (
     UPSTREAM_PROJECT,

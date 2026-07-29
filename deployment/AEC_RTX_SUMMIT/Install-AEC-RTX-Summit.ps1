@@ -23,6 +23,11 @@ $ComfyModelPayload = Join-Path $PackageRoot 'payload\comfyui-models'
 $ApplicationInstallerRoot = Join-Path $PackageRoot 'payload\application-installers'
 $ComfyRoot = Join-Path $env:USERPROFILE 'ComfyUI'
 $LogRoot = Join-Path $env:ProgramData 'AEC_RTX_SUMMIT\logs'
+$RhinoHero = @{
+  RelativePath = 'demos\cliff_house\hero\cliff_house_HERO_RHINO_MODEL.3dm'
+  Bytes = 15985322L
+  Sha256 = '029a9b8e338a12c3babef2a7a2c95f385475c0ffe09da8700fa8ade8ab2ea637'
+}
 $ApplicationInstallers = @(
   @{
     Name = 'Rhino 8 core'
@@ -90,7 +95,7 @@ function Ensure-NvidiaApiCredential {
   if ([string]::IsNullOrWhiteSpace($credential)) {
     Write-Step 'Configure NVIDIA hosted-model access'
     $secure = Read-Host `
-      'Enter the NVIDIA inference API key for Claude Opus 4.5 and Nemotron Omni' `
+      'Enter the NVIDIA inference API key for GPT-5.6 Sol and Nemotron Omni' `
       -AsSecureString
     $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
     try {
@@ -459,7 +464,8 @@ function Test-PortablePayload {
     (Join-Path $DmlPayload 'pyproject.toml'),
     (Join-Path $PackageRoot 'Start-ComfyUI.ps1'),
     (Join-Path $PackageRoot 'aec-cptx-portable.yaml'),
-    (Join-Path $PackageRoot 'hermes-dml-memory.cmd')
+    (Join-Path $PackageRoot 'hermes-dml-memory.cmd'),
+    (Join-Path $BundledRepoRoot $RhinoHero.RelativePath)
   )
   $requiredFiles += @($ApplicationInstallers | ForEach-Object {
     Join-Path $ApplicationInstallerRoot $_.RelativePath
@@ -467,6 +473,16 @@ function Test-PortablePayload {
   foreach ($path in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
       $failures.Add("Missing required payload file: $path")
+    }
+  }
+  $rhinoHeroPath = Join-Path $BundledRepoRoot $RhinoHero.RelativePath
+  if (Test-Path -LiteralPath $rhinoHeroPath -PathType Leaf) {
+    $heroFile = Get-Item -LiteralPath $rhinoHeroPath
+    $heroHash = (Get-FileHash -LiteralPath $rhinoHeroPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($heroFile.Length -ne $RhinoHero.Bytes -or $heroHash -ne $RhinoHero.Sha256) {
+      $failures.Add("Rhino HERO integrity mismatch: $rhinoHeroPath")
+    } else {
+      Write-Host "SMOKE_RHINO_HERO_PASS objects=559 bytes=$($heroFile.Length)"
     }
   }
   foreach ($installer in $ApplicationInstallers) {
@@ -482,9 +498,17 @@ function Test-PortablePayload {
   }
   if (Test-Path -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -PathType Leaf) {
     $demoInstaller = Get-Content -LiteralPath (Join-Path $BundledRepoRoot 'Install-AEC-Demo.ps1') -Raw
-    foreach ($marker in @('AEC_CLIFFHOUSE_CLI.bat', 'AEC Cliff House - Hermes CLI', 'CLI_LAUNCHER_SMOKE_PASS', '--cli')) {
+    foreach ($marker in @(
+      'AEC_CLIFFHOUSE_CLI.bat',
+      'AEC Cliff House - Hermes CLI',
+      'CLI_LAUNCHER_SMOKE_PASS',
+      '--cli',
+      'AEC_CLIFFHOUSE_HERMES.bat',
+      'AEC Cliff House - Hermes.lnk',
+      'Start-Hermes-AEC-Desktop.ps1'
+    )) {
       if (-not $demoInstaller.Contains($marker)) {
-        $failures.Add("CLI launcher marker is missing from the bundled demo installer: $marker")
+        $failures.Add("Hermes launcher marker is missing from the bundled demo installer: $marker")
       }
     }
   }
@@ -664,7 +688,7 @@ $logPath = Join-Path $LogRoot ("install-{0}.log" -f (Get-Date -Format 'yyyyMMdd-
 Start-Transcript -Path $logPath -Force | Out-Null
 try {
   Write-Host 'AEC RTX Summit deployment' -ForegroundColor Green
-  Write-Host 'Inference: NVIDIA-hosted Claude Opus 4.5 Chat Completions API (200K context)'
+  Write-Host 'Inference: NVIDIA-hosted GPT-5.6 Sol Responses API (1.05M context)'
   Write-Host 'Vision:    NVIDIA-hosted Nemotron 3 Nano Omni (262K context)'
   Write-Host 'Memory:    Daystrom DML + qwen3-embedding:0.6b'
   Write-Host 'Imaging:   ComfyUI + bundled FLUX.2 Klein 4B model set'
@@ -694,6 +718,13 @@ try {
   if ($Yes) { $arguments += '-Yes' }
   if ($SkipPreflight) { $arguments += '-SkipPreflight' }
   Invoke-Checked 'powershell.exe' $arguments
+
+  Write-Step 'Build the Hermes Windows frontend for the AEC profile'
+  Invoke-Checked 'powershell.exe' @(
+    '-NoProfile', '-ExecutionPolicy', 'Bypass',
+    '-File', (Join-Path $HermesHome 'bin\Start-Hermes-AEC-Desktop.ps1'),
+    '-BuildOnly'
+  )
 
   Write-Host ''
   Write-Host 'AEC RTX Summit deployment is ready.' -ForegroundColor Green

@@ -38,6 +38,12 @@ $ComfyModels = @(
     sha256 = 'd64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5'
   }
 )
+$RhinoHero = [ordered]@{
+  relative_path = 'demos\cliff_house\hero\cliff_house_HERO_RHINO_MODEL.3dm'
+  bytes = 15985322L
+  sha256 = '029a9b8e338a12c3babef2a7a2c95f385475c0ffe09da8700fa8ade8ab2ea637'
+  objects = 559
+}
 $ApplicationInstallers = @(
   [ordered]@{
     name = 'Rhino 8 core'
@@ -168,6 +174,15 @@ foreach ($model in $ComfyModels) {
     throw "ComfyUI model SHA-256 mismatch: $source"
   }
 }
+$rhinoHeroSource = Join-Path $RepoRoot $RhinoHero.relative_path
+if (-not (Test-Path -LiteralPath $rhinoHeroSource -PathType Leaf)) {
+  throw "Required Rhino HERO model is missing: $rhinoHeroSource"
+}
+$rhinoHeroFile = Get-Item -LiteralPath $rhinoHeroSource
+$rhinoHeroHash = (Get-FileHash -LiteralPath $rhinoHeroSource -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($rhinoHeroFile.Length -ne $RhinoHero.bytes -or $rhinoHeroHash -ne $RhinoHero.sha256) {
+  throw "Rhino HERO model integrity mismatch: $rhinoHeroSource"
+}
 $ApplicationInstallerMetadata = @(
   $ApplicationInstallers | ForEach-Object { Get-VerifiedInstallerMetadata $_ }
 )
@@ -270,7 +285,7 @@ $manifest = [ordered]@{
   package = 'AEC_RTX_SUMMIT'
   created_at = (Get-Date).ToString('o')
   source_commit = $sourceCommit
-  inference = 'NVIDIA-hosted Claude Opus 4.5 Chat Completions API (200K context)'
+  inference = 'NVIDIA-hosted GPT-5.6 Sol Responses API (1.05M context)'
   vision = 'NVIDIA-hosted Nemotron 3 Nano Omni Chat Completions API (262K context)'
   dml_embedding_model = 'qwen3-embedding:0.6b'
   includes_daystrom_source = $true
@@ -279,6 +294,7 @@ $manifest = [ordered]@{
   comfyui_source_commit = (& git.exe -C $ComfyRoot rev-parse HEAD | Select-Object -Last 1).Trim()
   includes_flux2_model_payload = $true
   comfyui_models = $ComfyModels
+  rhino_hero = $RhinoHero
   includes_rhino_8_offline_installer = $true
   includes_blender_5_2_offline_installers = $true
   application_installers = $ApplicationInstallerMetadata

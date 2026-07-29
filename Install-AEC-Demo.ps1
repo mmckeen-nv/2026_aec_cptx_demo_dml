@@ -160,6 +160,28 @@ function Repair-HermesDmlContinuation {
   }
 }
 
+function Repair-HermesVisualPayloadHistory {
+  param([string]$HermesRoot)
+
+  $python = Join-Path $HermesRoot 'hermes-agent\venv\Scripts\python.exe'
+  $patcher = Join-Path $RepoRoot 'deployment\aec-cptx-profile\patches\apply_visual_history_patch.py'
+  $agentRoot = Join-Path $HermesRoot 'hermes-agent'
+  if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+    Write-Warning "Hermes Python was not found at $python; visual history repair was skipped."
+    return
+  }
+  if (-not (Test-Path -LiteralPath $patcher -PathType Leaf)) {
+    Write-Warning "Hermes visual history patcher was not found at $patcher."
+    return
+  }
+  if ($script:InstallerCmdlet.ShouldProcess($agentRoot, 'Compact consumed viewport payloads in Hermes replay history')) {
+    & $python $patcher --hermes-agent-root $agentRoot | ForEach-Object { Write-Host $_ }
+    if ($LASTEXITCODE -ne 0) {
+      throw "Hermes visual history repair failed with exit code $LASTEXITCODE."
+    }
+  }
+}
+
 function Install-ManagedFile {
   param([string]$Source, [string]$Destination)
   if (-not (Test-Path -LiteralPath $Source)) { throw "Managed source not found: $Source" }
@@ -202,6 +224,32 @@ function Install-ManagedText {
     Set-Content -LiteralPath $Destination -Value $normalized -Encoding ASCII -NoNewline
     Write-Host "Installed: $Destination"
   }
+}
+
+function Install-ManagedShortcut {
+  param(
+    [Parameter(Mandatory)][string]$Destination,
+    [Parameter(Mandatory)][string]$TargetPath,
+    [string]$Arguments = '',
+    [string]$WorkingDirectory = '',
+    [string]$IconLocation = ''
+  )
+
+  if (-not $script:InstallerCmdlet.ShouldProcess($Destination, 'Install managed desktop shortcut')) {
+    return
+  }
+
+  $parent = Split-Path -Parent $Destination
+  New-Item -ItemType Directory -Path $parent -Force | Out-Null
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($Destination)
+  $shortcut.TargetPath = $TargetPath
+  $shortcut.Arguments = $Arguments
+  if ($WorkingDirectory) { $shortcut.WorkingDirectory = $WorkingDirectory }
+  if ($IconLocation) { $shortcut.IconLocation = $IconLocation }
+  $shortcut.Description = 'Hermes AEC Cliff House'
+  $shortcut.Save()
+  Write-Host "Installed: $Destination"
 }
 
 function Get-NpmCommand {
@@ -407,23 +455,23 @@ function Repair-AecCptxNvidiaRuntime {
   $updated = $content
   $modelBlock = @'
 model:
-  default: aws/anthropic/claude-opus-4-5
-  provider: custom:nvidia_claude
+  default: openai/openai/gpt-5.6-sol
+  provider: custom:nvidia_responses
   openai_runtime: auto
-  context_length: 200000
+  context_length: 1050000
   max_tokens: 32768
   supports_vision: true
 '@
   $providerBlock = if ($RemoteOnly) { @'
 custom_providers:
-  - name: nvidia_claude
+  - name: nvidia_responses
     base_url: https://inference-api.nvidia.com/v1
-    api_mode: chat_completions
+    api_mode: codex_responses
     key_env: NVIDIA_API_KEY
-    model: aws/anthropic/claude-opus-4-5
+    model: openai/openai/gpt-5.6-sol
     models:
-      aws/anthropic/claude-opus-4-5:
-        context_length: 200000
+      openai/openai/gpt-5.6-sol:
+        context_length: 1050000
         supports_vision: true
   - name: nvidia_omni
     base_url: https://inference-api.nvidia.com/v1
@@ -439,14 +487,14 @@ custom_providers:
         supports_vision: true
 '@ } else { @'
 custom_providers:
-  - name: nvidia_claude
+  - name: nvidia_responses
     base_url: https://inference-api.nvidia.com/v1
-    api_mode: chat_completions
+    api_mode: codex_responses
     key_env: NVIDIA_API_KEY
-    model: aws/anthropic/claude-opus-4-5
+    model: openai/openai/gpt-5.6-sol
     models:
-      aws/anthropic/claude-opus-4-5:
-        context_length: 200000
+      openai/openai/gpt-5.6-sol:
+        context_length: 1050000
         supports_vision: true
   - name: nvidia_omni
     base_url: https://inference-api.nvidia.com/v1
@@ -525,11 +573,11 @@ auxiliary:
     $updated = [regex]::Replace($updated, '(?m)^(\s+max_context_chars:\s*2200\s*\r?\n)', "`${1}    fast_retrieval: true`r`n", 1)
   }
   if ($updated -eq $content) { return }
-  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Configure the NVIDIA-hosted Claude Opus 4.5 and Nemotron Omni AEC runtime')) {
+  if ($script:InstallerCmdlet.ShouldProcess($ProfileConfig, 'Configure the NVIDIA-hosted GPT-5.6 Sol and Nemotron Omni AEC runtime')) {
     $backup = "$ProfileConfig.bak-nvidia-hosted-$(Get-Date -Format 'yyyyMMddHHmmss')"
     Copy-Item -LiteralPath $ProfileConfig -Destination $backup
     Write-Utf8Text $ProfileConfig $updated
-    Write-Host "Configured NVIDIA-hosted Claude Opus 4.5 and Nemotron Omni AEC runtime; backup: $backup"
+    Write-Host "Configured NVIDIA-hosted GPT-5.6 Sol and Nemotron Omni AEC runtime; backup: $backup"
   }
 }
 
@@ -543,7 +591,7 @@ function Ensure-AecNvidiaCredential {
   }
   $credential = $env:NVIDIA_API_KEY
   if (-not $credential -and -not $WhatIfPreference) {
-    $secure = Read-Host 'Enter the NVIDIA inference API key for Claude Opus 4.5 and Nemotron Omni' -AsSecureString
+    $secure = Read-Host 'Enter the NVIDIA inference API key for GPT-5.6 Sol and Nemotron Omni' -AsSecureString
     $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
     try { $credential = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
@@ -1213,6 +1261,7 @@ if (Test-Path -LiteralPath $dmlBin -PathType Container) {
 
 $hermesExe = Join-Path $HermesHome 'hermes-agent\venv\Scripts\hermes.exe'
 Repair-HermesDmlContinuation $HermesHome
+Repair-HermesVisualPayloadHistory $HermesHome
 if (-not $SkipProfiles) {
   Write-Step 'Ensure Hermes profiles exist without overwriting live profile data'
   if (-not (Test-Path -LiteralPath $hermesExe)) {
@@ -1318,6 +1367,7 @@ if (-not $SkipLaunchers) {
   $bin = Join-Path $HermesHome 'bin'
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\rtx-pro-profile\Test-RTX-Pro-Preflight.ps1') (Join-Path $bin 'Test-RTX-Pro-Preflight.ps1')
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\aec-cptx-profile\Start-Hermes-AEC-Rhino-DML.ps1') (Join-Path $bin 'Start-Hermes-AEC-Rhino-DML.ps1')
+  Install-ManagedFile (Join-Path $RepoRoot 'deployment\aec-cptx-profile\Start-Hermes-AEC-Desktop.ps1') (Join-Path $bin 'Start-Hermes-AEC-Desktop.ps1')
   Install-ManagedFile (Join-Path $RepoRoot 'deployment\aec-control-plane\Start-AEC-Control-Plane.ps1') (Join-Path $bin 'Start-AEC-Control-Plane.ps1')
 
   if (-not $SummitMode) {
@@ -1379,6 +1429,24 @@ if not "%HERMES_EXIT%"=="0" (
 )
 exit /b %HERMES_EXIT%
 '@
+  Install-ManagedText (Join-Path $LauncherDirectory 'AEC_CLIFFHOUSE_HERMES.bat') @'
+@echo off
+title AEC Cliff House - Hermes Windows App
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\hermes\bin\Start-Hermes-AEC-Desktop.ps1"
+if errorlevel 1 (
+  echo.
+  echo The Hermes Windows app could not be started.
+  pause
+)
+'@
+  $hermesDesktopIcon = Join-Path $HermesHome 'hermes-agent\apps\desktop\assets\icon.ico'
+  $powerShellExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+  Install-ManagedShortcut `
+    -Destination (Join-Path $LauncherDirectory 'AEC Cliff House - Hermes.lnk') `
+    -TargetPath $powerShellExe `
+    -Arguments ('-NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $bin 'Start-Hermes-AEC-Desktop.ps1') + '"') `
+    -WorkingDirectory $RepoRoot `
+    -IconLocation $hermesDesktopIcon
   Install-ManagedText (Join-Path $LauncherDirectory 'AEC Mission Control.bat') @'
 @echo off
 title AEC Mission Control
@@ -1443,7 +1511,7 @@ if ($preflightCode -eq 0) {
   Write-Warning 'Bootstrap completed, but one or more required checks still need attention.'
 }
 if ($SummitMode) {
-  Write-Host 'AEC RTX Summit mode installed remote Claude Opus 4.5 + compact DML; no local vLLM/Qwen chat or vision containers were provisioned.'
+  Write-Host 'AEC RTX Summit mode installed remote GPT-5.6 Sol + compact DML; no local vLLM/Qwen chat or vision containers were provisioned.'
 } else {
   Write-Host 'Large model downloads, Rhino, and private Daystrom source are never installed implicitly.'
 }

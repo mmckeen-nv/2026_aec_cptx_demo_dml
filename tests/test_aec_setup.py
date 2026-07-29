@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import os
 import sys
@@ -459,8 +460,10 @@ class SetupTests(unittest.TestCase):
         self.assertIn("knowledge\\dml\\tool_memory_v2", installer)
         self.assertIn("'openclaw' 'snips2'", installer)
         self.assertIn("Repair-AecCptxNvidiaRuntime", installer)
-        self.assertIn("aws/anthropic/claude-opus-4-5", installer)
-        self.assertIn("context_length: 200000", installer)
+        self.assertIn("Repair-HermesVisualPayloadHistory", installer)
+        self.assertIn("apply_visual_history_patch.py", installer)
+        self.assertIn("openai/openai/gpt-5.6-sol", installer)
+        self.assertIn("context_length: 1050000", installer)
         self.assertIn("max_tokens: 32768", installer)
         self.assertIn(
             "nvidia/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
@@ -473,6 +476,89 @@ class SetupTests(unittest.TestCase):
         self.assertIn("AEC Cliff House - Hermes CLI", installer)
         self.assertIn("CLI_LAUNCHER_SMOKE_PASS", installer)
         self.assertIn('--cli', installer)
+        self.assertIn("AEC_CLIFFHOUSE_HERMES.bat", installer)
+        self.assertIn("AEC Cliff House - Hermes.lnk", installer)
+        self.assertIn("Start-Hermes-AEC-Desktop.ps1", installer)
+        desktop_launcher = (
+            REPO_ROOT
+            / "deployment"
+            / "aec-cptx-profile"
+            / "Start-Hermes-AEC-Desktop.ps1"
+        ).read_text()
+        self.assertIn("active-profile.json", desktop_launcher)
+        self.assertIn("Set-HermesDesktopProfile -Profile 'aec-cptx'", desktop_launcher)
+        self.assertIn("HERMES_DESKTOP_LAUNCHER_SMOKE_PASS", desktop_launcher)
+        self.assertIn("@('desktop', '--cwd', $repoRoot)", desktop_launcher)
+        summit_installer = (
+            REPO_ROOT
+            / "deployment"
+            / "AEC_RTX_SUMMIT"
+            / "Install-AEC-RTX-Summit.ps1"
+        ).read_text()
+        self.assertIn("'Build the Hermes Windows frontend for the AEC profile'", summit_installer)
+        self.assertIn("'Start-Hermes-AEC-Desktop.ps1'", summit_installer)
+        self.assertIn("'-BuildOnly'", summit_installer)
+        hero_asset_index = (
+            REPO_ROOT / "demos" / "cliff_house" / "HERO_ASSET.md"
+        ).read_text()
+        self.assertIn("cliff_house_02_HERO.blend", hero_asset_index)
+        self.assertIn(
+            "d0756bfa299b89d51642bf5688eba875f68cf99a9a72978bc24fac1f23d4413a",
+            hero_asset_index,
+        )
+        rhino_hero = (
+            REPO_ROOT
+            / "demos"
+            / "cliff_house"
+            / "hero"
+            / "cliff_house_HERO_RHINO_MODEL.3dm"
+        )
+        self.assertTrue(rhino_hero.is_file())
+        self.assertEqual(
+            hashlib.sha256(rhino_hero.read_bytes()).hexdigest(),
+            "029a9b8e338a12c3babef2a7a2c95f385475c0ffe09da8700fa8ade8ab2ea637",
+        )
+        self.assertIn("559 active Rhino objects", hero_asset_index)
+        profile_agents = (
+            REPO_ROOT / "deployment" / "aec-cptx-profile" / "AGENTS.md"
+        ).read_text()
+        self.assertIn("demos/cliff_house/HERO_ASSET.md", profile_agents)
+        self.assertIn("Run the Cliff House quick demo", profile_agents)
+        self.assertIn("Never open", profile_agents)
+        self.assertIn("legacy HERO", profile_agents)
+        quick_prompt = (
+            REPO_ROOT
+            / "deployment"
+            / "aec-cptx-profile"
+            / "cliff-house-quick-demo.txt"
+        ).read_text()
+        self.assertIn("exactly these two execution actions", quick_prompt)
+        self.assertIn("COMFY_OUTPUT_PASS stage=flux2-direct", quick_prompt)
+        self.assertIn("CLIFF_QUICK_OPEN_PASS objects=98 meshes=94", quick_prompt)
+        self.assertIn("blender_cliff_quick.py", quick_prompt)
+        self.assertNotIn("mcp__rhino__", quick_prompt)
+        quick_helper = (
+            REPO_ROOT
+            / "demos"
+            / "cliff_house"
+            / "hero"
+            / "skills"
+            / "blender_cliff_quick.py"
+        ).read_text()
+        self.assertIn(
+            'EXPECTED = {"objects": 98, "meshes": 94, "cameras": 2, "lights": 2}',
+            quick_helper,
+        )
+        self.assertIn(
+            "b62312601e6d0b1b448f8089984a7a527235c40f518d6d768ae1103d8716ba35",
+            quick_helper,
+        )
+        profile_soul = (
+            REPO_ROOT / "deployment" / "aec-cptx-profile" / "SOUL.md"
+        ).read_text()
+        self.assertIn('"load/open the HERO model"', profile_soul)
+        self.assertIn("cliff_house_QUICK_MASTER.blend", profile_soul)
+        self.assertIn('"legacy HERO"', profile_soul)
         self.assertIn("Install-DaystromAecPatch", installer)
         dml_patch = (
             REPO_ROOT / "deployment" / "daystrom-dml" / "aec-agent-memory.patch"
